@@ -339,6 +339,7 @@ Every active plan should include a `*-tasks.json` file next to its PRD. This fil
 | Cardano Backends | [Watchdog Architecture](watchdog/watchdog-prd.md) | Completed | 2026-07-30 |
 | Mithril | [Mithril Sync in Rust Watchdog](mithril-watchdog/mithril-watchdog-prd.md) | Draft | 2026-07-31 |
 | Build & Tooling | [Dependency Hygiene](dependency-hygiene/dependency-hygiene-prd.md) | Completed | 2026-08-27 |
+| Native Tokens | [Asset Metadata Cache](asset-metadata-cache/asset-metadata-cache-prd.md) | Draft | 2026-09-10, revised 2026-09-14 |
 
 ---
 
