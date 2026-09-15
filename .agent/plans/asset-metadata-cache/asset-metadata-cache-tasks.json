@@ -3,8 +3,8 @@
   "title": "Asset Metadata Cache Tasks",
   "created": "2026-09-10",
   "updated": "2026-09-16",
-  "version": "1.5.0",
-  "totalTasks": 42,
+  "version": "1.6.0",
+  "totalTasks": 43,
   "prdReference": ".agent/plans/asset-metadata-cache/asset-metadata-cache-prd.md",
   "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the metadata is cryptographically bound to the minting policy, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
   "sourceFiles": [
@@ -1029,6 +1029,38 @@
       "Driving a resolution into an open form by hand does not change the number of natural units the form would submit without the user re-entering it"
      ],
      "notes": "The condition on which optimistic decimals was approved on 2026-09-14. cucumber-unit is CI-gated at perSystem/checks.nix:48."
+    },
+    {
+     "id": "task-043",
+     "title": "Draw the decimal places notice as a tinted panel rather than at eight percent",
+     "description": "task-021's notice sets opacity 0.08 on its container to get a faint tinted background. opacity composites the element with its whole subtree, so the notice text and the dismiss button are drawn at eight percent too and the result is an empty box of the right size at the top of the tokens tab, on every wallet holding tokens. The tint belongs in the colour: an eight percent mix of --theme-choice-tabs-text-color-active with transparent, leaving the container at full opacity.",
+     "status": "completed",
+     "priority": "high",
+     "estimatedHours": 1.5,
+     "dependencies": [
+      "task-021"
+     ],
+     "targetPaths": [
+      "source/renderer/app/components/wallet/tokens/wallet-tokens/WalletTokens.scss"
+     ],
+     "implementationNotes": [
+      "rgba(var(--theme-choice-tabs-text-color-active), 0.08) does not work and would ship a second invisible notice. The precedent at components/sidebar/wallets/WalletSearch.scss:1-2 composes rgba() over a variable that holds a bare triple, '45, 45, 45' at white.ts:865. This variable holds a hex string, '#2d2d2d' at white.ts:1043, so the same expression reaches the browser as rgba(#2d2d2d, 0.08) and is dropped as invalid.",
+      "color-mix(in srgb, ...) is the expression that works. The space has to be stated, and srgb rather than the default oklab, because the intent is the alpha blend opacity was reaching for and not a perceptual mix.",
+      "sass 1.44.0 predates any color-mix handling and emits the declaration verbatim; there is no autoprefixer or colour plugin in the tree, only postcss and postcss-modules. Electron 41.3.0 reports Chromium 146, and color-mix has been in Chromium since 111.",
+      "Not a new theme variable. That is nine literals plus one in utils/createTheme.ts kept in step by hand, to express something that is a function of a colour every theme already defines.",
+      "No assertion available in this repository separates the broken state from the fixed one. jsdom has no cascade and no compositing, and jest-css-modules-transform hands a component a class-name map rather than declared values, so WalletTokens.spec.tsx passes identically either way. The surface is covered by task-027's Scenario 5, which was written correctly and has never been executed."
+     ],
+     "testCases": [
+      "None. Stated rather than filled: the five cases task-021 wrote are about when the notice exists, which is not what broke, and they pass unchanged."
+     ],
+     "acceptance": [
+      "The notice container renders at full opacity and its text and dismiss button at the colours their own rules give them",
+      "Text and button legible against the composited panel in all nine themes, with the contrast ratio recorded per theme",
+      "No copy, layout or behaviour change",
+      "compile, lint, stylelint, jest and i18n green from nix build",
+      "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged"
+     ],
+     "notes": "Found in manual QA against a real mainnet wallet on this branch. task-021 was accepted on ten passing cases and a screenshot step nobody could run, and the two were never weighed against each other. A suite that cannot see a rendered pixel is not evidence that a pixel renders."
     }
    ]
   },
@@ -1696,8 +1728,8 @@
  ],
  "summary": {
   "totalPhases": 7,
-  "totalTasks": 42,
-  "estimatedTotalHours": 199.5,
+  "totalTasks": 43,
+  "estimatedTotalHours": 201.0,
   "criticalPath": [
    "task-007",
    "task-008",

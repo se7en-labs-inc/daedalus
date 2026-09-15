@@ -5,11 +5,20 @@
     margin: 0 20px 20px;
   }
 
+  /**
+   * The tint belongs to the colour and not to the element. `opacity` applies to
+   * the whole subtree, so eight percent here draws the notice text and the
+   * dismiss button at eight percent as well, which is a box with nothing in it
+   * rather than a faintly tinted panel.
+   */
   .decimalPlacesNotice {
-    background-color: var(--theme-choice-tabs-text-color-active);
+    background-color: color-mix(
+      in srgb,
+      var(--theme-choice-tabs-text-color-active) 8%,
+      transparent
+    );
     border-radius: 4px;
     margin: 0 20px 20px;
-    opacity: 0.08;
     padding: 16px 20px;
   }
 
