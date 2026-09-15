@@ -316,3 +316,33 @@ missed.
   survivor already took the branch that remains.
 - Scope held. No file under `source/` changed, no flag moved, the voting stories were left alone,
   and the `_utils` re-verification was left to `task-007` where it belongs.
+
+## Later Annotation: The Byron Migration Stories Are Expected Back
+
+Added during phase 4, at `68974330c`. The task is not reopened and nothing here changes what it did.
+
+This task deleted `storybook/stories/wallets/legacyWallets/TransferFunds.stories.tsx` and
+`storybook/stories/wallets/legacyWallets/LegacyNotification.stories.tsx` under locked decision 4,
+reasoning that no user can reach either screen. That reasoning is a statement about a flag's current
+value, not a permanent finding, and it stops holding when the Byron-era migration flow is re-enabled,
+which is on the project's roadmap and expected to work on the current testnets.
+
+Nothing is unrecoverable. Decision 4 drew its line at the stories, and every component and request
+behind them survives: `TransferFundsStep1Dialog`, `TransferFundsStep2Dialog`, both containers,
+`TransferFundsPage`, `LegacyNotification`, and the API requests they call. The flags were left
+untouched. What is absent is workbench coverage, not the flow.
+
+The route back is the `task-006` precedent: restaged in CSF against the story harness, not resurrected
+as `storiesOf` files, which no longer load. Phase 6 and 7's container harness is the natural place to
+hang them.
+
+They are deliberately not recreated in this epic. The revived flow's shape is not designed yet, and
+stories written against a guess at it would be worse than the gap, because a reviewer would read them
+as describing something real.
+
+One consequence worth naming for whoever picks this up: `hasRewardsWallets` is the precondition for
+the affordance those stories covered. `source/renderer/app/components/layout/TopBar.tsx:51` reads it
+as `((hasRewardsWallets && onTransferFunds) || onWalletAdd)`, deciding whether the legacy notification
+offers to move funds. It is a live domain flag rather than a display mode, and phase 4 declares it as
+a per-meta arg on the metas whose stories show that affordance rather than promoting it to a toolbar
+global.

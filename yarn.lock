@@ -2474,6 +2474,15 @@
     polished "^4.2.2"
     uuid "^9.0.0"
 
+"@storybook/addon-controls@8.6.18":
+  version "8.6.18"
+  resolved "https://registry.yarnpkg.com/@storybook/addon-controls/-/addon-controls-8.6.18.tgz#31f3655ab08103a414980f53f47064fd9210a89c"
+  integrity sha512-K09dHDCfGW3cudsfuyfu0Yi49aZ2h7VYK4IXDGo1sfmtzVh4xd3HrZQQMVUeKLcfDP/NnJowT+fLVwg04CLrxQ==
+  dependencies:
+    "@storybook/global" "^5.0.0"
+    dequal "^2.0.2"
+    ts-dedent "^2.0.0"
+
 "@storybook/addon-knobs@8.0.1":
   version "8.0.1"
   resolved "https://registry.yarnpkg.com/@storybook/addon-knobs/-/addon-knobs-8.0.1.tgz#0e67dd99504abd53d1a67f57395fee5c075eb324"

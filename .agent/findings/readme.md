@@ -41,3 +41,5 @@ looking for.
 |---------|-------|--------|
 | [retired-drep-visibility.md](./retired-drep-visibility.md) | Governance, with an upstream fix: a retired DRep leaves the wallet loading forever | Open, not scheduled |
 | [undeclared-transitive-dependencies.md](./undeclared-transitive-dependencies.md) | Dependency management, repository-wide: source and build config import packages nothing declares | Open, not scheduled |
+| [05-one-knob-label-is-one-control.md](./05-one-knob-label-is-one-control.md) | Storybook stories, three files: two controls sharing a label were one control, so three screens show a value their source does not state | Open, not scheduled |
+| [06-alonzo-celebration-is-unreachable.md](./06-alonzo-celebration-is-unreachable.md) | Top bar: a config flag makes the Alonzo celebration icon unrenderable, and its prop is still threaded through three components | Open, not scheduled |

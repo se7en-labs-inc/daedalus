@@ -1133,6 +1133,63 @@
      ]
     },
     {
+     "id": "task-064",
+     "title": "Add the controls addon to the manifest",
+     "description": "The corpus has no controls panel and never had one. addon-controls is a separate package at Storybook 8 and only folds into core at 9, so args declared by the tranche tasks reach their render functions with nothing in the workbench to drive them. Added ahead of task-034 rather than folded into it, so that task stays a removal.",
+     "status": "pending",
+     "priority": "critical",
+     "estimatedHours": 2.0,
+     "dependencies": [
+      "task-033"
+     ],
+     "targetPaths": [
+      "package.json",
+      "storybook/main.ts",
+      "yarn.lock"
+     ],
+     "implementationNotes": [
+      "Gate the manifest edit with nix build .#internal.x86_64-linux.node_modules, which installs under --frozen-lockfile and so refuses a manifest and lockfile that disagree.",
+      "The dependency is temporary by construction: 9 and 10 fold controls into core, so task-037 drops it at the bump.",
+      "The addon list entry goes in storybook/main.ts as well as the manifest."
+     ],
+     "acceptance": [
+      "@storybook/addon-controls is declared at 8.6.18 and present in yarn.lock",
+      "The built manager carries a controls addon bundle",
+      "nix build .#internal.x86_64-linux.node_modules passes",
+      "yarn storybook:build, yarn compile and yarn lint pass"
+     ]
+    },
+    {
+     "id": "task-065",
+     "title": "Retire the knobs in the two shared story wrappers",
+     "description": "The last 8 knob call sites are in _support/StoryLayout.tsx and _support/DiscreetModeToggleKnob.ts, wrappers whose controls appear on every story they reach. An arg cannot have that reach, so each of the five controls is promoted to a toolbar global, declared as a per-meta arg, or dropped, according to what it gates.",
+     "status": "pending",
+     "priority": "critical",
+     "estimatedHours": 6.0,
+     "dependencies": [
+      "task-064"
+     ],
+     "targetPaths": [
+      "storybook/stories/_support/StoryLayout.tsx",
+      "storybook/stories/_support/DiscreetModeToggleKnob.ts",
+      "storybook/preview.tsx",
+      "storybook/stories/_support/config.ts",
+      "storybook/stories/_support/globals.ts"
+     ],
+     "implementationNotes": [
+      "Promote discreet mode and currentNumberFormat to globalTypes, read through _support/globals.ts, following the task-016 precedent. Four globals is the ceiling; nothing else is promoted without asking.",
+      "hasRewardsWallets stays a per-meta arg. It is a domain precondition rather than a display mode: TopBar.tsx:51 reads it as ((hasRewardsWallets && onTransferFunds) || onWalletAdd), which decides whether the legacy notification offers to move funds. Declare it on every meta whose stories show that affordance.",
+      "isAlonzoActivated and hasTadaIcon are dropped, not converted. IS_TADA_ICON_AVAILABLE is false at topBarConfig.ts:1, so shouldShowTadaIcon is false unconditionally and the only state either control produced is one the application cannot reach. Written up in .agent/findings/06-alonzo-celebration-is-unreachable.md.",
+      "hasTadaIcon is not the testnet-mode indicator. That is WalletTestEnvironmentLabel, built at TopBarContainer.tsx:57."
+     ],
+     "acceptance": [
+      "No knob import remains anywhere in the repository",
+      "The sidebar label set is unchanged, pair for pair",
+      "story-args-audit.js stays at zero findings",
+      "yarn storybook:build, yarn compile and yarn lint pass"
+     ]
+    },
+    {
      "id": "task-034",
      "title": "Remove addon-knobs and storybook-state from the manifest",
      "description": "package.json:85 declares @storybook/addon-knobs. It becomes unreferenced once the last call site is gone (@dump247/storybook-state was already removed in phase 2 by task-063), and removing them is what unblocks the 10.6.x bump, because neither loads at Storybook 9 or above.",
@@ -1140,7 +1197,9 @@
      "priority": "critical",
      "estimatedHours": 3.0,
      "dependencies": [
-      "task-033"
+      "task-033",
+      "task-064",
+      "task-065"
      ],
      "targetPaths": [
       "package.json",
