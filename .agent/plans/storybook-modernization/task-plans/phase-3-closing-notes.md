@@ -17,11 +17,13 @@ to catch afterwards.
    path `.prettierignore` excludes, and prettier reports success when it matches nothing. Checking
    through `--stdin-filepath` measures the file rather than the path.
 3. **The formatter being checked was not the formatter being enforced.** `node_modules/.bin/prettier`
-   is pinned at 2.1.2 and nothing runs it: `.eslintrc` extends `eslint-config-prettier`, which only
-   switches formatting rules off. `nix fmt` runs prettier 3.6.2 and is the only formatter with
+   was pinned at 2.1.2 and nothing ran it: `.eslintrc` extends `eslint-config-prettier`, which only
+   switches formatting rules off. `nix fmt` runs prettier 3.6.2 and was the only formatter with
    authority over the tree. Several tasks were checked against the wrong one before this surfaced.
    It produced one divergence, because the two versions agree nearly everywhere, which is exactly why
-   it went unnoticed.
+   it went unnoticed. The gap itself is closed: the dependency hygiene work moved the declared
+   `prettier` to 3.6.2, which is the version `nix fmt` already ran, so checking either now answers
+   the same question. The lesson does not depend on the example surviving.
 4. **`storybook migrate` converted 1 of 64 files and reported `0 errors, 1 ok`.** The CLI relaunches
    itself through `child_process.spawn(..., { shell: true })`, so `--glob` is pathname-expanded by
    `/bin/sh` before the CLI parses arguments, and `/bin/sh` has no `**`. The pattern collapsed to one
