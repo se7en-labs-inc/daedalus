@@ -1684,7 +1684,7 @@
           "id": "task-046",
           "title": "Screen tranche 4: news, updates and notifications, 4 screens",
           "description": "NewsFeedContainer, NewsOverlayContainer, AppUpdateContainer and NotificationsContainer, all mounted above the router by App.tsx and Root.tsx.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 7.0,
           "dependencies": [
@@ -1713,25 +1713,25 @@
               "id": "task-046-a",
               "title": "NewsFeedContainer",
               "description": "NewsFeedContainer -> source/renderer/app/containers/news/NewsFeedContainer.tsx -> storybook/stories/screens/news/NewsFeedContainer.stories.tsx (stores: newsFeed, app)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-046-b",
               "title": "NewsOverlayContainer",
               "description": "NewsOverlayContainer -> source/renderer/app/containers/news/NewsOverlayContainer.tsx -> storybook/stories/screens/news/NewsOverlayContainer.stories.tsx (stores: newsFeed)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-046-c",
               "title": "AppUpdateContainer",
               "description": "AppUpdateContainer -> source/renderer/app/containers/appUpdate/AppUpdateContainer.tsx -> storybook/stories/screens/appUpdate/AppUpdateContainer.stories.tsx (stores: appUpdate)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-046-d",
               "title": "NotificationsContainer",
               "description": "NotificationsContainer -> source/renderer/app/containers/notifications/NotificationsContainer.tsx -> storybook/stories/screens/notifications/NotificationsContainer.stories.tsx (stores: uiNotifications)",
-              "status": "pending"
+              "status": "completed"
             }
           ]
         },

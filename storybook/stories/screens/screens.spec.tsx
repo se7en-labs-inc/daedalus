@@ -25,6 +25,10 @@ import * as syncingConnecting from './loading/SyncingConnectingPage.stories';
 import * as mithrilSync from './loading/MithrilSyncContainer.stories';
 import * as chainStorage from './loading/ChainStorageContainer.stories';
 import * as diagnostics from './status/DaedalusDiagnosticsDialog.stories';
+import * as newsFeed from './news/NewsFeedContainer.stories';
+import * as newsOverlay from './news/NewsOverlayContainer.stories';
+import * as appUpdate from './appUpdate/AppUpdateContainer.stories';
+import * as notifications from './notifications/NotificationsContainer.stories';
 
 /*
  * Every screen story, mounted.
@@ -73,19 +77,26 @@ const modules = {
   MithrilSyncContainer: mithrilSync,
   ChainStorageContainer: chainStorage,
   DaedalusDiagnosticsDialog: diagnostics,
+  NewsFeedContainer: newsFeed,
+  NewsOverlayContainer: newsOverlay,
+  AppUpdateContainer: appUpdate,
+  NotificationsContainer: notifications,
 };
 
 /*
- * Three containers return null by design, and each of those states is worth a
+ * Five containers return null by design, and each of those states is worth a
  * story: the dialog that is shut is what most routes see, the splash screen does
- * not exist outside a Flight build, and the RTS recommendation is gone for good
- * once it has been dismissed. They are listed rather than branched on inside an
+ * not exist outside a Flight build, the RTS recommendation is gone for good once
+ * it has been dismissed, there is usually no incident to announce, and there is
+ * usually no update waiting. They are listed rather than branched on inside an
  * assertion, so each case has its own expectation.
  */
 const RENDERS_NOTHING = new Set([
   'AssetSettingsDialogContainer:Closed',
   'SplashNetworkPage:NotAFlightBuild',
   'RTSFlagsRecommendationOverlayContainer:Acknowledged',
+  'NewsOverlayContainer:Nothing',
+  'AppUpdateContainer:NoUpdate',
 ]);
 
 /*
@@ -147,17 +158,32 @@ const THROWS_AT_THE_LOGO = new Set([
   'LoadingPage:SystemTimeError',
 ]);
 
+/*
+ * One screen renders a tree with no text in it, and that is the state it
+ * documents rather than a failure. The notification bar draws one element per
+ * configured notification whatever the store says and shows the label only for
+ * the active ones, so with none active it is a stack of empty wrappers. Asserted
+ * as elements present and text absent, which is a stronger statement than either
+ * of the two groups above would make about it.
+ */
+const RENDERS_WITHOUT_TEXT = new Set(['NotificationsContainer:Default']);
+
 const showsSomething = allStories.filter(
-  (s) => !RENDERS_NOTHING.has(s.id) && !THROWS_AT_THE_LOGO.has(s.id)
+  (s) =>
+    !RENDERS_NOTHING.has(s.id) &&
+    !THROWS_AT_THE_LOGO.has(s.id) &&
+    !RENDERS_WITHOUT_TEXT.has(s.id)
 );
 const showsNothing = allStories.filter((s) => RENDERS_NOTHING.has(s.id));
 const throwsAtTheLogo = allStories.filter((s) => THROWS_AT_THE_LOGO.has(s.id));
+const showsNoText = allStories.filter((s) => RENDERS_WITHOUT_TEXT.has(s.id));
 
 describe('screen stories', () => {
   it('composes every screen story', () => {
-    expect(allStories).toHaveLength(44);
+    expect(allStories).toHaveLength(57);
     expect(showsNothing).toHaveLength(RENDERS_NOTHING.size);
     expect(throwsAtTheLogo).toHaveLength(THROWS_AT_THE_LOGO.size);
+    expect(showsNoText).toHaveLength(RENDERS_WITHOUT_TEXT.size);
   });
 
   it.each(showsSomething.map((s) => [s.id, s.Story]))(
@@ -173,6 +199,15 @@ describe('screen stories', () => {
     (_id, Story) => {
       const { container } = renderStory(Story);
       expect(container.firstChild).toBeNull();
+    }
+  );
+
+  it.each(showsNoText.map((s) => [s.id, s.Story]))(
+    '%s mounts, renders its frame and shows no text, which is the quiet state',
+    (_id, Story) => {
+      const { baseElement } = renderStory(Story);
+      expect(baseElement.querySelectorAll('div').length).toBeGreaterThan(1);
+      expect(baseElement.textContent).toBe('');
     }
   );
 
