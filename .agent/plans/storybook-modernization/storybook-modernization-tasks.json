@@ -986,7 +986,7 @@
      "id": "task-028",
      "title": "Convert knobs in the nodes and loading tranche",
      "description": "The Mithril, syncing, diagnostics and error story sets. loading/mithril/MithrilPartialSyncOverlay.stories.tsx alone carries 15 registrations across 388 lines.",
-     "status": "pending",
+     "status": "completed",
      "priority": "high",
      "estimatedHours": 12.0,
      "dependencies": [

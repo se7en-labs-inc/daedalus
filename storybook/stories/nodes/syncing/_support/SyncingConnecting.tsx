@@ -1,5 +1,4 @@
 import React from 'react';
-import { boolean, radios, number } from '@storybook/addon-knobs';
 import { linkTo } from '@storybook/addon-links';
 import { action } from '@storybook/addon-actions';
 import SyncingConnecting from '../../../../../source/renderer/app/components/loading/syncing-connecting/SyncingConnecting';
@@ -8,35 +7,61 @@ import {
   CardanoNodeStates,
 } from '../../../../../source/common/types/cardano-node.types';
 
-const makeProgressValueKnob = ({ name, value }) =>
-  number(name, value, {
-    range: true,
-    min: 0,
-    max: 100,
-    step: 1,
-  });
+// The three progress values were one knob helper called three times, so every
+// story in this panel carried all three controls. They belong on the panel's
+// meta for the same reason.
+export const blockSyncProgressArgs = {
+  verifyingBlockchainState: 100,
+  replayingLedger: 99,
+  syncingBlockchain: 0,
+};
 
-const makeBlockSyncProgress = () => ({
-  [BlockSyncType.validatingChunk]: makeProgressValueKnob({
-    name: 'Verifying on-disk blockchain state',
-    value: 100,
-  }),
-  [BlockSyncType.replayedBlock]: makeProgressValueKnob({
-    name: 'Replaying ledger from on-disk blockchain',
-    value: 99,
-  }),
-  [BlockSyncType.pushingLedger]: makeProgressValueKnob({
-    name: 'Syncing blockchain',
-    value: 0,
-  }),
+export const percentRange = { min: 0, max: 100, step: 1 };
+
+const toBlockSyncProgress = ({
+  verifyingBlockchainState,
+  replayingLedger,
+  syncingBlockchain,
+}) => ({
+  [BlockSyncType.validatingChunk]: verifyingBlockchainState,
+  [BlockSyncType.replayedBlock]: replayingLedger,
+  [BlockSyncType.pushingLedger]: syncingBlockchain,
 });
 
-export function DefaultSyncingConnectingStory() {
+export const defaultSyncingConnectingArgs = {
+  isVerifyingBlockchain: false,
+  cardanoNodeState: CardanoNodeStates.STARTING,
+  hasBeenConnected: false,
+  isConnected: false,
+  isSynced: false,
+  isConnecting: true,
+  isSyncing: false,
+  isSyncProgressStalling: false,
+  isNodeStopping: false,
+  isNodeStopped: false,
+  isTlsCertInvalid: false,
+  hasLoadedCurrentLocale: true,
+  hasLoadedCurrentTheme: true,
+  isCheckingSystemTime: false,
+  isNodeResponding: false,
+  isNodeSubscribed: false,
+  isNodeSyncing: false,
+  isNodeTimeCorrect: true,
+  isNewAppVersionLoaded: false,
+  disableDownloadLogs: true,
+  isPartialSyncEnabled: false,
+};
+
+export const connectivityIssuesArgs = {
+  disableDownloadLogs: false,
+};
+
+export function DefaultSyncingConnectingStory(args) {
   return (
     <SyncingConnecting
       hasNotification={false}
       hasUpdate={false}
-      isVerifyingBlockchain={boolean('isVerifyingBlockchain', false)}
+      isVerifyingBlockchain={args.isVerifyingBlockchain}
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       verificationProgress={0}
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
@@ -44,48 +69,44 @@ export function DefaultSyncingConnectingStory() {
       hasUnreadAnnouncements={false}
       hasUnreadNews={false}
       onToggleNewsFeedIconClick={action('onToggleNewsFeedIconClick')}
-      cardanoNodeState={radios(
-        'cardanoNodeState',
-        CardanoNodeStates,
-        CardanoNodeStates.STARTING
-      )}
-      hasBeenConnected={boolean('hasBeenConnected', false)}
-      isConnected={boolean('isConnected', false)}
-      isSynced={boolean('isSynced', false)}
-      isConnecting={boolean('isConnecting', true)}
-      isSyncing={boolean('isSyncing', false)}
-      isSyncProgressStalling={boolean('isSyncProgressStalling', false)}
-      isNodeStopping={boolean('isNodeStopping', false)}
-      isNodeStopped={boolean('isNodeStopped', false)}
-      isTlsCertInvalid={boolean('isTlsCertInvalid', false)}
-      hasLoadedCurrentLocale={boolean('hasLoadedCurrentLocale', true)}
-      hasLoadedCurrentTheme={boolean('hasLoadedCurrentTheme', true)}
-      isCheckingSystemTime={boolean('isCheckingSystemTime', false)}
-      isNodeResponding={boolean('isNodeResponding', false)}
-      isNodeSubscribed={boolean('isNodeSubscribed', false)}
-      isNodeSyncing={boolean('isNodeSyncing', false)}
-      isNodeTimeCorrect={boolean('isNodeTimeCorrect', true)}
-      isNewAppVersionLoaded={boolean('isNewAppVersionLoaded', false)}
+      cardanoNodeState={args.cardanoNodeState}
+      hasBeenConnected={args.hasBeenConnected}
+      isConnected={args.isConnected}
+      isSynced={args.isSynced}
+      isConnecting={args.isConnecting}
+      isSyncing={args.isSyncing}
+      isSyncProgressStalling={args.isSyncProgressStalling}
+      isNodeStopping={args.isNodeStopping}
+      isNodeStopped={args.isNodeStopped}
+      isTlsCertInvalid={args.isTlsCertInvalid}
+      hasLoadedCurrentLocale={args.hasLoadedCurrentLocale}
+      hasLoadedCurrentTheme={args.hasLoadedCurrentTheme}
+      isCheckingSystemTime={args.isCheckingSystemTime}
+      isNodeResponding={args.isNodeResponding}
+      isNodeSubscribed={args.isNodeSubscribed}
+      isNodeSyncing={args.isNodeSyncing}
+      isNodeTimeCorrect={args.isNodeTimeCorrect}
+      isNewAppVersionLoaded={args.isNewAppVersionLoaded}
       onIssueClick={action('onIssueClick')}
       onOpenExternalLink={action('onOpenExternalLink')}
       onDownloadLogs={action('onDownloadLogs')}
       onGetAvailableVersions={action('onGetAvailableVersions')}
       onStatusIconClick={linkTo('Diagnostics', () => 'default')}
-      disableDownloadLogs={boolean('disableDownloadLogs', true)}
+      disableDownloadLogs={args.disableDownloadLogs}
       showNewsFeedIcon
-      blockSyncProgress={makeBlockSyncProgress()}
-      isPartialSyncEnabled={boolean('isPartialSyncEnabled', false)}
+      blockSyncProgress={toBlockSyncProgress(args)}
+      isPartialSyncEnabled={args.isPartialSyncEnabled}
       onMithrilSync={action('onMithrilSync')}
     />
   );
 }
-export function ConnectivityIssuesSyncingConnectingStory() {
+export function ConnectivityIssuesSyncingConnectingStory(args) {
   return (
     <SyncingConnecting
       hasNotification={false}
       hasUpdate={false}
       isVerifyingBlockchain={false}
-      blockSyncProgress={makeBlockSyncProgress()}
+      blockSyncProgress={toBlockSyncProgress(args)}
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       hasUnreadAlerts={false}
       hasUnreadAnnouncements={false}
@@ -115,18 +136,18 @@ export function ConnectivityIssuesSyncingConnectingStory() {
       onDownloadLogs={action('onDownloadLogs')}
       onGetAvailableVersions={action('onGetAvailableVersions')}
       onStatusIconClick={linkTo('Diagnostics', () => 'default')}
-      disableDownloadLogs={boolean('disableDownloadLogs', false)}
+      disableDownloadLogs={args.disableDownloadLogs}
       showNewsFeedIcon
     />
   );
 }
-export function LoadingWalletDataSyncingConnectingStory() {
+export function LoadingWalletDataSyncingConnectingStory(args) {
   return (
     <SyncingConnecting
       hasNotification={false}
       hasUpdate={false}
       isVerifyingBlockchain={false}
-      blockSyncProgress={makeBlockSyncProgress()}
+      blockSyncProgress={toBlockSyncProgress(args)}
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       hasUnreadAlerts={false}
       hasUnreadAnnouncements={false}

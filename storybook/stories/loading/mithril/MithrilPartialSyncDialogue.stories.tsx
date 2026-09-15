@@ -1,16 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs } from '@storybook/addon-knobs';
 import StoryDecorator from '../../_support/StoryDecorator';
 import { applyEnvironmentOs } from '../../_support/environment';
 import { osNameOf } from '../../_support/globals';
 import SyncingConnectingMithrilPrompt from '../../../../source/renderer/app/components/loading/syncing-connecting/SyncingConnectingMithrilPrompt';
 import styles from '../../../../source/renderer/app/components/loading/syncing-connecting/SyncingConnectingMithrilPrompt.scss';
 import { computeBehindByEpochs } from '../../../../source/renderer/app/utils/mithrilBehindness';
-import {
-  loadingBooleanKnob,
-  loadingNumberKnob,
-} from '../_support/loadingKnobs';
+import { inCategory } from '../../_support/argTypes';
 
 // onStart must return a Promise so the confirm-view "Start now" await resolves
 // like the real store call; a rejection surfaces the inline confirm-view error.
@@ -18,14 +14,18 @@ const makePromptProps = (startFails: boolean) => ({
   onStart: async () => {
     action('onStart')();
     if (startFails) {
-      throw new Error('Simulated start rejection from the startFails knob');
+      throw new Error('Simulated start rejection from the startFails control');
     }
   },
   onDismiss: action('onDismiss'),
 });
 
-const behindByEpochsKnob = () => loadingNumberKnob('behindByEpochs', 120);
-const startFailsKnob = () => loadingBooleanKnob('startFails', false);
+// startFails was one knob reached from every story through a shared factory, so
+// it is one arg on the meta. behindByEpochs was not: two stories deliberately
+// leave it unset, and an arg on the meta would give them a control that the
+// component reads as a value it is meant not to have.
+const metaArgs = { startFails: false };
+const behindByEpochsArgs = { behindByEpochs: 120 };
 
 // The OS selection reaches a story on the context, the second render argument,
 // and this mirrors it onto global.environment so the prompt's platform-aware
@@ -76,32 +76,36 @@ function ConfirmViewPrompt({
 export default {
   title: 'Loading / Mithril / Mithril Partial Sync Dialogue',
 
-  decorators: [
-    (story, context) => (
-      <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-    ),
-  ],
+  args: metaArgs,
+  argTypes: inCategory('Loading', metaArgs),
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
 
 export const KnownEpochsBehind = {
-  render: (_args, context) => {
+  args: behindByEpochsArgs,
+  argTypes: inCategory('Loading', behindByEpochsArgs),
+
+  render: ({ startFails, behindByEpochs }, context) => {
     applyStoryOs(context);
     return (
       <SyncingConnectingMithrilPrompt
-        {...makePromptProps(startFailsKnob())}
-        behindByEpochs={behindByEpochsKnob()}
+        {...makePromptProps(startFails)}
+        behindByEpochs={behindByEpochs}
       />
     );
   },
 };
 
 export const KnownEpochsBehindConfirmView = {
-  render: (_args, context) => {
+  args: behindByEpochsArgs,
+  argTypes: inCategory('Loading', behindByEpochsArgs),
+
+  render: ({ startFails, behindByEpochs }, context) => {
     applyStoryOs(context);
     return (
       <ConfirmViewPrompt
-        behindByEpochs={behindByEpochsKnob()}
-        startFails={startFailsKnob()}
+        behindByEpochs={behindByEpochs}
+        startFails={startFails}
       />
     );
   },
@@ -109,20 +113,34 @@ export const KnownEpochsBehindConfirmView = {
   name: 'Known Epochs Behind / Confirm View',
 };
 
-export const SnapshotAheadOfLocalTipDerived = {
-  render: (_args, context) => {
-    applyStoryOs(context);
-    const localTipEpoch = loadingNumberKnob('localTipEpoch', 412);
-    const mithrilSnapshotEpoch = loadingNumberKnob('mithrilSnapshotEpoch', 512);
-    const isNetworkTipKnown = loadingBooleanKnob('networkTipKnown', false);
-    const networkTipEpoch = loadingNumberKnob('networkTipEpoch', 513);
+const derivedArgs = {
+  localTipEpoch: 412,
+  mithrilSnapshotEpoch: 512,
+  networkTipKnown: false,
+  networkTipEpoch: 513,
+};
 
+export const SnapshotAheadOfLocalTipDerived = {
+  args: derivedArgs,
+  argTypes: inCategory('Loading', derivedArgs),
+
+  render: (
+    {
+      startFails,
+      localTipEpoch,
+      mithrilSnapshotEpoch,
+      networkTipKnown,
+      networkTipEpoch,
+    },
+    context
+  ) => {
+    applyStoryOs(context);
     return (
       <SyncingConnectingMithrilPrompt
-        {...makePromptProps(startFailsKnob())}
+        {...makePromptProps(startFails)}
         behindByEpochs={computeBehindByEpochs(
           makeTip(localTipEpoch),
-          isNetworkTipKnown ? makeTip(networkTipEpoch) : null,
+          networkTipKnown ? makeTip(networkTipEpoch) : null,
           mithrilSnapshotEpoch
         )}
       />
@@ -133,18 +151,16 @@ export const SnapshotAheadOfLocalTipDerived = {
 };
 
 export const UnknownBehind = {
-  render: (_args, context) => {
+  render: ({ startFails }, context) => {
     applyStoryOs(context);
-    return (
-      <SyncingConnectingMithrilPrompt {...makePromptProps(startFailsKnob())} />
-    );
+    return <SyncingConnectingMithrilPrompt {...makePromptProps(startFails)} />;
   },
 };
 
 export const UnknownBehindConfirmView = {
-  render: (_args, context) => {
+  render: ({ startFails }, context) => {
     applyStoryOs(context);
-    return <ConfirmViewPrompt startFails={startFailsKnob()} />;
+    return <ConfirmViewPrompt startFails={startFails} />;
   },
 
   name: 'Unknown Behind / Confirm View',

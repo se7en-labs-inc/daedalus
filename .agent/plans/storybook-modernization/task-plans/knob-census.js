@@ -57,9 +57,25 @@ const KNOB_NAMES = new Set([
   'radios', 'array', 'date', 'button', 'files', 'optionsKnob', 'knob',
 ]);
 
+// A knob reached through a factory is still a knob, and a scan that only looks
+// for the addon's own names cannot see it. `loading/_support/loadingKnobs.ts`
+// wraps five of them to attach a group id, so seven story files declare controls
+// with no import from the addon anywhere in them. Counting the five definitions
+// and not their call sites reports five where the work is forty-four.
+const KNOB_FACTORY_MODULE = /_support\/loadingKnobs$/;
+const KNOB_FACTORY_NAMES = new Map([
+  ['loadingBooleanKnob', 'boolean'],
+  ['loadingNumberKnob', 'number'],
+  ['loadingRadiosKnob', 'radios'],
+  ['loadingSelectKnob', 'select'],
+  ['loadingTextKnob', 'text'],
+]);
+
 function analyse(file) {
   const src = fs.readFileSync(file, 'utf8');
-  if (!src.includes('@storybook/addon-knobs')) return null;
+  if (!src.includes('@storybook/addon-knobs') && !src.includes('loadingKnobs')) {
+    return null;
+  }
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
   // Only names actually imported from addon-knobs count, so a local `select`
@@ -68,13 +84,20 @@ function analyse(file) {
   let usesWithKnobs = false;
   for (const st of sf.statements) {
     if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier)) continue;
-    if (st.moduleSpecifier.text !== '@storybook/addon-knobs') continue;
+    const spec = st.moduleSpecifier.text;
+    const isAddon = spec === '@storybook/addon-knobs';
+    const isFactory = KNOB_FACTORY_MODULE.test(spec);
+    if (!isAddon && !isFactory) continue;
     const b = st.importClause && st.importClause.namedBindings;
     if (b && ts.isNamedImports(b)) {
       for (const el of b.elements) {
         const original = (el.propertyName || el.name).text;
-        if (original === 'withKnobs') usesWithKnobs = true;
-        if (KNOB_NAMES.has(original)) imported.set(el.name.text, original);
+        if (isAddon) {
+          if (original === 'withKnobs') usesWithKnobs = true;
+          if (KNOB_NAMES.has(original)) imported.set(el.name.text, original);
+        } else if (KNOB_FACTORY_NAMES.has(original)) {
+          imported.set(el.name.text, KNOB_FACTORY_NAMES.get(original));
+        }
       }
     }
   }
@@ -120,6 +143,7 @@ function analyse(file) {
     ts.forEachChild(n, visit);
   };
   visit(sf);
+  if (!sites.length && !usesWithKnobs) return null;
   return { file, sites, usesWithKnobs, importsAnyKnob: imported.size > 0 };
 }
 
@@ -179,7 +203,7 @@ if (flags.has('--list')) {
   console.log('');
 }
 
-console.log(`files importing from addon-knobs:  ${results.length}`);
+console.log(`files declaring knobs:              ${results.length}`);
 console.log(`  of those, importing withKnobs:   ${results.filter((r) => r.usesWithKnobs).length}`);
 const count = (p) => sites.filter((s) => s.placement === p).length;
 console.log(`knob call sites:                   ${sites.length}`);

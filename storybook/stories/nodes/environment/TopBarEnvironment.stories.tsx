@@ -1,6 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
 import classNames from 'classnames';
 import StoryDecorator from '../../_support/StoryDecorator';
 import StoryProvider from '../../_support/StoryProvider';
@@ -18,7 +17,7 @@ import DiscreetToggleTopBar from '../../../../source/renderer/app/features/discr
 import { isShelleyTestnetTheme } from '../../_support/utils';
 import { currentThemeOf } from '../../_support/globals';
 
-const topBarTestEnv = (currentTheme) => (
+const topBarTestEnv = (currentTheme, isAlonzoActivated) => (
   <TopBar
     // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
     formattedWalletAmount={formattedWalletAmount}
@@ -26,7 +25,7 @@ const topBarTestEnv = (currentTheme) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={boolean('isAlonzoActivated', false)}
+    isAlonzoActivated={isAlonzoActivated}
   >
     <WalletTestEnvironmentLabel network="testnet" />
     <NodeSyncStatusIcon
@@ -50,7 +49,7 @@ const topBarTestEnv = (currentTheme) => (
   </TopBar>
 );
 
-const topBarStagingEnv = (currentTheme) => (
+const topBarStagingEnv = (currentTheme, isAlonzoActivated) => (
   <TopBar
     // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
     formattedWalletAmount={formattedWalletAmount}
@@ -58,7 +57,7 @@ const topBarStagingEnv = (currentTheme) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={boolean('isAlonzoActivated', false)}
+    isAlonzoActivated={isAlonzoActivated}
   >
     <WalletTestEnvironmentLabel network="staging" />
     <NodeSyncStatusIcon
@@ -82,7 +81,7 @@ const topBarStagingEnv = (currentTheme) => (
   </TopBar>
 );
 
-const topBarProductionEnv = (currentTheme) => (
+const topBarProductionEnv = (currentTheme, isAlonzoActivated) => (
   <TopBar
     // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
     formattedWalletAmount={formattedWalletAmount}
@@ -90,7 +89,7 @@ const topBarProductionEnv = (currentTheme) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={boolean('isAlonzoActivated', false)}
+    isAlonzoActivated={isAlonzoActivated}
   >
     <NodeSyncStatusIcon
       isSynced
@@ -116,38 +115,41 @@ const topBarProductionEnv = (currentTheme) => (
 export default {
   title: 'Nodes / Environment',
 
+  // One knob under one label served all three stories, so one arg on the meta
+  // does too.
+  args: { isAlonzoActivated: false },
+
   decorators: [
     (story) => (
       <StoryProvider>
         <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
-    withKnobs,
   ],
 };
 
 export const Testnet = {
-  render: (_args, context) => (
+  render: ({ isAlonzoActivated }, context) => (
     <SidebarLayout
-      topbar={topBarTestEnv(currentThemeOf(context))}
+      topbar={topBarTestEnv(currentThemeOf(context), isAlonzoActivated)}
       sidebar={<noscript />}
     />
   ),
 };
 
 export const Staging = {
-  render: (_args, context) => (
+  render: ({ isAlonzoActivated }, context) => (
     <SidebarLayout
-      topbar={topBarStagingEnv(currentThemeOf(context))}
+      topbar={topBarStagingEnv(currentThemeOf(context), isAlonzoActivated)}
       sidebar={<noscript />}
     />
   ),
 };
 
 export const Production = {
-  render: (_args, context) => (
+  render: ({ isAlonzoActivated }, context) => (
     <SidebarLayout
-      topbar={topBarProductionEnv(currentThemeOf(context))}
+      topbar={topBarProductionEnv(currentThemeOf(context), isAlonzoActivated)}
       sidebar={<noscript />}
     />
   ),

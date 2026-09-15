@@ -1,17 +1,29 @@
 import React from 'react';
-import { boolean, number } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import SystemTimeError from '../../../../../source/renderer/app/components/loading/system-time-error/SystemTimeError';
 
-export function SystemTimeErrorStory({ locale }: { locale: string }) {
+export const systemTimeErrorArgs = {
+  localTimeDifference: 0,
+  isCheckingSystemTime: false,
+};
+
+export function SystemTimeErrorStory({
+  locale,
+  localTimeDifference,
+  isCheckingSystemTime,
+}: {
+  locale: string;
+  localTimeDifference: number;
+  isCheckingSystemTime: boolean;
+}) {
   return (
     <SystemTimeError
-      localTimeDifference={number('localTimeDifference', 0)}
+      localTimeDifference={localTimeDifference}
       currentLocale={locale}
       onExternalLinkClick={action('onExternalLinkClick')}
       onCheckTheTimeAgain={action('onExternalLinkClick')}
       onContinueWithoutClockSyncCheck={action('onExternalLinkClick')}
-      isCheckingSystemTime={boolean('isCheckingSystemTime', false)}
+      isCheckingSystemTime={isCheckingSystemTime}
     />
   );
 }

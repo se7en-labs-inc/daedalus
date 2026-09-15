@@ -1,6 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs } from '@storybook/addon-knobs';
 import type {
   MithrilPartialSyncError,
   MithrilPartialSyncStatus,
@@ -10,11 +9,10 @@ import MithrilSyncOverlay from '../../../../source/renderer/app/components/loadi
 import StoryDecorator from '../../_support/StoryDecorator';
 import LoadingOverlayStoryFrame from '../_support/LoadingOverlayStoryFrame';
 import {
-  loadingBooleanKnob,
-  loadingNumberKnob,
-  loadingRadiosKnob,
-  loadingSelectKnob,
-} from '../_support/loadingKnobs';
+  inCategory,
+  optionsFrom,
+  radioOptionsFrom,
+} from '../../_support/argTypes';
 
 // The partial-sync service emits one cumulative progress item per stage, in
 // this order, with label always equal to the id (the renderer's
@@ -191,21 +189,10 @@ function MithrilPartialSyncOverlayStory(props: StoryProps) {
       // the wire-only transferProgress.elapsedSeconds, which the overlay
       // ignores) reproduces the live ticking timer.
       startedAt={
-        Date.now() -
-        loadingNumberKnob(
-          'elapsedSeconds',
-          props.elapsedSeconds ?? baseProps.elapsedSeconds
-        ) *
-          1000
+        Date.now() - (props.elapsedSeconds ?? baseProps.elapsedSeconds) * 1000
       }
-      filesDownloaded={loadingNumberKnob(
-        'filesDownloaded',
-        props.filesDownloaded ?? baseProps.filesDownloaded
-      )}
-      filesTotal={loadingNumberKnob(
-        'filesTotal',
-        props.filesTotal ?? baseProps.filesTotal
-      )}
+      filesDownloaded={props.filesDownloaded ?? baseProps.filesDownloaded}
+      filesTotal={props.filesTotal ?? baseProps.filesTotal}
       ancillaryBytesDownloaded={
         props.ancillaryComplete
           ? ancillaryBytesTotal
@@ -255,63 +242,101 @@ const interactiveErrorOptions = {
   Finalizing: 'finalizing',
 };
 
+// The file count and the elapsed time were controls on every story in this
+// panel, because the component they share registered them. A knob took its
+// default from the story that rendered it, so the three that differ carry their
+// own values and the rest take the meta's.
+const overlayArgs = {
+  elapsedSeconds: baseProps.elapsedSeconds,
+  filesDownloaded: baseProps.filesDownloaded,
+  filesTotal: baseProps.filesTotal,
+};
+
+const completedArgs = {
+  elapsedSeconds: 845,
+  filesDownloaded: 9,
+  filesTotal: 9,
+};
+
 export default {
   title: 'Loading / Mithril / Partial Sync Overlay',
+  args: overlayArgs,
+  argTypes: inCategory('Loading', overlayArgs),
 
   decorators: [
-    (story, context) => (
+    (story) => (
       <StoryDecorator>
-        <LoadingOverlayStoryFrame>
-          {withKnobs(story, context)}
-        </LoadingOverlayStoryFrame>
+        <LoadingOverlayStoryFrame>{story()}</LoadingOverlayStoryFrame>
       </StoryDecorator>
     ),
   ],
 };
 
-export const Interactive = () => (
-  <MithrilPartialSyncOverlayStory
-    status={loadingRadiosKnob('status', interactiveStatusOptions, 'converting')}
-    error={
-      interactiveErrorPresets[
-        loadingSelectKnob('errorPreset', interactiveErrorOptions, 'none')
-      ]
-    }
-    canRetry={loadingBooleanKnob('canRetry', false)}
-    canRestartNormally={loadingBooleanKnob('canRestartNormally', false)}
-    canWipeAndFullSync={loadingBooleanKnob('canWipeAndFullSync', false)}
-  />
-);
+const interactiveArgs = {
+  status: 'converting',
+  errorPreset: 'none',
+  canRetry: false,
+  canRestartNormally: false,
+  canWipeAndFullSync: false,
+};
 
-export const ActiveProgress = () => (
-  <MithrilPartialSyncOverlayStory status="converting" />
-);
+export const Interactive = {
+  args: interactiveArgs,
 
-export const _Cancelled = () => (
-  <MithrilPartialSyncOverlayStory
-    status="cancelled"
-    error={cancelledError}
-    canRetry
-    canRestartNormally
-  />
-);
+  argTypes: inCategory('Loading', interactiveArgs, {
+    status: radioOptionsFrom(interactiveStatusOptions),
+    errorPreset: optionsFrom(interactiveErrorOptions),
+  }),
 
-export const _Cancelling = () => (
-  <MithrilPartialSyncOverlayStory status="cancelling" />
-);
+  render: ({ errorPreset, status, ...args }) => (
+    <MithrilPartialSyncOverlayStory
+      {...args}
+      status={status}
+      error={interactiveErrorPresets[errorPreset]}
+    />
+  ),
+};
 
-export const FailedWithRestartAllowed = () => (
-  <MithrilPartialSyncOverlayStory
-    status="failed"
-    error={restartAllowedError}
-    canRetry
-    canRestartNormally
-  />
-);
+export const ActiveProgress = {
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory {...args} status="converting" />
+  ),
+};
+
+export const _Cancelled = {
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory
+      {...args}
+      status="cancelled"
+      error={cancelledError}
+      canRetry
+      canRestartNormally
+    />
+  ),
+};
+
+export const _Cancelling = {
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory {...args} status="cancelling" />
+  ),
+};
+
+export const FailedWithRestartAllowed = {
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory
+      {...args}
+      status="failed"
+      error={restartAllowedError}
+      canRetry
+      canRestartNormally
+    />
+  ),
+};
 
 export const FailedWithWipeOnlyRecovery = {
-  render: () => (
+  render: (args) => (
     <MithrilPartialSyncOverlayStory
+      {...args}
       status="failed"
       error={wipeOnlyError}
       canWipeAndFullSync
@@ -321,43 +346,46 @@ export const FailedWithWipeOnlyRecovery = {
   name: 'Failed With Wipe-Only Recovery',
 };
 
-export const _Completed = () => (
-  <MithrilPartialSyncOverlayStory
-    status="completed"
-    filesDownloaded={9}
-    filesTotal={9}
-    elapsedSeconds={845}
-    ancillaryComplete
-  />
-);
+export const _Completed = {
+  args: completedArgs,
 
-export const DownloadingFileCount = () => (
-  <MithrilPartialSyncOverlayStory
-    status="downloading"
-    filesDownloaded={4}
-    filesTotal={9}
-  />
-);
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory
+      {...args}
+      status="completed"
+      ancillaryComplete
+    />
+  ),
+};
+
+export const DownloadingFileCount = {
+  args: { filesDownloaded: 4, filesTotal: 9 },
+
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory {...args} status="downloading" />
+  ),
+};
 
 export const DownloadProgressBarPartial = {
-  render: () => (
-    <MithrilPartialSyncOverlayStory
-      status="downloading"
-      filesDownloaded={6}
-      filesTotal={9}
-    />
+  args: { filesDownloaded: 6, filesTotal: 9 },
+
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory {...args} status="downloading" />
   ),
 
   name: 'Download Progress Bar (Partial)',
 };
 
-export const StoppingNode = () => (
-  <MithrilPartialSyncOverlayStory status="stopping-node" />
-);
+export const StoppingNode = {
+  render: (args) => (
+    <MithrilPartialSyncOverlayStory {...args} status="stopping-node" />
+  ),
+};
 
 export const FailedDownloadingAllRecoveryActions = {
-  render: () => (
+  render: (args) => (
     <MithrilPartialSyncOverlayStory
+      {...args}
       status="failed"
       error={downloadingError}
       canRetry
@@ -370,8 +398,9 @@ export const FailedDownloadingAllRecoveryActions = {
 };
 
 export const FailedConvertingAllRecoveryActions = {
-  render: () => (
+  render: (args) => (
     <MithrilPartialSyncOverlayStory
+      {...args}
       status="failed"
       error={convertingError}
       canRetry
@@ -384,8 +413,9 @@ export const FailedConvertingAllRecoveryActions = {
 };
 
 export const FailedInstallingAllRecoveryActions = {
-  render: () => (
+  render: (args) => (
     <MithrilPartialSyncOverlayStory
+      {...args}
       status="failed"
       error={installingError}
       canRetry
@@ -398,8 +428,9 @@ export const FailedInstallingAllRecoveryActions = {
 };
 
 export const FailedFinalizingAllRecoveryActions = {
-  render: () => (
+  render: (args) => (
     <MithrilPartialSyncOverlayStory
+      {...args}
       status="failed"
       error={finalizingError}
       canRetry
@@ -412,12 +443,10 @@ export const FailedFinalizingAllRecoveryActions = {
 };
 
 export const CompletedFinalizeFailedAutoPlays = {
-  render: () => (
+  render: (args) => (
     <MithrilPartialSyncOverlayStory
+      {...args}
       status="completed"
-      filesDownloaded={9}
-      filesTotal={9}
-      elapsedSeconds={845}
       ancillaryComplete
       onDismissCompleted={() => {
         action('onDismissCompleted')();

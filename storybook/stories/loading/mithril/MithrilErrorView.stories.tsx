@@ -1,9 +1,8 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import MithrilErrorView from '../../../../source/renderer/app/components/loading/mithril/MithrilErrorView';
 import StoryDecorator from '../../_support/StoryDecorator';
 import LoadingOverlayStoryFrame from '../_support/LoadingOverlayStoryFrame';
-import { loadingSelectKnob, loadingTextKnob } from '../_support/loadingKnobs';
+import { inCategory, optionsFrom } from '../../_support/argTypes';
 import {
   bootstrapActions,
   errorStageOptions,
@@ -14,33 +13,53 @@ export default {
   title: 'Loading / Mithril / Error',
 
   decorators: [
-    (story, context) => (
+    (story) => (
       <StoryDecorator>
-        <LoadingOverlayStoryFrame>
-          {withKnobs(story, context)}
-        </LoadingOverlayStoryFrame>
+        <LoadingOverlayStoryFrame>{story()}</LoadingOverlayStoryFrame>
       </StoryDecorator>
     ),
   ],
 };
 
-export const InteractiveErrorStage = () => {
-  const stage = loadingSelectKnob('stage', errorStageOptions, 'download');
-  const preset = getErrorPreset(stage);
+// The three text controls took their defaults from the selected stage's preset.
+// A knob keeps the value it was first registered with, so they stayed on the
+// download preset's text however the stage moved. Left unset they follow the
+// stage, which is what the code around them was written to do.
+const interactiveArgs = {
+  stage: 'download',
+  code: undefined,
+  message: undefined,
+  logPath: undefined,
+};
 
-  return (
-    <MithrilErrorView
-      error={{
-        ...preset,
-        code: loadingTextKnob('code', preset.code || ''),
-        message: loadingTextKnob('message', preset.message),
-        logPath: loadingTextKnob('logPath', preset.logPath || ''),
-      }}
-      onOpenExternalLink={(value) => bootstrapActions.onOpenExternalLink(value)}
-      onWipeRetry={() => bootstrapActions.onWipeRetry()}
-      onDecline={() => bootstrapActions.onDecline()}
-    />
-  );
+export const InteractiveErrorStage = {
+  args: interactiveArgs,
+
+  argTypes: inCategory('Loading', interactiveArgs, {
+    stage: optionsFrom(errorStageOptions),
+    code: { control: 'text' },
+    message: { control: 'text' },
+    logPath: { control: 'text' },
+  }),
+
+  render: ({ stage, code, message, logPath }) => {
+    const preset = getErrorPreset(stage);
+    return (
+      <MithrilErrorView
+        error={{
+          ...preset,
+          code: code ?? preset.code ?? '',
+          message: message ?? preset.message,
+          logPath: logPath ?? preset.logPath ?? '',
+        }}
+        onOpenExternalLink={(value) =>
+          bootstrapActions.onOpenExternalLink(value)
+        }
+        onWipeRetry={() => bootstrapActions.onWipeRetry()}
+        onDecline={() => bootstrapActions.onDecline()}
+      />
+    );
+  },
 };
 
 export const GenericFailure = () => (

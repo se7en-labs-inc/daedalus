@@ -1,10 +1,13 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import type { MithrilBootstrapStatus } from '../../../../source/common/types/watchdog.types';
 import MithrilProgressView from '../../../../source/renderer/app/components/loading/mithril/MithrilProgressView';
 import StoryDecorator from '../../_support/StoryDecorator';
 import LoadingOverlayStoryFrame from '../_support/LoadingOverlayStoryFrame';
-import { loadingNumberKnob, loadingRadiosKnob } from '../_support/loadingKnobs';
+import {
+  inCategory,
+  radioOptionsFrom,
+  rangeFrom,
+} from '../../_support/argTypes';
 import {
   ancillaryBytesTotal,
   bootstrapActions,
@@ -24,43 +27,43 @@ const statusOptions: Record<string, MithrilBootstrapStatus> = {
   'Starting Node': 'starting-node',
 };
 
-const makePercentKnob = (name: string, value: number) =>
-  loadingNumberKnob(name, value, {
-    range: true,
-    min: 0,
-    max: 100,
-    step: 1,
-  });
+const percentRange = { min: 0, max: 100, step: 1 };
+
+const interactiveArgs = {
+  status: 'downloading',
+  snapshotDownloadPercent: 47,
+  ancillaryPercent: 62,
+  elapsedMinutes: 18,
+};
 
 export default {
   title: 'Loading / Mithril / Progress',
 
   decorators: [
-    (story, context) => (
+    (story) => (
       <StoryDecorator>
-        <LoadingOverlayStoryFrame>
-          {withKnobs(story, context)}
-        </LoadingOverlayStoryFrame>
+        <LoadingOverlayStoryFrame>{story()}</LoadingOverlayStoryFrame>
       </StoryDecorator>
     ),
   ],
 };
 
-export const InteractiveWorkingState = () => {
-  const status = loadingRadiosKnob('status', statusOptions, 'downloading');
-  const snapshotDownloadPercent = makePercentKnob(
-    'snapshotDownloadPercent',
-    47
-  );
-  const ancillaryPercent = makePercentKnob('ancillaryPercent', 62);
-  const elapsedMinutes = loadingNumberKnob('elapsedMinutes', 18, {
-    range: true,
-    min: 0,
-    max: 180,
-    step: 1,
-  });
+export const InteractiveWorkingState = {
+  args: interactiveArgs,
 
-  return (
+  argTypes: inCategory('Loading', interactiveArgs, {
+    status: radioOptionsFrom(statusOptions),
+    snapshotDownloadPercent: rangeFrom(percentRange),
+    ancillaryPercent: rangeFrom(percentRange),
+    elapsedMinutes: rangeFrom({ min: 0, max: 180, step: 1 }),
+  }),
+
+  render: ({
+    status,
+    snapshotDownloadPercent,
+    ancillaryPercent,
+    elapsedMinutes,
+  }) => (
     <MithrilProgressView
       status={status}
       progressItems={getBootstrapProgressItems(status)}
@@ -77,7 +80,7 @@ export const InteractiveWorkingState = () => {
       bootstrapStartedAt={createBootstrapStartedAt(elapsedMinutes)}
       onAction={() => bootstrapActions.onCancel()}
     />
-  );
+  ),
 };
 
 export const _Preparing = () => (

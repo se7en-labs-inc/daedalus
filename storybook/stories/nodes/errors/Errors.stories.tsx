@@ -1,25 +1,30 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 // Assets and helpers
 import StoryDecorator from '../../_support/StoryDecorator';
-import { NoDiskSpaceErrorStory } from './_support/NoDiskSpaceError';
-import { SystemTimeErrorStory } from './_support/SystemTimeError';
+import {
+  NoDiskSpaceErrorStory,
+  noDiskSpaceErrorArgs,
+} from './_support/NoDiskSpaceError';
+import {
+  SystemTimeErrorStory,
+  systemTimeErrorArgs,
+} from './_support/SystemTimeError';
 import { localeOf } from '../../_support/globals';
 
 export default {
   title: 'Nodes / Errors',
-
-  decorators: [
-    (story, context) => (
-      <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-    ),
-  ],
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
 
-export const NoDiskSpaceError = NoDiskSpaceErrorStory;
+export const NoDiskSpaceError = {
+  args: noDiskSpaceErrorArgs,
+  render: (args) => <NoDiskSpaceErrorStory {...args} />,
+};
 
 export const SystemTimeError = {
-  render: (_args, context) => (
-    <SystemTimeErrorStory locale={localeOf(context)} />
+  args: systemTimeErrorArgs,
+
+  render: (args, context) => (
+    <SystemTimeErrorStory {...args} locale={localeOf(context)} />
   ),
 };

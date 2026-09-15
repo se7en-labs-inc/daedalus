@@ -1,14 +1,8 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import StoryDecorator from '../../_support/StoryDecorator';
 import LoadingOverlayStoryFrame from '../_support/LoadingOverlayStoryFrame';
 import { ManagedChainStorageLocationPicker } from '../_support/mithrilHarness';
-import {
-  loadingBooleanKnob,
-  loadingNumberKnob,
-  loadingSelectKnob,
-  loadingTextKnob,
-} from '../_support/loadingKnobs';
+import { inCategory, optionsFrom } from '../../_support/argTypes';
 import {
   defaultChainStorageValidation,
   defaultChainPath,
@@ -20,41 +14,49 @@ export default {
   title: 'Loading / Chain Storage',
 
   decorators: [
-    (story, context) => (
+    (story) => (
       <StoryDecorator>
-        <LoadingOverlayStoryFrame>
-          {withKnobs(story, context)}
-        </LoadingOverlayStoryFrame>
+        <LoadingOverlayStoryFrame>{story()}</LoadingOverlayStoryFrame>
       </StoryDecorator>
     ),
   ],
 };
 
-export const InteractivePicker = () => {
-  const validationPreset = loadingSelectKnob(
-    'validationPreset',
-    validationPresetOptions,
-    'valid-custom'
-  );
+const interactiveArgs = {
+  validationPreset: 'valid-custom',
+  useCustomChainPath: true,
+  customChainPath: '/mnt/fast-ssd/daedalus-chain',
+  estimatedRequiredSpaceGiB: 82,
+  availableSpaceGiB: 256,
+  isChainStorageLoading: false,
+};
 
-  return (
+const gibibytes = (value: number) => Math.round(value * 1024 * 1024 * 1024);
+
+export const InteractivePicker = {
+  args: interactiveArgs,
+
+  argTypes: inCategory('Loading', interactiveArgs, {
+    validationPreset: optionsFrom(validationPresetOptions),
+  }),
+
+  render: ({
+    validationPreset,
+    useCustomChainPath,
+    customChainPath,
+    estimatedRequiredSpaceGiB,
+    availableSpaceGiB,
+    isChainStorageLoading,
+  }) => (
     <ManagedChainStorageLocationPicker
-      customChainPath={
-        loadingBooleanKnob('useCustomChainPath', true)
-          ? loadingTextKnob('customChainPath', '/mnt/fast-ssd/daedalus-chain')
-          : null
-      }
+      customChainPath={useCustomChainPath ? customChainPath : null}
       defaultChainPath={defaultChainPath}
       validationPreset={validationPreset}
-      estimatedRequiredSpaceBytes={Math.round(
-        loadingNumberKnob('estimatedRequiredSpaceGiB', 82) * 1024 * 1024 * 1024
-      )}
-      availableSpaceBytes={Math.round(
-        loadingNumberKnob('availableSpaceGiB', 256) * 1024 * 1024 * 1024
-      )}
-      isChainStorageLoading={loadingBooleanKnob('isChainStorageLoading', false)}
+      estimatedRequiredSpaceBytes={gibibytes(estimatedRequiredSpaceGiB)}
+      availableSpaceBytes={gibibytes(availableSpaceGiB)}
+      isChainStorageLoading={isChainStorageLoading}
     />
-  );
+  ),
 };
 
 export const InvalidCurrentPath = () => (

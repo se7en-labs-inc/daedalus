@@ -1,16 +1,21 @@
 import React from 'react';
-import { text } from '@storybook/addon-knobs';
 import NoDiskSpaceError from '../../../../../source/renderer/app/components/loading/no-disk-space-error/NoDiskSpaceError';
 
-export function NoDiskSpaceErrorStory() {
+// One control fed all three figures. The three knobs this replaced shared the
+// label `diskSpaceRequired (GB)`, and addon-knobs returns the value already
+// registered under a name, so the defaults written beside the second and third
+// were never reached and all three read the first.
+export const noDiskSpaceErrorArgs = {
+  diskSpaceRequiredGb: 4,
+};
+
+export function NoDiskSpaceErrorStory({ diskSpaceRequiredGb }) {
+  const gb = `${diskSpaceRequiredGb} GB`;
   return (
     <NoDiskSpaceError
-      // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
-      diskSpaceRequired={`${text('diskSpaceRequired (GB)', 4)} GB`}
-      // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
-      diskSpaceMissing={`${text('diskSpaceRequired (GB)', 1)} GB`}
-      // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
-      diskSpaceRecommended={`${text('diskSpaceRequired (GB)', 8)} GB`}
+      diskSpaceRequired={gb}
+      diskSpaceMissing={gb}
+      diskSpaceRecommended={gb}
     />
   );
 }

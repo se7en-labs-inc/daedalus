@@ -70,3 +70,27 @@ export const rangeFrom = (config: {
 }) => ({
   control: { type: 'range' as const, ...config },
 });
+
+/*
+ * A knob's trailing group id becomes a table category on an argType. The loading
+ * stories put every one of their controls in one group, so writing the category
+ * out per arg is the same line repeated. This builds one argType per arg from the
+ * args object itself, merging anything that arg already needed.
+ *
+ *   args: loadingArgs,
+ *   argTypes: inCategory('Loading', loadingArgs, {
+ *     status: labelOptionsFrom(statusOptions),
+ *   }),
+ */
+export const inCategory = (
+  category: string,
+  args: Record<string, unknown>,
+  overrides: Record<string, Record<string, unknown>> = {}
+) =>
+  Object.keys(args).reduce<Record<string, Record<string, unknown>>>(
+    (acc, name) => {
+      acc[name] = { ...overrides[name], table: { category } };
+      return acc;
+    },
+    {}
+  );
