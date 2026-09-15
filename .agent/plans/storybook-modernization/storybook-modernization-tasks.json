@@ -1823,7 +1823,7 @@
           "id": "task-049",
           "title": "Harness review checkpoint",
           "description": "Every mechanism now exists and 29 of the 49 screens are covered. Review the harness before it carries 20 more screens and a materially larger fixture volume.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 4.0,
           "dependencies": [

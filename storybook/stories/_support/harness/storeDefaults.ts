@@ -35,7 +35,7 @@ const storyEnvironment = environment;
  * which starts every store's polling reactions, so constructing one inside a
  * story would put the workbench on a timer and a network client. These are plain
  * objects carrying the fields a store exposes: its observables at the values the
- * real store initialises them to, and its computed getters as plain values.
+ * real store initializes them to, and its computed getters as plain values.
  *
  * Every one of the 24 keys in `StoresMap` is present, including the ones no
  * screen reads. Stores reach each other through `this.stores`, so a computed
@@ -71,7 +71,7 @@ const profileDefaults = {
   isDataLayerMigrationAccepted: true,
   isProfilePage: false,
   isSettingsPage: true,
-  // Observables, at the values ProfileStore initialises them to.
+  // Observables, at the values ProfileStore initializes them to.
   systemLocale: LANGUAGE_OPTIONS[0].value,
   systemNumberFormat: NUMBER_OPTIONS[0].value,
   systemDateFormatEnglish: DATE_ENGLISH_OPTIONS[0].value,
@@ -91,7 +91,7 @@ const profileDefaults = {
 
 const networkStatusDefaults = {
   /*
-   * Observables at the values NetworkStatusStore initialises them to, except
+   * Observables at the values NetworkStatusStore initializes them to, except
    * where that value is a state no user waits in. The real store starts
    * disconnected and unsynced and climbs out within seconds; a harness that
    * starts there shows every screen its loading shell and nothing else, so the

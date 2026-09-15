@@ -29,7 +29,7 @@ export const Default = {
       <Placeholder />
     </Governance>
   ),
-  name: 'On the governance centre',
+  name: 'On the governance center',
 };
 
 export const OnDirectory = {
@@ -49,5 +49,5 @@ export const OnFavorites = {
       <Placeholder />
     </Governance>
   ),
-  name: 'On favourites',
+  name: 'On favorites',
 };

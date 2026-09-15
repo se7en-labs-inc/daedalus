@@ -4,7 +4,7 @@
 **Raised from:** building the newsfeed store fixtures, phase 6 of the Storybook
 modernization
 **Scope:** `NewsTarget`, one field
-**Severity:** no runtime effect on shipped behaviour. The cost is that the type
+**Severity:** no runtime effect on shipped behavior. The cost is that the type
 steers every author of a news item into producing one the application discards.
 
 ---
