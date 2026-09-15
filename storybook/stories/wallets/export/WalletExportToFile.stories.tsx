@@ -1,10 +1,11 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import ExportWalletToFileDialog from '../../../../source/renderer/app/components/wallet/settings/ExportWalletToFileDialog';
 
 export default {
   title: 'Wallets / Export to File',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

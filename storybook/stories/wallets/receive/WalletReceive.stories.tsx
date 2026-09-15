@@ -1,7 +1,7 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 // Assets and helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import { localeOf } from '../../_support/globals';
 import { generateAddress } from '../../_support/utils';
 // Screens
@@ -19,6 +19,7 @@ const onToggleSubMenus = {
 
 export default {
   title: 'Wallets / Receive',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

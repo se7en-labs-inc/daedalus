@@ -8,7 +8,7 @@ import {
   promise,
 } from '../../_support/utils';
 // Assets and helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import { NUMBER_OPTIONS } from '../../../../source/renderer/app/config/profileConfig';
 import Wallet, {
   HwDeviceStatuses,
@@ -290,6 +290,7 @@ const selectedAsset = {
 
 export default {
   title: 'Wallets / Send',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

@@ -1,12 +1,13 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 // Helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 // Components
 import WalletPublicKeyDialog from '../../../../source/renderer/app/components/wallet/settings/WalletPublicKeyDialog';
 
 export default {
   title: 'Wallets / Settings',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

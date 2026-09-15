@@ -9,7 +9,7 @@ import {
   generateWallet,
 } from '../../_support/utils';
 import { formattedWalletAmount } from '../../../../source/renderer/app/utils/formatters';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import { localeOf } from '../../_support/globals';
 import WalletsTransactionsWrapper from '../_utils/WalletsTransactionsWrapper';
 import {
@@ -146,7 +146,7 @@ export default {
 
   // The knob this replaced was in the decorator rather than in a story, so the
   // arg is on the meta and the decorator reads it off the context.
-  args: { transactionsOption: 'groupedByDays' },
+  args: { ...walletsLayoutArgs, transactionsOption: 'groupedByDays' },
   argTypes: { transactionsOption: optionsFrom(transactionsOptions) },
 
   decorators: [

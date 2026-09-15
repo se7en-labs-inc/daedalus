@@ -1,11 +1,12 @@
 import React from 'react';
 // Helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 // Components
 import PublicKeyQRCodeDialog from '../../../../source/renderer/app/components/wallet/settings/ICOPublicKeyQRCodeDialog';
 
 export default {
   title: 'Wallets / Settings',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

@@ -1136,7 +1136,7 @@
      "id": "task-064",
      "title": "Add the controls addon to the manifest",
      "description": "The corpus has no controls panel and never had one. addon-controls is a separate package at Storybook 8 and only folds into core at 9, so args declared by the tranche tasks reach their render functions with nothing in the workbench to drive them. Added ahead of task-034 rather than folded into it, so that task stays a removal.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 2.0,
      "dependencies": [
@@ -1163,7 +1163,7 @@
      "id": "task-065",
      "title": "Retire the knobs in the two shared story wrappers",
      "description": "The last 8 knob call sites are in _support/StoryLayout.tsx and _support/DiscreetModeToggleKnob.ts, wrappers whose controls appear on every story they reach. An arg cannot have that reach, so each of the five controls is promoted to a toolbar global, declared as a per-meta arg, or dropped, according to what it gates.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 6.0,
      "dependencies": [

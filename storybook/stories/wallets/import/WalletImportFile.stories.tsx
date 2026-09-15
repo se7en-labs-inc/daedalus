@@ -1,6 +1,6 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import VerticalFlexContainer from '../../../../source/renderer/app/components/layout/VerticalFlexContainer';
 import WalletImportFileDialog from '../../../../source/renderer/app/components/wallet/wallet-import/WalletImportFileDialog';
 import WalletSelectImportDialog from '../../../../source/renderer/app/components/wallet/wallet-import/WalletSelectImportDialog';
@@ -28,6 +28,7 @@ const getWallet = (
 
 export default {
   title: 'Wallets / Import File',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

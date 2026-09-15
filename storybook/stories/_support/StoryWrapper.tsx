@@ -10,6 +10,7 @@ import {
   localeNames,
   osNames,
 } from './config';
+import { DEFAULT_STORY_GLOBALS, StoryGlobalsProvider } from './storyGlobals';
 import translations from '../../../source/renderer/app/i18n/translations';
 import ThemeManager from '../../../source/renderer/app/ThemeManager';
 import WindowSizeManager from '../../../source/renderer/app/WindowSizeManager';
@@ -21,6 +22,8 @@ type Props = {
   themeName?: string;
   localeName?: string;
   osName?: string;
+  numberFormat?: string;
+  discreetMode?: boolean;
 };
 
 /*
@@ -31,16 +34,30 @@ type Props = {
  * window height, and IntlProvider for the locale. A story that needs one of the
  * three by value reads it from its own story context through
  * _support/globals.ts, rather than being handed it here.
+ *
+ * The number format and the discreet-mode switch are published on a context
+ * instead, because the components that apply them are neither stories nor
+ * decorators and so have no story context of their own. See
+ * _support/storyGlobals.tsx.
  */
 export default class StoryWrapper extends Component<Props> {
   static defaultProps = {
     themeName: themeNames[0],
     localeName: localeNames[0],
     osName: osNames[0],
+    numberFormat: DEFAULT_STORY_GLOBALS.numberFormat,
+    discreetMode: DEFAULT_STORY_GLOBALS.discreetMode,
   };
 
   render() {
-    const { children: Story, themeName, localeName, osName } = this.props;
+    const {
+      children: Story,
+      themeName,
+      localeName,
+      osName,
+      numberFormat,
+      discreetMode,
+    } = this.props;
     const theme = themes[themeName];
     const locale = locales[localeName];
     const minScreenHeight = osMinWindowHeights[osName];
@@ -57,7 +74,12 @@ export default class StoryWrapper extends Component<Props> {
             messages: translations[locale],
           }}
         >
-          <Story />
+          <StoryGlobalsProvider
+            numberFormat={numberFormat}
+            discreetMode={discreetMode}
+          >
+            <Story />
+          </StoryGlobalsProvider>
         </IntlProvider>
       </Fragment>
     );

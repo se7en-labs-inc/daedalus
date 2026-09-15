@@ -1,3 +1,4 @@
+import { NUMBER_OPTIONS } from '../../../source/renderer/app/config/profileConfig';
 import cardano from '../../../source/renderer/app/themes/daedalus/cardano';
 import darkBlue from '../../../source/renderer/app/themes/daedalus/dark-blue';
 import lightBlue from '../../../source/renderer/app/themes/daedalus/light-blue';
@@ -48,3 +49,17 @@ export const osMinWindowHeights = {
   Linux: '660px',
   Mac: '700px',
 };
+
+/*
+ * The number-format selections. `NUMBER_OPTIONS` labels each format with an
+ * example of the number it produces, which is what the toolbar shows; the value
+ * beside it is the key `NUMBER_FORMATS` is indexed by.
+ */
+export const numberFormats = NUMBER_OPTIONS.reduce<Record<string, string>>(
+  (obj, option) => {
+    obj[option.label] = option.value;
+    return obj;
+  },
+  {}
+);
+export const numberFormatNames: Array<string> = Object.keys(numberFormats);

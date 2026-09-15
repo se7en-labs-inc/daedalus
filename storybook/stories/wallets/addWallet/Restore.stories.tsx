@@ -2,7 +2,7 @@ import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { WALLET_RECOVERY_PHRASE_WORD_COUNT } from '../../../../source/renderer/app/config/cryptoConfig';
 // Helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import {
   WALLET_KINDS,
   WALLET_DAEDALUS_KINDS,
@@ -33,6 +33,7 @@ const daedalusDefault = Object.values(WALLET_DAEDALUS_KINDS)[0];
 
 export default {
   title: 'Wallets / Add Wallet',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

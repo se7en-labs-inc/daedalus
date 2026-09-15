@@ -7,7 +7,6 @@ import SidebarLayout from '../../../../source/renderer/app/components/layout/Sid
 import TopBar from '../../../../source/renderer/app/components/layout/TopBar';
 import topBarStyles from '../../../../source/renderer/app/components/layout/TopBar.scss';
 import NodeSyncStatusIcon from '../../../../source/renderer/app/components/widgets/NodeSyncStatusIcon';
-import TadaButton from '../../../../source/renderer/app/components/widgets/TadaButton';
 import WalletTestEnvironmentLabel from '../../../../source/renderer/app/components/widgets/WalletTestEnvironmentLabel';
 import { formattedWalletAmount } from '../../../../source/renderer/app/utils/formatters';
 // @ts-ignore ts-migrate(2307) FIXME: Cannot find module '../../../../source/renderer/ap... Remove this comment to see the full error message
@@ -17,7 +16,7 @@ import DiscreetToggleTopBar from '../../../../source/renderer/app/features/discr
 import { isShelleyTestnetTheme } from '../../_support/utils';
 import { currentThemeOf } from '../../_support/globals';
 
-const topBarTestEnv = (currentTheme, isAlonzoActivated) => (
+const topBarTestEnv = (currentTheme) => (
   <TopBar
     // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
     formattedWalletAmount={formattedWalletAmount}
@@ -25,7 +24,6 @@ const topBarTestEnv = (currentTheme, isAlonzoActivated) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={isAlonzoActivated}
   >
     <WalletTestEnvironmentLabel network="testnet" />
     <NodeSyncStatusIcon
@@ -34,13 +32,9 @@ const topBarTestEnv = (currentTheme, isAlonzoActivated) => (
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       isProduction={false}
       isMainnet={false}
-      hasTadaIcon
     />
-    <span
-      className={classNames(topBarStyles.rectangle, topBarStyles.hasTadaIcon)}
-    />
-    <DiscreetToggleTopBar hasTadaIcon />
-    <TadaButton onClick={action('onClickTadaButton')} shouldAnimate />
+    <span className={classNames(topBarStyles.rectangle)} />
+    <DiscreetToggleTopBar />
     <NewsFeedIcon
       onNewsFeedIconClick={action('onNewsFeedIconClick')}
       hasNotification={false}
@@ -49,7 +43,7 @@ const topBarTestEnv = (currentTheme, isAlonzoActivated) => (
   </TopBar>
 );
 
-const topBarStagingEnv = (currentTheme, isAlonzoActivated) => (
+const topBarStagingEnv = (currentTheme) => (
   <TopBar
     // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
     formattedWalletAmount={formattedWalletAmount}
@@ -57,7 +51,6 @@ const topBarStagingEnv = (currentTheme, isAlonzoActivated) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={isAlonzoActivated}
   >
     <WalletTestEnvironmentLabel network="staging" />
     <NodeSyncStatusIcon
@@ -66,13 +59,9 @@ const topBarStagingEnv = (currentTheme, isAlonzoActivated) => (
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       isProduction={false}
       isMainnet={false}
-      hasTadaIcon
     />
-    <span
-      className={classNames(topBarStyles.rectangle, topBarStyles.hasTadaIcon)}
-    />
-    <DiscreetToggleTopBar hasTadaIcon />
-    <TadaButton onClick={action('onClickTadaButton')} shouldAnimate />
+    <span className={classNames(topBarStyles.rectangle)} />
+    <DiscreetToggleTopBar />
     <NewsFeedIcon
       onNewsFeedIconClick={action('onNewsFeedIconClick')}
       hasNotification={false}
@@ -81,7 +70,7 @@ const topBarStagingEnv = (currentTheme, isAlonzoActivated) => (
   </TopBar>
 );
 
-const topBarProductionEnv = (currentTheme, isAlonzoActivated) => (
+const topBarProductionEnv = (currentTheme) => (
   <TopBar
     // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
     formattedWalletAmount={formattedWalletAmount}
@@ -89,7 +78,6 @@ const topBarProductionEnv = (currentTheme, isAlonzoActivated) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={isAlonzoActivated}
   >
     <NodeSyncStatusIcon
       isSynced
@@ -97,13 +85,9 @@ const topBarProductionEnv = (currentTheme, isAlonzoActivated) => (
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       isProduction
       isMainnet
-      hasTadaIcon
     />
-    <span
-      className={classNames(topBarStyles.rectangle, topBarStyles.hasTadaIcon)}
-    />
-    <DiscreetToggleTopBar hasTadaIcon />
-    <TadaButton onClick={action('onClickTadaButton')} shouldAnimate />
+    <span className={classNames(topBarStyles.rectangle)} />
+    <DiscreetToggleTopBar />
     <NewsFeedIcon
       onNewsFeedIconClick={action('onNewsFeedIconClick')}
       hasNotification={false}
@@ -115,10 +99,6 @@ const topBarProductionEnv = (currentTheme, isAlonzoActivated) => (
 export default {
   title: 'Nodes / Environment',
 
-  // One knob under one label served all three stories, so one arg on the meta
-  // does too.
-  args: { isAlonzoActivated: false },
-
   decorators: [
     (story) => (
       <StoryProvider>
@@ -129,27 +109,27 @@ export default {
 };
 
 export const Testnet = {
-  render: ({ isAlonzoActivated }, context) => (
+  render: (_args, context) => (
     <SidebarLayout
-      topbar={topBarTestEnv(currentThemeOf(context), isAlonzoActivated)}
+      topbar={topBarTestEnv(currentThemeOf(context))}
       sidebar={<noscript />}
     />
   ),
 };
 
 export const Staging = {
-  render: ({ isAlonzoActivated }, context) => (
+  render: (_args, context) => (
     <SidebarLayout
-      topbar={topBarStagingEnv(currentThemeOf(context), isAlonzoActivated)}
+      topbar={topBarStagingEnv(currentThemeOf(context))}
       sidebar={<noscript />}
     />
   ),
 };
 
 export const Production = {
-  render: ({ isAlonzoActivated }, context) => (
+  render: (_args, context) => (
     <SidebarLayout
-      topbar={topBarProductionEnv(currentThemeOf(context), isAlonzoActivated)}
+      topbar={topBarProductionEnv(currentThemeOf(context))}
       sidebar={<noscript />}
     />
   ),

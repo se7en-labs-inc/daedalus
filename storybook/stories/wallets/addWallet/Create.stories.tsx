@@ -6,10 +6,11 @@ import CreateWalletScreens, {
 import WalletCreateDialog from '../../../../source/renderer/app/components/wallet/WalletCreateDialog';
 import { localeOf } from '../../_support/globals';
 // Assets and helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 
 export default {
   title: 'Wallets / Add Wallet',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

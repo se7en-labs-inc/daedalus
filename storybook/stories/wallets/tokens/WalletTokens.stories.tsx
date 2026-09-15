@@ -8,7 +8,7 @@ import {
   generateWallet,
   generateHash,
 } from '../../_support/utils';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 // Screens
 import WalletTokens from '../../../../source/renderer/app/components/wallet/tokens/wallet-tokens/WalletTokens';
 
@@ -137,6 +137,7 @@ const walletTokens = {
 
 export default {
   title: 'Wallets / Tokens',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

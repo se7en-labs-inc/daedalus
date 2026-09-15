@@ -1,6 +1,6 @@
 import React from 'react';
 // Helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 // Screens
 import WalletSettingsScreen, {
   walletSettingsScreenArgs,
@@ -10,6 +10,7 @@ import { localeOf } from '../../_support/globals';
 
 export default {
   title: 'Wallets / Settings',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

@@ -8,7 +8,7 @@ import {
   generateRewardForWallet,
   generateWallet,
 } from '../../_support/utils';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import { localeOf } from '../../_support/globals';
 import {
   inCategory,
@@ -156,6 +156,7 @@ const walletAssets = assets.total.map((assetTotal) => {
 
 export default {
   title: 'Wallets / Summary',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 

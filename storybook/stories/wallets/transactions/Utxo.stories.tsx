@@ -1,7 +1,7 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
 // Assets and helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import { getUtxoChartData } from '../../../../source/renderer/app/utils/utxoUtils';
 import { rangeFrom } from '../../_support/argTypes';
 // Screens
@@ -82,6 +82,7 @@ const bucketArgTypes = utxoBuckets.reduce<Record<string, unknown>>(
 
 export default {
   title: 'Wallets / Transactions',
+  args: walletsLayoutArgs,
   decorators: [WalletsWrapper],
 };
 
