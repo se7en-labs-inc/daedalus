@@ -21,7 +21,7 @@ Storybook 6.4.22, and `tsc` found it because Yarn 1 hoists flat. With Storybook
 6 gone the types went, and the file that had compiled for years stopped
 compiling.
 
-`storybook/main.ts` calls `require.resolve('os-browserify/browser')` for its
+`storybook/main.mts` resolves `os-browserify/browser` for its
 `os` fallback. Same shape: never declared, supplied transitively, and the
 webpack config stopped resolving the moment the supplier left.
 
@@ -54,7 +54,7 @@ was not. Diagnosis cost more than the fix in every one of these cases.
 Unknown, and the two halves of the problem are not equally tractable.
 
 Modules named in build configuration can be swept. Every `require.resolve` in
-`storybook/main.ts` was resolved against `package.json` in one pass, which found
+`storybook/main.mts` was resolved against `package.json` in one pass, which found
 `os-browserify` and confirmed the other eleven were declared. That sweep took
 minutes and would have found the second gap at the same time as the first,
 rather than one rebuild later. It is worth running against any config file that

@@ -1251,7 +1251,7 @@
      "id": "task-036",
      "title": "Convert storybook/main.ts to strict ESM",
      "description": "Storybook 10 requires an ESM main config: no require, no __dirname, and require.resolve becomes import.meta.resolve. main.ts currently opens with two require calls at :1-2 and resolves the local addon by path.",
-     "status": "pending",
+     "status": "completed",
      "priority": "high",
      "estimatedHours": 5.0,
      "dependencies": [
