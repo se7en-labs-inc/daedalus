@@ -76,6 +76,18 @@ const assetWithChainName = {
   source: 'chain' as const,
 };
 
+// A CIP-68 asset: the four-byte CIP-0067 label 333 followed by the four bytes
+// 'USDM'. Measured from a real holding; every CIP-68 asset has this shape.
+const assetWithCip68Name = {
+  ...baseAsset,
+  assetName: '0014df105553444d',
+};
+// The same label with nothing readable after it.
+const assetWithCip68LabelOnly = {
+  ...baseAsset,
+  assetName: '0014df10',
+};
+
 const renderAsset = (props) =>
   render(
     <TestDecorator>
@@ -178,6 +190,43 @@ describe('Asset', () => {
     expect(screen.queryByTestId('assetName')).not.toHaveClass(
       styles.minterChosenName
     );
+  });
+
+  // A CIP-68 asset name is a CIP-0067 label the printable test rejects followed
+  // by the name itself, so before the label was recognised every one of them
+  // rendered as a bare fingerprint.
+  it('displays the name inside a CIP-68 asset name', () => {
+    renderAsset({ asset: assetWithCip68Name });
+    expect(screen.getByTestId('assetNameMinterChosen')).toHaveTextContent(
+      'USDM'
+    );
+  });
+
+  // The name is still the minter's. The complement is the case that matters: a
+  // fix that recovered the text and promoted it to a published name would pass
+  // an assertion that only looked for 'USDM'.
+  it('still marks a name recovered from behind a label as minter-chosen', () => {
+    renderAsset({ asset: assetWithCip68Name });
+    expect(screen.queryByTestId('assetName')).toBeNull();
+    const minterChosen = screen.getByTestId('assetNameMinterChosen');
+    expect(minterChosen).toHaveClass(styles.minterChosenName);
+    expect(minterChosen.getAttribute('title')).not.toHaveLength(0);
+  });
+
+  // The fingerprint is a hash of the policy id and the whole asset name, label
+  // included. Nothing in this decode reaches it, and this pins that.
+  it('leaves the fingerprint of a CIP-68 asset alone', () => {
+    const { container } = renderAsset({
+      asset: assetWithCip68Name,
+      fullFingerprint: true,
+    });
+    expect(container.textContent).toContain(baseAsset.fingerprint);
+  });
+
+  it('displays no name for an asset name that is only a label', () => {
+    renderAsset({ asset: assetWithCip68LabelOnly });
+    expect(screen.queryByTestId('assetName')).toBeNull();
+    expect(screen.queryByTestId('assetNameMinterChosen')).toBeNull();
   });
 
   it('shows the fingerprint for that asset before its row arrives', () => {

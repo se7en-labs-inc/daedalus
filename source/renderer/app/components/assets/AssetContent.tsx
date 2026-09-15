@@ -5,7 +5,7 @@ import { defineMessages, intlShape, injectIntl } from 'react-intl';
 import CopyToClipboard from 'react-copy-to-clipboard';
 import { observer } from 'mobx-react';
 import styles from './AssetContent.scss';
-import { hexToPrintableAsciiString } from '../../utils/strings';
+import { decodeAssetNameText } from '../../utils/assetName';
 import copyIcon from '../../assets/images/copy-asset.inline.svg';
 import copyCheckmarkIcon from '../../assets/images/check-w.inline.svg';
 import { ASSET_TOKEN_ID_COPY_FEEDBACK } from '../../config/timingConfig';
@@ -118,11 +118,14 @@ const AssetContent = observer((props: Props) => {
       handleCopyParam(assetId, param, value);
     };
 
-    // Only the asset name carries a decoded form, and only when every one of
-    // its bytes is printable. The bytes are the minter's, so the decoded form
-    // is labelled as theirs rather than presented as a published name.
+    // Only the asset name carries a decoded form, and only when what is left
+    // after a CIP-68 label is printable. The same decoder the pill resolves
+    // through, so the two cannot disagree about what a name says. The bytes are
+    // the minter's, so the decoded form is labelled as theirs rather than
+    // presented as a published name, and the row's value stays the whole hex,
+    // label included.
     const decodedAssetName =
-      assetId === 'assetName' ? hexToPrintableAsciiString(value) : null;
+      assetId === 'assetName' ? decodeAssetNameText(value) : null;
     return (
       <CopyToClipboard text={value} onCopy={onCopy}>
         <div className={styles.assetParam}>

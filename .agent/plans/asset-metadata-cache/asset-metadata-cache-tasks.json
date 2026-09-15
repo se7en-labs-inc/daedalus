@@ -3,8 +3,8 @@
   "title": "Asset Metadata Cache Tasks",
   "created": "2026-09-10",
   "updated": "2026-09-16",
-  "version": "1.3.0",
-  "totalTasks": 40,
+  "version": "1.4.0",
+  "totalTasks": 41,
   "prdReference": ".agent/plans/asset-metadata-cache/asset-metadata-cache-prd.md",
   "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the metadata is cryptographically bound to the minting policy, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
   "sourceFiles": [
@@ -184,6 +184,53 @@
       "yarn lint and yarn compile pass",
       "A repository-wide grep for each of the three names returns nothing outside history"
      ]
+    },
+    {
+     "id": "task-041",
+     "title": "Recover the name inside a labelled asset name",
+     "description": "task-001's printable-ASCII predicate accepts a decoded asset name only when every byte is 0x20 to 0x7E. An asset name may carry a four-byte CIP-0067 label, and the label is never printable, so every CIP-68 asset renders with no name at all and only a fingerprint. Measured: USDM is 0014df105553444d, where bytes 0-3 are the label for 333 and bytes 4 onward are literally USDM. Validate the CIP-0067 structure and strip the label before the printable test, and keep the minter-chosen marking on what comes out.",
+     "status": "completed",
+     "priority": "high",
+     "estimatedHours": 2.0,
+     "dependencies": [
+      "task-001",
+      "task-035"
+     ],
+     "targetPaths": [
+      "source/renderer/app/utils/assetName.ts",
+      "source/renderer/app/utils/assetName.spec.ts",
+      "source/renderer/app/components/assets/AssetContent.tsx",
+      "source/renderer/app/components/assets/AssetContent.spec.tsx",
+      "source/renderer/app/components/assets/Asset.spec.tsx"
+     ],
+     "implementationNotes": [
+      "CIP-0067, Specification, lays the label out as [ 0000 | 16 bits label_num | 8 bits checksum | 0000 ]: two four-bit brackets that must be zero, a sixteen-bit registered number, and a CRC-8 checksum with polynomial 0x07 computed over label_num including its padded zeros.",
+      "Validate that structure rather than matching an allowlist. CIP-0068, Specification, registers 100 reference NFT, 222 NFT, 333 FT and 444 RFT, and requires further asset classes to be submitted as a new CIP, so the label set is open and a list of four stops being right the day a fifth is registered.",
+      "Compute the CRC-8 rather than transcribing CIP-0067's 256-value lookup table. The four published labels are the check that the two agree: the polynomial reproduces 59, 20, 241 and 40 for 100, 222, 333 and 444.",
+      "Read the label from the name's bytes, never from its decoded text. A valid label's first byte is at most 0x0f, so a name that passes the printable test can never carry one, and a name whose text merely reads like a label is a different byte string: the text 000de140 is the hex 3030306465313430.",
+      "The marking still applies. A name recovered this way is minter-chosen, not issuer-published, so it keeps the treatment, the test id and the tooltip task-001 established. Stripping a label must not promote it to looking like a published name.",
+      "The decoder belongs in utils/assetName.ts, not in utils/strings.ts. hexToPrintableAsciiString answers a question about a hex string and a byte range with no asset in it; a CIP-0067 label is a ledger convention about asset names.",
+      "components/assets/AssetContent.tsx decodes the same bytes for the parameter row's annotation and needs the same decoder, or the pop-over and the pill disagree about whether an asset has a name.",
+      "Nothing here reaches the fingerprint. utils/assetFingerprint.ts hashes the policy id and the whole asset name as bytes and never sees a decoded string."
+     ],
+     "testCases": [
+      "Each of CIP-0068's four labels is stripped, which is also the check on the CRC-8 implementation",
+      "A structurally valid label CIP-0068 does not define is stripped",
+      "A four-byte prefix with zero brackets and a wrong checksum is not stripped",
+      "A four-byte prefix whose brackets are not zero is not stripped",
+      "A name that is only a label, with nothing after it, decodes to nothing",
+      "A label followed by a byte outside the printable range decodes to nothing",
+      "A non-CIP-0067 name whose decoded text reads like a label is decoded whole and not stripped",
+      "An unlabelled printable name and a 32-byte random name are unaffected"
+     ],
+     "acceptance": [
+      "An asset carrying a valid label renders the text behind it on the token list, the send form and the transaction list",
+      "That name renders in the minter-chosen treatment, asserted in the negative as well as the positive",
+      "The rendered fingerprint of a labelled asset is unchanged, asserted against the value computed from the full asset name",
+      "compile, lint, i18n and jest green from nix build",
+      "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged"
+     ],
+     "notes": "Found in manual QA on this branch: every CIP-68 asset rendered as a bare fingerprint while non-CIP-68 assets in the same list rendered their decoded names correctly. A class of token rather than an edge case, and the class is growing. The repository had no concept of CIP-0067 anywhere, and every existing mention of CIP-68 treats it as a source of a metadata record rather than as a shape the asset name carries, which is how a printable check over raw asset name bytes shipped looking complete."
     }
    ]
   },
@@ -1588,8 +1635,8 @@
  ],
  "summary": {
   "totalPhases": 7,
-  "totalTasks": 40,
-  "estimatedTotalHours": 193.5,
+  "totalTasks": 41,
+  "estimatedTotalHours": 195.5,
   "criticalPath": [
    "task-007",
    "task-008",
