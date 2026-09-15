@@ -7,6 +7,23 @@ import StoryProvider from '../StoryProvider';
 import type { StoreOverrides } from './storeDefaults';
 import { routerAt, storyAnalyticsTracker } from './fixtures/router';
 
+/*
+ * A container as the story mounts it: a component that takes no props.
+ *
+ * `inject` and `withAnalytics` both supply props their wrapped component still
+ * declares as required. A class container gets away with it through `static
+ * defaultProps`, which does not survive a higher-order component, so the two
+ * function containers and the three analytics-wrapped ones do not. The
+ * application hits the same thing and suppresses it with a `@ts-ignore` at
+ * `MainLayout.tsx:108`.
+ *
+ * Naming the type the wrapper produces rather than suppressing the error keeps
+ * the rest of the story checked, and keeps the explanation in one place instead
+ * of once per story.
+ */
+export const asScreen = (Container: unknown): React.ComponentType =>
+  Container as React.ComponentType;
+
 type ScreenOptions = {
   /*
    * Where the screen thinks it is. Seeds the MemoryRouter and both store fields

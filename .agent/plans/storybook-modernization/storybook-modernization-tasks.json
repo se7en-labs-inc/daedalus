@@ -1855,7 +1855,7 @@
           "id": "task-050",
           "title": "Write one wallet-scale proof story before committing to tranche 6",
           "description": "The only existing container fixture is a 19-line literal covering the simplest container in the application. WalletSummaryPage reads nine stores, the highest in the corpus, and WalletSettingsPage mounts eight nested containers. One of them is written and reviewed before the rest of the tranche is planned.",
-          "status": "pending",
+          "status": "completed",
           "priority": "critical",
           "estimatedHours": 8.0,
           "dependencies": [

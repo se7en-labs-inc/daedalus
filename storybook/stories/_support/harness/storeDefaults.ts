@@ -248,7 +248,18 @@ const walletsDefaults = {
  * the store, which is the more useful of the two failures.
  */
 export const createStoreDefaults = () => ({
-  addresses: { ...requestsFor('addresses') },
+  /*
+   * `isInternalAddress` answers "is this one of ours" for every row a
+   * transaction list draws, and the real store answers it by searching `all`.
+   * Defaulted to false so an address a story did not supply reads as external
+   * rather than throwing.
+   */
+  addresses: {
+    all: [],
+    stakeAddresses: {},
+    isInternalAddress: () => false,
+    ...requestsFor('addresses'),
+  },
   app: { ...appDefaults },
   backend: { ...backendDefaults },
   appUpdate: { ...appUpdateDefaults },
@@ -291,8 +302,47 @@ export const createStoreDefaults = () => ({
     onChangeWalletSortType: () => {},
     onSearchValueUpdated: () => {},
   },
-  staking: { stakingInfoWasOpen: false, ...requestsFor('staking') },
-  transactions: { ...requestsFor('transactions') },
+  staking: {
+    stakingInfoWasOpen: false,
+    /*
+     * A method rather than a field, and the real one crosses into two other
+     * stores to build its answer. The summary screen passes the result straight
+     * into a display component, so the fixture returns the same shape from the
+     * wallet it is given.
+     */
+    getRewardForWallet: (wallet) => ({
+      wallet: wallet ? wallet.name : '',
+      total: wallet ? wallet.reward : null,
+      unspent: wallet ? wallet.reward : null,
+      rewardsAddress: '',
+      isRestoring: wallet ? wallet.isRestoring : false,
+      syncingProgress: 0,
+    }),
+    ...requestsFor('staking'),
+  },
+  /*
+   * Observables and the computed getters the wallet screens read. The list
+   * starts empty, which is the state a new wallet is in and the state the
+   * summary screen has its own component for.
+   */
+  transactions: {
+    transactionsRequests: [],
+    deleteTransactionRequestQueue: [],
+    _filterOptionsForWallets: {},
+    all: [],
+    allFiltered: [],
+    recent: [],
+    recentFiltered: [],
+    hasAny: false,
+    hasAnyFiltered: false,
+    totalAvailable: 0,
+    totalFilteredAvailable: 0,
+    pendingTransactionsCount: 0,
+    withdrawals: {},
+    filterOptions: null,
+    deletePendingTransaction: () => Promise.resolve(),
+    ...requestsFor('transactions'),
+  },
   uiDialogs: {
     // Containers gate on this before reading anything else, so the default is
     // "no dialog open" and a screen that wants one overrides the predicate.

@@ -34,8 +34,9 @@ const storyFiles = collect(SCREENS_DIR);
 
 describe('the screen story corpus', () => {
   it('has a story file per covered screen', () => {
-    // 29 of the application's 49 reachable screens, which is where phase 6 ends.
-    expect(storyFiles).toHaveLength(29);
+    // 30 of the application's 49 reachable screens: the 29 from phase 6 plus the
+    // wallet-scale proof screen that opens phase 7.
+    expect(storyFiles).toHaveLength(30);
   });
 
   it.each(storyFiles.map((file) => [path.relative(SCREENS_DIR, file), file]))(
