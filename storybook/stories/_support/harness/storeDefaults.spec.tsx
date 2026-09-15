@@ -15,6 +15,8 @@ import GeneralSettingsPage from '../../../../source/renderer/app/containers/sett
 import enMessages from '../../../../source/renderer/app/i18n/locales/en-US.json';
 import { createStoreDefaults, withStoreOverrides } from './storeDefaults';
 import { backendPhase } from './fixtures/backend';
+import { screenDecorator } from './ScreenStory';
+import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import {
   alertNewsFeed,
   incidentNewsFeed,
@@ -236,6 +238,55 @@ describe('news fixtures', () => {
     // between a story and an empty panel.
     expect(updateAvailable().availableUpdate).not.toBeNull();
     expect(createStoreDefaults().appUpdate.availableUpdate).toBeNull();
+  });
+});
+
+describe('screenDecorator', () => {
+  /*
+   * The decorator is a function returning a function, and what it decides is a
+   * store map. Rendering it would prove the frame mounts; reading what it built
+   * proves the three route consumers were given the same answer, which is the
+   * property that cannot be seen from a screenshot.
+   */
+  // The StoryProvider the decorator built is the only element in the frame
+  // carrying storeOverrides, so walking down to it returns what the decorator
+  // decided.
+  const findProvider = (node) => {
+    if (!node || typeof node !== 'object') return null;
+    if (node.props && node.props.storeOverrides) return node;
+    return findProvider(node.props && node.props.children);
+  };
+
+  const storesFromDecorator = (overrides = {}, options = {}) => {
+    const frame = screenDecorator(overrides, options);
+    const provider = findProvider(frame(() => null));
+    expect(provider).not.toBeNull();
+    return provider.props.storeOverrides;
+  };
+
+  it('gives the router and the app store the same path', () => {
+    const overrides = storesFromDecorator(
+      {},
+      { path: ROUTES.SETTINGS.GENERAL }
+    );
+    expect(overrides.router.location.pathname).toBe(ROUTES.SETTINGS.GENERAL);
+    expect(overrides.app.currentRoute).toBe(ROUTES.SETTINGS.GENERAL);
+  });
+
+  it('defaults to the root when a screen does not say where it is', () => {
+    const overrides = storesFromDecorator();
+    expect(overrides.router.location.pathname).toBe(ROUTES.ROOT);
+    expect(overrides.app.currentRoute).toBe(ROUTES.ROOT);
+  });
+
+  it('leaves the other overrides a story made alone', () => {
+    const overrides = storesFromDecorator(
+      { profile: { currentTheme: 'cardano' }, app: { newsFeedIsOpen: true } },
+      { path: ROUTES.WALLETS.ROOT }
+    );
+    expect(overrides.profile.currentTheme).toBe('cardano');
+    expect(overrides.app.newsFeedIsOpen).toBe(true);
+    expect(overrides.app.currentRoute).toBe(ROUTES.WALLETS.ROOT);
   });
 });
 

@@ -8,6 +8,7 @@ import {
 import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import environment from '../environment';
 import { backendDefaults } from './fixtures/backend';
+import { routerAt } from './fixtures/router';
 import {
   appUpdateDefaults,
   newsFeedDefaults,
@@ -258,7 +259,12 @@ export const createStoreDefaults = () => ({
   networkStatus: { ...networkStatusDefaults },
   newsFeed: { ...newsFeedDefaults },
   profile: { ...profileDefaults },
-  router: {},
+  /*
+   * At the root. `screenDecorator` replaces this from the story's own path, so
+   * the default is what a screen sees when it does not care where it is, and
+   * AppStore.currentRoute is computed from the same field.
+   */
+  router: routerAt(),
   sidebar: {},
   staking: { ...requestsFor('staking') },
   transactions: { ...requestsFor('transactions') },

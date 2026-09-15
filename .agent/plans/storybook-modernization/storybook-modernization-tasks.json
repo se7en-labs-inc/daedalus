@@ -1739,7 +1739,7 @@
           "id": "task-047",
           "title": "Add the router stub, MemoryRouter and AnalyticsProvider",
           "description": "Nothing in the workbench provides a Router today, and five screens use withRouter while two read stores.router.location. Three screens use withAnalytics, which calls useAnalytics() (components/analytics/withAnalytics.tsx:16) and reads a context, so a provider is required rather than a prop.",
-          "status": "pending",
+          "status": "completed",
           "priority": "critical",
           "estimatedHours": 10.0,
           "dependencies": [
