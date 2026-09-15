@@ -41,3 +41,4 @@ looking for.
 |---------|-------|--------|
 | [retired-drep-visibility.md](./retired-drep-visibility.md) | Governance, with an upstream fix: a retired DRep leaves the wallet loading forever | Open, not scheduled |
 | [ipc-channel-response-correlation.md](./ipc-channel-response-correlation.md) | IPC: `IpcChannel` resolves on the next response rather than the matching one, and `IpcConversation` next to it already does this correctly | Open, not scheduled |
+| [token-provenance-discarded.md](./token-provenance-discarded.md) | Native tokens: per-property verification, policy closure and script type are computed or one call away, and collapsed into one boolean | Open, not scheduled |
