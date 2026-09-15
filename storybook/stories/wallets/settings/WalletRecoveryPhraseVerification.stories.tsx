@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import {
   LEGACY_WALLET_RECOVERY_PHRASE_WORD_COUNT,
   WALLET_RECOVERY_PHRASE_WORD_COUNT,

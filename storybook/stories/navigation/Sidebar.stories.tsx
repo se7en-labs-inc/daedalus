@@ -1,6 +1,6 @@
 import React from 'react';
 import { observable, runInAction } from 'mobx';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
 import {
   DEVELOPMENT,

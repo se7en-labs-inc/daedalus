@@ -1,43 +1,20 @@
-import { createRequire } from 'node:module';
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-
-/*
- * Storybook 10 loads this file as ESM, so there is no ambient `require`. The
- * two things that needed one still need one: a plugin package with no ESM
- * entry, and a resolution that has to start from another package's location.
- * `createRequire` is the sanctioned way to ask for both from an ES module, and
- * it is not the faux-ESM `require` the migration warns about, which is an
- * ambient call that only works because a loader transpiled the file to
- * CommonJS behind your back.
- *
- * Synchronous rather than a dynamic import, because a top-level await is not
- * available here: Storybook's config loader transpiles this file to CommonJS
- * with esbuild, which shims `import.meta.url` and rejects top-level `await`
- * outright. webpack is CommonJS, so requiring it is the right call regardless.
- */
-const cjs = createRequire(import.meta.url);
-const { resolve } = cjs;
-
-/*
- * Take webpack from the builder rather than from the top of node_modules. Yarn
- * resolves @storybook/builder-webpack5's own webpack range separately from this
- * package's pinned one and nests the result, so the two are different copies of
- * webpack with different class objects in them. A plugin built from one and
- * registered on a compiler from the other constructs dependencies the compiler
- * does not recognise: ProvidePlugin writes `loc` on a Dependency that is not the
- * Dependency class the parser produced, the write throws inside the parse, and
- * every module the plugin touches reports "Module parse failed" with no file
- * named.
- *
- * Still three copies as of this commit, so the indirection stays:
- * node_modules/webpack, and one each under @storybook/builder-webpack5 and
- * @storybook/preset-react-webpack.
- */
-const webpack = cjs(
-  resolve('webpack', { paths: [resolve('@storybook/builder-webpack5')] })
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+// Take webpack from the builder rather than from the top of node_modules. Yarn
+// resolves @storybook/builder-webpack5's own webpack range separately from this
+// package's pinned one and nests the result, so the two are different copies of
+// webpack with different class objects in them. A plugin built from one and
+// registered on a compiler from the other constructs dependencies the compiler
+// does not recognise: ProvidePlugin writes `loc` on a Dependency that is not the
+// Dependency class the parser produced, the write throws inside the parse, and
+// every module the plugin touches reports "Module parse failed" with no file
+// named.
+const webpack = require(
+  require.resolve('webpack', {
+    paths: [require.resolve('@storybook/builder-webpack5')],
+  })
 );
 
-export default {
+module.exports = {
   framework: {
     name: '@storybook/react-webpack5',
     options: {},
@@ -46,13 +23,9 @@ export default {
     '../storybook/stories/**/*.stories.@(ts|tsx)',
     '../source/renderer/app/**/*.@(stories|story).@(ts|tsx)',
   ],
-  addons: [
-    // Controls is an addon at 8.x and moves into core at 9, so this entry is
-    // temporary by construction and goes at the version bump.
-    '@storybook/addon-controls',
-    '@storybook/addon-actions',
-    '@storybook/addon-links',
-  ],
+  // Controls and actions are part of core from 9 onwards, so the list is down to
+  // the one addon still published separately.
+  addons: ['@storybook/addon-links'],
   // Make whatever fine-grained changes you need
   webpackFinal: async (config, { configType }) => {
     // `configType` has a value of 'DEVELOPMENT' or 'PRODUCTION'
@@ -70,11 +43,11 @@ export default {
       }),
       new webpack.NormalModuleReplacementPlugin(
         /@trezor[\\/]transport[\\/]lib[\\/]transports[\\/]nodeusb\.js$/,
-        resolve('@trezor/transport/lib/transports/nodeusb.browser.js')
+        require.resolve('@trezor/transport/lib/transports/nodeusb.browser.js')
       ),
       new webpack.NormalModuleReplacementPlugin(
         /@trezor[\\/]transport[\\/]lib[\\/]transports[\\/]udp\.js$/,
-        resolve('@trezor/transport/lib/transports/udp.browser.js')
+        require.resolve('@trezor/transport/lib/transports/udp.browser.js')
       ),
     ];
     config.experiments = {
@@ -98,15 +71,15 @@ export default {
       ],
       fallback: {
         ...config.resolve.fallback,
-        process: resolve('process/browser'),
-        path: resolve('path-browserify'),
-        crypto: resolve('crypto-browserify'),
-        stream: resolve('stream-browserify'),
-        http: resolve('stream-http'),
-        https: resolve('https-browserify'),
-        url: resolve('url'),
-        buffer: resolve('buffer/'), // https://www.npmjs.com/package/buffer#usage
-        os: resolve('os-browserify/browser'),
+        process: require.resolve('process/browser'),
+        path: require.resolve('path-browserify'),
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
+        http: require.resolve('stream-http'),
+        https: require.resolve('https-browserify'),
+        url: require.resolve('url'),
+        buffer: require.resolve('buffer/'), // https://www.npmjs.com/package/buffer#usage
+        os: require.resolve('os-browserify/browser'),
         // child_process is only used in the Electron main process (ARM detection).
         // Provide an empty stub so Storybook's webpack can bundle environment.ts.
         // The execFileSync call is unreachable in a browser context (isMacOS === false).
@@ -168,7 +141,7 @@ export default {
             loader: 'sass-loader',
             options: {
               sourceMap: true,
-              implementation: resolve('sass'),
+              implementation: require.resolve('sass'),
             },
           },
         ],

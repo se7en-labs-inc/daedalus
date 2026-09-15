@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { BigNumber } from 'bignumber.js';
 import moment from 'moment';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { find } from 'lodash';
 import DelegationStepsIntroDialog from '../../../../source/renderer/app/components/staking/delegation-setup-wizard/DelegationStepsIntroDialog';
 import DelegationStepsChooseWalletDialog from '../../../../source/renderer/app/components/staking/delegation-setup-wizard/DelegationStepsChooseWalletDialog';

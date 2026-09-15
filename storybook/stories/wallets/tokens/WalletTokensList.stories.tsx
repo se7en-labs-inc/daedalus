@@ -1,6 +1,6 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
-import { useArgs } from '@storybook/preview-api';
+import { action } from 'storybook/actions';
+import { useArgs } from 'storybook/preview-api';
 import BigNumber from 'bignumber.js';
 import StoryDecorator from '../../_support/StoryDecorator';
 import StoryProvider from '../../_support/StoryProvider';

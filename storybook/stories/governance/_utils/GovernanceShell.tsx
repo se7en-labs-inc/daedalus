@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import GovernanceWithNavigation from '../../../../source/renderer/app/components/governance/layouts/GovernanceWithNavigation';
 import Sidebar from '../../../../source/renderer/app/components/sidebar/Sidebar';
 import SidebarLayout from '../../../../source/renderer/app/components/layout/SidebarLayout';

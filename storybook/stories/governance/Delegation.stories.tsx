@@ -1,8 +1,8 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
 import { find } from 'lodash';
-import { useArgs } from '@storybook/preview-api';
+import { useArgs } from 'storybook/preview-api';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import Navigation from '../../../source/renderer/app/components/navigation/Navigation';

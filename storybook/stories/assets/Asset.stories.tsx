@@ -1,6 +1,6 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import Asset from '../../../source/renderer/app/components/assets/Asset';
 

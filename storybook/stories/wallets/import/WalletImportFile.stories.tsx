@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import VerticalFlexContainer from '../../../../source/renderer/app/components/layout/VerticalFlexContainer';
 import WalletImportFileDialog from '../../../../source/renderer/app/components/wallet/wallet-import/WalletImportFileDialog';

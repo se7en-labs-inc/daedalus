@@ -1275,7 +1275,7 @@
      "id": "task-037",
      "title": "Bump the manifest to 10.6.x and run the automigrations individually",
      "description": "Locked decision 12: no storybook upgrade. Edit package.json by hand and run renderer-to-framework, consolidated-imports, wrap-getAbsolutePath and fix-faux-esm-require one at a time against the configuration files.",
-     "status": "blocked",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 8.0,
      "dependencies": [

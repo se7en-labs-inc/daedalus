@@ -1,7 +1,7 @@
 import React from 'react';
 import { map } from 'lodash';
 import BigNumber from 'bignumber.js';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 // Screens
 import { StakingRewards } from '../../../../source/renderer/app/components/staking/rewards/StakingRewards';
 // Dummy data initialization

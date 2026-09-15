@@ -1,7 +1,7 @@
 import React from 'react';
 import { find } from 'lodash';
 import BigNumber from 'bignumber.js';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StakePools from '../../../../source/renderer/app/components/staking/stake-pools/StakePools';
 import {
   CIRCULATING_SUPPLY,

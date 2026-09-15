@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ComponentProps } from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../../_support/StoryDecorator';
 import MithrilPartialSyncConfirmation from '../../../../source/renderer/app/components/status/MithrilPartialSyncConfirmation';
 import { currentThemeOf } from '../../_support/globals';

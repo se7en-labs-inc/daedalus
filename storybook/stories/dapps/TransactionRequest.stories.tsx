@@ -1,7 +1,7 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
-import { action } from '@storybook/addon-actions';
-import { useArgs } from '@storybook/preview-api';
+import { action } from 'storybook/actions';
+import { useArgs } from 'storybook/preview-api';
 import StoryDecorator from '../_support/StoryDecorator';
 import DappTransactionRequest from '../../../source/renderer/app/components/dapp/DappTransactionRequest';
 import Notification from '../../../source/renderer/app/components/notifications/Notification';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { defineMessages, IntlProvider } from 'react-intl';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import enMessages from '../../../source/renderer/app/i18n/locales/en-US.json';
 import jpMessages from '../../../source/renderer/app/i18n/locales/ja-JP.json';

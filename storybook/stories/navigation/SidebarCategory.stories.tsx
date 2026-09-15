@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import SidebarCategory from '../../../source/renderer/app/components/sidebar/SidebarCategory';
 // @ts-ignore ts-migrate(2307) FIXME: Cannot find module '../../../source/renderer/app/a... Remove this comment to see the full error message
 import walletsIcon from '../../../source/renderer/app/assets/images/sidebar/wallet-ic.inline.svg';

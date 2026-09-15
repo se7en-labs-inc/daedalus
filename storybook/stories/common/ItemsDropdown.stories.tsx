@@ -1,7 +1,7 @@
 import React from 'react';
 import { observable, action as mobxAction } from 'mobx';
-import { action } from '@storybook/addon-actions';
-import { useArgs } from '@storybook/preview-api';
+import { action } from 'storybook/actions';
+import { useArgs } from 'storybook/preview-api';
 import { find, get } from 'lodash';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';

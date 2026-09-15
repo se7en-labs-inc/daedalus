@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { find } from 'lodash';
 import BigNumber from 'bignumber.js';
 import DelegationCenter from '../../../../source/renderer/app/components/staking/delegation-center/DelegationCenter';

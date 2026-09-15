@@ -1,6 +1,6 @@
 // eslint-disable-file no-unused-vars
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import NewsFeed from '../../../source/renderer/app/components/news/NewsFeed';
 import News from '../../../source/renderer/app/domains/News';

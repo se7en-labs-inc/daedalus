@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { CREATE_WALLET_STEPS } from '../../../../source/renderer/app/config/walletsConfig';
 // Screens
 import InstructionsDialog from '../../../../source/renderer/app/components/wallet/wallet-create/InstructionsDialog';

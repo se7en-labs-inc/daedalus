@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 // Assets and helpers
 import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import WalletFileImportDialog from '../../../../source/renderer/app/components/wallet/file-import/WalletFileImportDialog';

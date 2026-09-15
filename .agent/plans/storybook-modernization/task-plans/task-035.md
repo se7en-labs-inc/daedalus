@@ -188,3 +188,32 @@ questions in a new way: the instrument was the right instrument, run on the righ
 truthfully. It simply had nothing to say about the thing that changed. A fourth question earns its
 place: **what would this instrument report if the thing I am changing had broken?** For an error
 count over a permissive checker, the answer is zero.
+
+## Later Annotation: Reverted At task-037
+
+Added at the version bump. The task is not reopened; this records what happened to its change.
+
+`task-037` landed Storybook **9.1.20**, not 10.x. The whole 10 line is unreachable on TypeScript
+4.9.5, for reasons recorded in that entry.
+
+This task's premise was correct for the version it was written against: Storybook 10 removed the
+`typesVersions` fields that classic node resolution depends on, so `node16` was required to read its
+`exports` map. 9.1.20 still ships `typesVersions`, with explicit entries for `actions`, `preview-api`
+and forty more, so classic resolution finds it.
+
+Worse than redundant, `node16` is incompatible with it. `storybook@9.1.20` declares
+`"type": "module"`, so its declaration files are ESM declarations, and under `node16` a CommonJS
+source file importing them is an error: **102 × `TS1479`**. The `require` condition its `exports` map
+publishes does not help, because both conditions share one `types` entry and TypeScript takes its
+verdict from that.
+
+So `module` and `moduleResolution` are both back to `commonjs` and `node`, and the `@faker-js/faker`
+`paths` entry goes with them: under classic resolution faker's own `typesVersions` supplies its
+declarations, verified by removing the entry and re-running the misuse probe, which still errors.
+
+**The finding this task produced is preserved** at
+`.agent/findings/07-a-lost-type-entry-is-silent.md`. That was always the valuable part. The setting
+was correct for a version this repository cannot take; the discovery that `skipLibCheck` plus
+`noImplicitAny: false` makes a lost type entry unreportable is true regardless of version, and it is
+waiting for whoever takes the TypeScript 5 upgrade, where `moduleResolution: "bundler"` is the
+setting that actually fits a webpack-bundled tree.

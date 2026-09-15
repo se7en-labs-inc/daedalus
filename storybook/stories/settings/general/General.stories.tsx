@@ -1,6 +1,6 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
-import { useArgs, useGlobals } from '@storybook/preview-api';
+import { action } from 'storybook/actions';
+import { useArgs, useGlobals } from 'storybook/preview-api';
 import SettingsWrapper from '../utils/SettingsWrapper';
 import { themesIds } from '../../_support/config';
 import { localeOf } from '../../_support/globals';

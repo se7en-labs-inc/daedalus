@@ -24,18 +24,12 @@
     "useDefineForClassFields": false,                    /* Emit ECMAScript-standard-compliant class fields. */
 
     /* Modules */
-    "module": "node16",                                  /* Specify what module code is generated. */
+    "module": "commonjs",                                /* Specify what module code is generated. */
     // "rootDir": "./",                                  /* Specify the root folder within your source files. */
-    "moduleResolution": "node16",                        /* Specify how TypeScript looks up a file from a given module specifier. Storybook 10 publishes its packages behind a conditional exports map and ships no main or types field, which classic node resolution cannot read. node16 rather than nodenext because it is pinned rather than tracking whatever the installed TypeScript considers current, and rather than bundler because that needs TypeScript 5.0 and this repository is on 4.9.5. */
+    "moduleResolution": "node",                          /* Specify how TypeScript looks up a file from a given module specifier. */
     "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
     "paths": {
-      "tests/*": ["tests/*"],
-      /* @faker-js/faker's exports map declares no types condition, and node16
-         resolution consults exports before the typesVersions fallback that was
-         supplying its types. Without this the package resolves to untyped
-         JavaScript, and because noImplicitAny is off that is silent: the five
-         files that import it keep compiling with faker as any. */
-      "@faker-js/faker": ["node_modules/@faker-js/faker/dist/types/index.d.ts"]
+      "tests/*": ["tests/*"]
     },                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     // "typeRoots": [],                                  /* Specify multiple folders that act like `./node_modules/@types`. */

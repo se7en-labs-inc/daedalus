@@ -5,7 +5,7 @@ import { observable, runInAction } from 'mobx';
 import BigNumber from 'bignumber.js';
 import { observer, inject } from 'mobx-react';
 import { get } from 'lodash';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import classNames from 'classnames';
 import { isShelleyTestnetTheme } from './utils';
 // Assets and helpers

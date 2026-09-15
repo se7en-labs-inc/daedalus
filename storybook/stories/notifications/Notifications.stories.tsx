@@ -1,6 +1,6 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
-import { useArgs } from '@storybook/preview-api';
+import { action } from 'storybook/actions';
+import { useArgs } from 'storybook/preview-api';
 import StoryDecorator from '../_support/StoryDecorator';
 import Notification from '../../../source/renderer/app/components/notifications/Notification';
 import InlineNotification from '../../../source/renderer/app/components/notifications/InlineNotification';

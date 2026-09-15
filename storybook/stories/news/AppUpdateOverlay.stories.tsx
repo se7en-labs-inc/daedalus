@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import AppUpdateOverlay from '../../../source/renderer/app/components/appUpdate/AppUpdateOverlay';
 import { update, version, availableAppVersion } from './_utils/fakeDataUpdate';

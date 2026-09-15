@@ -1,7 +1,7 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
-import { useArgs } from '@storybook/preview-api';
+import { useArgs } from 'storybook/preview-api';
 import type { ListViewMode } from '../../../source/renderer/app/types/listViewTypes';
 import GovernanceShell, { GOVERNANCE_TABS } from './_utils/GovernanceShell';
 import StoryDecorator from '../_support/StoryDecorator';

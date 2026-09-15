@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { FormattedMessage } from 'react-intl';
 import STAKE_POOLS from '../../../../source/renderer/app/config/stakingStakePools.dummy.json';
 import { StakePoolsTable } from '../../../../source/renderer/app/components/staking/stake-pools/StakePoolsTable';

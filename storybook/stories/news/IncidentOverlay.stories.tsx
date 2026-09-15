@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import IncidentOverlay from '../../../source/renderer/app/components/news/IncidentOverlay';
 import { dateOptions } from '../_support/profileSettings';

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../../_support/StoryDecorator';
 import { applyEnvironmentOs } from '../../_support/environment';
 import { osNameOf } from '../../_support/globals';

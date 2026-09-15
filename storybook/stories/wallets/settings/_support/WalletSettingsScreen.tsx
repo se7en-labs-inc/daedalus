@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import moment from 'moment';
 import { defineMessages } from 'react-intl';
 import type { Locale } from '../../../../../source/common/types/locales.types';

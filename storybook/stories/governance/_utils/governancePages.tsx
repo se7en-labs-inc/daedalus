@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
 import GovernanceWallets from '../../../../source/renderer/app/components/governance/wallets/GovernanceWallets';
 import type { WalletDelegationSummary } from '../../../../source/renderer/app/components/governance/wallets/GovernanceWallets';

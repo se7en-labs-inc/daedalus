@@ -1,7 +1,7 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
 // Assets and helpers
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import {
   generateAssetToken,
   generateHash,

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ComponentProps } from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../../_support/StoryDecorator';
 import DaedalusDiagnostics from '../../../../source/renderer/app/components/status/DaedalusDiagnostics';
 import MithrilPartialSyncSection from '../../../../source/renderer/app/components/status/MithrilPartialSyncSection';

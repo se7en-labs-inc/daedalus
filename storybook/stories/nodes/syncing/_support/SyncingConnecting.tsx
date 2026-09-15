@@ -1,6 +1,6 @@
 import React from 'react';
 import { linkTo } from '@storybook/addon-links';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import SyncingConnecting from '../../../../../source/renderer/app/components/loading/syncing-connecting/SyncingConnecting';
 import {
   BlockSyncType,

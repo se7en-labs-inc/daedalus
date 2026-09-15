@@ -1,6 +1,6 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 // Screens
 import Step1ConfigurationDialog from '../../../../source/renderer/app/components/staking/redeem-itn-rewards/Step1ConfigurationDialog';
 import Step2ConfirmationDialog from '../../../../source/renderer/app/components/staking/redeem-itn-rewards/Step2ConfirmationDialog';

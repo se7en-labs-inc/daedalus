@@ -195,3 +195,29 @@ Two failures in sequence taught the same thing from opposite directions. The bui
 is ESM to one and CommonJS to the other, and neither tool's opinion could be inferred from the
 other's. Running only the build would have shipped a file `tsc` rejects; running only `tsc` would have
 shipped a file the loader cannot execute.
+
+## Later Annotation: Reverted At task-037
+
+Added at the version bump. The task is not reopened; this records what happened to its change.
+
+`task-037` landed Storybook **9.1.20**, which loads a CommonJS main config with an ambient `require`
+without complaint, verified by building. Its `fix-faux-esm-require` automigration reports nothing
+applicable, which is the tool agreeing.
+
+The ESM rewrite is therefore not needed, and the `.mts` rename that carried it cannot survive anyway.
+That rename only means anything under `node16` resolution, which `task-035`'s annotation explains is
+itself reverted: with classic resolution TypeScript does not treat `.mts` as ESM, and `import.meta`
+fails with `TS1470` rather than being accepted. Splitting the settings was tried,
+`module: node16` with `moduleResolution: node`, and produces the same `TS1470`.
+
+So the file is `storybook/main.ts` again, in its original CommonJS form, with one change kept: the
+addons array is reduced to `['@storybook/addon-links']`, because controls and actions are part of core
+from 9 onwards.
+
+Two measurements from this task are worth keeping and are not version-specific. Storybook's config
+loader transpiles the main config to CommonJS with esbuild, which shims `import.meta.url` and rejects
+top-level `await`, so the file is ESM to the type checker and CommonJS to the loader and neither
+tool's opinion can be inferred from the other's. And the decorator settings are verified from the
+emitted helper in `dist/storybook` rather than by reading the config back: the legacy helper appears
+in 66 bundles and the TC39 helper in none, which is the check that distinguishes a setting being
+present from a setting being in effect.

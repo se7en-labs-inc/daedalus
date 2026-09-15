@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import VotingInfo from '../../../source/renderer/app/components/voting/voting-info/VotingInfo';
 import { FundPhase } from '../../../source/renderer/app/stores/VotingStore';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { defineMessages, IntlProvider } from 'react-intl';
 import { observable, action as mobxAction } from 'mobx';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import StoryLayout from '../_support/StoryLayout';

@@ -7,174 +7,216 @@
 
 ## Interaction Mode
 
-- Mode: `agent_execution`, suspended. **This task is blocked on a decision that belongs to the project
-  owner:** whether to take the documented 9.1.x fallback.
+- Mode: `agent_execution`.
 
 ## Build Status
 
-`blocked`
+`completed`
 
 ## Summary
 
-The 10.6.0 bump was carried out in full and then reverted. It does not work on this repository, for
-two reasons that are independent of each other and of anything this epic has done. Both are measured
-below. The branch is back at `dd5603c42`, which is green.
+**Landed on `9.1.20`.** It is the highest version of Storybook that this repository can type-check,
+build and keep green, measured against five gates rather than chosen by version number.
 
-The 9.1.x fallback clears both. Taking it is not this task's call.
+Two earlier attempts were made and reverted: `10.6.0` and `10.3.6`. The reasons are recorded below so
+that the next person to consider a bump does not repeat them.
 
-## What Was Done Before It Was Reverted
+Landing 9.1.20 also required reverting `task-035` and `task-036`. That is the most consequential
+finding in this task and it is stated in full further down.
 
-Everything the task entry asks for, in the order it asks for it.
+## The Gates, And Every Version Measured Against Them
 
-1. `package.json` hand-edited, not `storybook upgrade`, per locked decision 12. `storybook`,
-   `@storybook/react`, `@storybook/react-webpack5` and `@storybook/addon-links` to `10.6.0`.
-   `@storybook/addon-actions`, `@storybook/addon-controls`, `@storybook/components`,
-   `@storybook/core-events`, `@storybook/manager-api`, `@storybook/preview-api` and
-   `@storybook/theming` removed: none of the seven publishes a 10.6.x, and only `addon-links` of the
-   originals survives as a separate package.
-2. `storybook/main.mts`'s addons array reduced to `['@storybook/addon-links']`.
-3. The four automigrations run individually. See below; the results are not what the entry expects.
-4. Imports rewritten: 9 to `storybook/preview-api` by the codemod, 63 to `storybook/actions` by hand
-   using the codemod's own mapping table.
-5. `nix build '.#internal.x86_64-linux.node_modules'` passed, so the manifest and lockfile agreed
-   under `--frozen-lockfile`.
-6. `yarn storybook:build` passed locally at 10.6.0.
+Five gates. The first four were set by the project owner; the fifth emerged from measurement and is
+the one that decided the outcome.
 
-**The corpus itself is fine at 10.6.0.** `index.json` from the 10.6.0 build is **258 stories across 49
-panels, identical pair for pair** to the 8.6.18 baseline, with the index format moving from `v4` to
-`v5` underneath. The legacy decorator helper appears in 66 built bundles and the TC39 helper in none,
-so the SWC settings survive. `perSystem/checks.nix` needed no edit. `lint` passed.
+1. No TypeScript 5.0 syntax in the shipped declarations, since a TypeScript upgrade is out of scope.
+2. No native module the Nix build cannot deliver.
+3. React 16.14.0 within the peer range.
+4. No increase in reported vulnerabilities relative to the alternatives.
+5. **Importable from CommonJS TypeScript under TypeScript 4.9.5.** This is not a property of the
+   package alone; it is a property of the package and this repository's `tsconfig.json` together.
 
-So the conversion work of phases 3, 4 and 5 is compatible with 10.6.0. What is not compatible is this
-repository's TypeScript and this repository's Nix build.
+| version | 1. TS5 syntax | 2. native module | 3. React 16 | 4. advisories | 5. CJS-importable |
+|---|---|---|---|---|---|
+| 8.6.18 (current) | none | none | yes | 258 distinct | yes |
+| 9.1.20 | none | none | yes | 259 distinct | **yes, via `typesVersions`** |
+| 10.0.0 – 10.3.6 | none | none | yes | 259 distinct | **no** |
+| 10.4.0 – 10.4.6 | none | **`oxc-resolver`** | yes | not measured | no |
+| 10.5.0 – 10.6.0 | **`<const>` params** | **`oxc-resolver`** | yes | not measured | no |
 
-## Blocker 1: TypeScript 4.9.5 cannot parse Storybook 10.6's declarations
+Each boundary was measured from the published tarballs, not from the peer ranges, because
+`@storybook/react@10.6.0` advertises `typescript: ">= 4.9.x"` and ships declarations that TypeScript
+4.9.5 cannot parse. **A peer range is a claim, not a measurement.**
 
-`nix build '.#checks.x86_64-linux.compile'` fails:
+- `oxc-resolver` first appears in `storybook@10.4.0` and is absent from every earlier version.
+- `const` type parameters first appear at `10.5.0`: zero occurrences at `10.4.0`, 111 at `10.5.0`,
+  42 at `10.5.9`, 50 at `10.6.0`.
+- React 16.8 remains in the peer range across the whole 9 and 10 line.
 
-```
-node_modules/storybook/dist/chunk-zQu03vfn.d.ts:6599:217 - error TS1434: Unexpected keyword or identifier.
-node_modules/storybook/dist/chunk-zQu03vfn.d.ts:6599:225 - error TS1128: Declaration or statement expected.
-node_modules/storybook/dist/chunk-zQu03vfn.d.ts:6599:226 - error TS1128: Declaration or statement expected.
-```
+## Gate 5, Which Decided It
 
-The cause is `const` type parameters, `<const T>`, which are TypeScript 5.0 syntax.
-`grep -c "<const " node_modules/storybook/dist/chunk-zQu03vfn.d.ts` is **49**.
+Storybook 9 and 10 are ESM-typed packages: `storybook`'s own `package.json` declares
+`"type": "module"`, so its declaration files are ESM declarations. This repository's sources are
+CommonJS, because the root manifest declares no module type.
 
-`skipLibCheck: true` does not help and cannot: it skips type *checking* of declaration files, not
-*parsing* of them. A syntax error in a `.d.ts` is reported either way.
+Under `moduleResolution: "node16"`, TypeScript models Node's runtime rules and refuses the import:
+**102 × `TS1479`**, "The current file is a CommonJS module whose imports will produce 'require' calls;
+however, the referenced file is an ECMAScript module". This happens at **9.1.20 and at 10.3.6 alike**.
 
-`@storybook/react@10.6.0` declares `peerDependencies.typescript` as `">= 4.9.x"`. That range is wrong
-for its own shipped declarations. This repository is on `typescript@4.9.5`, which satisfies the
-declared range and cannot read the files.
+It is worth being precise about why, because the `exports` map looks like it should save 9.1.20 and
+does not. 9.1.20 publishes a `require` condition for each subpath, pointing at a real `.cjs` file, but
+it publishes **one** `types` entry shared by both conditions, and that entry is an ESM declaration.
+TypeScript takes its verdict from the types entry. A package can only be imported from CommonJS under
+`node16` if it ships a separate `.d.cts`, and Storybook does not.
 
-The fix would be a TypeScript 5 upgrade. That is a separate project: `strict` is off, `noImplicitAny`
-is off, and there are roughly 1,131 `@ts-ignore` directives in `source/` whose behaviour under a new
-compiler is unknown. It is not in this epic's scope and should not be smuggled into it.
+Under classic `moduleResolution: "node"`, which ignores `exports` entirely:
 
-## Blocker 2: Storybook 10 needs a native module the Nix build does not deliver
+- **9.1.20 resolves**, through its `typesVersions` map, which contains explicit entries for `actions`,
+  `preview-api`, `manager-api`, `theming`, `test` and forty more. Classic resolution reads that map
+  and no ESM/CommonJS check applies, because classic resolution predates the distinction. Measured:
+  the 102 errors go to zero.
+- **10.x does not resolve at all.** The 10 line ships no `main`, no `types` and **no `typesVersions`**,
+  so classic resolution has nothing to find.
 
-`nix build '.#checks.x86_64-linux.storybook'` fails:
+So 10.x cannot be type-checked by TypeScript 4.9.5 under either mode: `node16` refuses it and classic
+cannot find it. The setting that would work is `moduleResolution: "bundler"`, which is correct for a
+webpack-bundled tree and requires TypeScript 5.0. That is the gate, and it is not about any Storybook
+version's quality; it is about which TypeScript this repository is on.
 
-```
-Cannot find module './resolver.linux-x64-gnu.node'
-Require stack: /build/source/node_modules/oxc-resolver/index.js
-requestPath: '@oxc-resolver/binding-linux-x64-gnu'
-```
+The webpack build succeeds at every version tried, including 10.6.0. **Only the type checker
+objects**, and it objects to something that cannot happen, because these files are bundled and never
+executed by Node.
 
-`storybook@10.6.0` depends on `oxc-resolver@11.21.2`, a Rust resolver distributed as a napi native
-addon with one optional package per platform. `storybook@9.1.20` has no such dependency.
+## Gate 4, And A Count That Lied
 
-This is not a lockfile gap. All nineteen platform bindings are in `yarn.lock`, and the
-`node_modules` derivation installs `@oxc-resolver/binding-linux-x64-gnu`. What it does not install is
-the binary inside it. In the Nix store the package directory holds `README.md` and `package.json` and
-nothing else; the same directory in a local `yarn install` holds a 2,366,672-byte
-`resolver.linux-x64-gnu.node`.
+Measured with `yarn audit --json` against a resolved lockfile for each candidate.
 
-So the failure is in how this repository's Nix pipeline handles prebuilt native artifacts, not in the
-lockfile and not in Storybook. `nix build '.#internal.x86_64-linux.node_modules'` passes, which is
-what makes this worth stating carefully: the gate for a manifest change is green and the artifact it
-produces is missing a file.
+The first reading compared **advisory paths** and said 10.3.6 was materially worse: 1464 paths against
+1438, with 90 critical against 68. Attributing paths to Storybook hid it entirely, showing no critical
+difference at all, which is how it came to be looked at twice.
 
-Investigating that is a Nix packaging task with an uncertain size, and it stands between this epic
-and a working 10.6 whatever is done about blocker 1.
+Diffing the advisory sets found the 22 extra criticals were all `@babel/traverse`, reached through
+`jest` and `stylelint`. The vulnerable `@babel/traverse@7.17.10` is present in **all three** trees.
+What differs is hoisting: at 8.6.18 it wins the top-level slot and produces few distinct paths; at
+10.3.6 the clean `7.29.8` wins the slot and the vulnerable copy is nested under `@babel/core`,
+`@babel/helpers` and `jest-snapshot`, where it is reachable by many more distinct paths.
 
-## What The Automigrations Actually Did
+**The path count measures how many ways a package can be reached, not how much vulnerable code is
+present.** Counted by distinct advisory:
 
-The entry says to run `renderer-to-framework`, `consolidated-imports`, `wrap-getAbsolutePath` and
-`fix-faux-esm-require` individually. All four were run. Three findings worth carrying.
+| version | critical | high | moderate | low | total |
+|---|---|---|---|---|---|
+| 8.6.18 | 12 | 125 | 95 | 26 | 258 |
+| 9.1.20 | 12 | 125 | 96 | 26 | 259 |
+| 10.3.6 | 12 | 125 | 95 | 27 | 259 |
 
-**The CLI that runs them is not installed, and the dispatcher fetches it.** At 10, `storybook`'s
-dispatcher runs only `dev`, `build`, `index`, `ai`, `tools` and `skills` locally; everything else is
-delegated to `@storybook/cli`, and when that package is absent the dispatcher calls
-`packageManager.runPackageCommand(..., { useRemotePkg: true })`, which downloads and executes it. The
-first attempt exited 0 with no output at all, which is the failure mode to watch for: it looked like
-a clean no-op. `@storybook/cli@10.6.0` was installed as a temporary devDependency so the
-automigrations ran from disk, and removed afterwards. Running them without doing that is a remote
-package execution, which is a larger step than locked decision 12 was trying to avoid.
+Critical and high are identical across all three. Each candidate adds exactly one distinct advisory
+over staying put, and each is Storybook's own: 9.1.20 adds a **moderate** in `@vitest/mocker`, a path
+traversal patched at `>=4.1.11`; 10.3.6 adds a **low** in `esbuild`, an arbitrary file read in the
+development server patched at `>=0.28.1`.
 
-**The CLI cannot find `main.mts`.** `storybook automigrate` reports
+So on gate 4 alone 10.3.6 would have been marginally preferable to 9.1.20. It fails gate 5, which is
+hard, so the comparison does not arise. **The trade the project owner asked to have surfaced is
+therefore this one: 9.1.20 carries one more moderate-severity advisory than staying on 8.6.18.** It
+is `storybook>@vitest/mocker`, it is not reachable from anything this repository ships, and it is
+listed here rather than resolved.
+
+`esbuild`'s patched version is outside the range Storybook 10.3.6 declares, so pinning it forward
+would have broken the package's own stated compatibility. Not attempted.
+
+## What Landing 9.1.20 Required, And What It Cost
+
+`task-035` and `task-036` are both reverted by this commit. Neither was wrong; both were correct for
+the version they were written for, and that version is not the one being taken.
+
+**`task-035` moved `moduleResolution` to `node16`** because Storybook 10 removed the `typesVersions`
+fields that classic resolution depends on. 9.1.20 still has them. Worse than redundant, `node16` is
+what produces all 102 `TS1479` errors against 9.1.20, so keeping it would leave `compile` red. The
+`module` setting reverts with it, since TypeScript requires the pair.
+
+The `@faker-js/faker` `paths` entry that task introduced goes too. Under classic resolution faker's
+own `typesVersions` supplies its declarations, as it always did, so the entry is redundant; verified
+by removing it and re-running the misuse probe, which still errors. **The finding it came from is
+preserved at `.agent/findings/07-a-lost-type-entry-is-silent.md`**, because the trap is real and will
+recur at the TypeScript 5 upgrade, and a config line nobody can reconstruct a reason for is worse than
+a written finding.
+
+**`task-036` made the main config an ES module**, which required renaming it to `main.mts` so
+TypeScript would accept `import.meta`. That rename only means anything under `node16` resolution:
+with classic resolution TypeScript does not treat `.mts` as ESM, and `import.meta` fails with `TS1470`
+instead. Splitting the settings does not help; `module: node16` with `moduleResolution: node` was
+tried and produces the same `TS1470`.
+
+Storybook 9.1.20 loads a CommonJS main config with an ambient `require` without complaint, verified by
+building. So the file returns to `storybook/main.ts` in its original form, with only the addons array
+changed.
+
+The `fix-faux-esm-require` automigration reports nothing applicable at 9.1.20, which is the tool
+agreeing.
+
+## What Changed In The End
+
+- `package.json`: `storybook`, `@storybook/react-webpack5` and `@storybook/addon-links` to `9.1.20`.
+  `@storybook/addon-actions`, `@storybook/addon-controls`, `@storybook/components`,
+  `@storybook/core-events`, `@storybook/manager-api`, `@storybook/preview-api`, `@storybook/theming`
+  and `@storybook/react` removed: all are folded into core from 9, and `renderer-to-framework` removed
+  the last of them itself.
+- `storybook/main.mts` back to `storybook/main.ts`, addons reduced to `['@storybook/addon-links']`.
+- `tsconfig.json` back to `module: commonjs`, `moduleResolution: node`.
+- 63 imports to `storybook/actions`, 9 to `storybook/preview-api`.
+
+## What The Automigrations Did
+
+Run individually per locked decision 12, never through `storybook upgrade`. Three findings that apply
+whichever version is chosen.
+
+**The CLI that runs them is not installed, and the dispatcher fetches it.** At 9 and 10 the
+`storybook` binary runs only `dev`, `build`, `index` and a few others locally; everything else is
+delegated to `@storybook/cli`, and when that is absent the dispatcher calls
+`runPackageCommand(..., { useRemotePkg: true })`, which downloads and executes it. The first attempt
+**exited 0 with no output at all**, which reads as a clean no-op. `@storybook/cli` was installed as a
+temporary devDependency so the automigrations ran from disk, and removed afterwards.
+
+**The CLI cannot find a `.mts` config.** `storybook automigrate` reports
 `Error: Could not determine main config path` against `storybook/main.mts` and works against
-`storybook/main.ts`. The build finds either. So the config discovery in the CLI and the config
-discovery in the builder do not accept the same extensions, and `task-036`'s rename, which `task-035`
-forces, puts the config outside what the migration tooling can see. The automigrations were run with
-the file temporarily renamed.
+`storybook/main.ts`, while the builder reads either. Moot now that the config is `.ts` again, and
+worth knowing if it ever moves back.
 
 **`consolidated-imports` reports "No migrations were applicable to your project" when it cannot see
-the problem.** Run after the old packages were removed from `package.json`, it reported exactly that,
-while 72 imports still pointed at packages that no longer existed. Run with
-`@storybook/addon-actions` and `@storybook/preview-api` restored to the manifest, it found the
-migration and rewrote the 9 `@storybook/preview-api` imports. It never rewrote the 63
-`@storybook/addon-actions` imports in any configuration tried, with the addon in the addons array or
-removed from it, although its own mapping table contains `"addon-actions": "storybook/actions"`. Those
-63 were done by hand against that table.
+the problem.** Run after the old packages were removed from the manifest, which is the order the task
+entry implies, it reported exactly that while 72 imports still pointed at packages that no longer
+existed. Run with them restored it found the migration and rewrote the 9 `preview-api` imports. It
+never rewrote the 63 `addon-actions` imports in any configuration tried, although its own mapping
+table contains `"addon-actions": "storybook/actions"`. Those were done by hand against that table.
 
-The order the entry implies, manifest first and automigrations after, is the order that makes the
-codemod blind.
+`renderer-to-framework` did real work: it removed six now-folded packages from the manifest, including
+`@storybook/react`, leaving the framework package to supply the renderer. `wrap-getAbsolutePath` and
+`fix-faux-esm-require` both reported nothing applicable.
 
-`renderer-to-framework` found a migration and skipped it under `--dry-run`; the framework field is
-already `@storybook/react-webpack5`, so there was nothing for it to do. `wrap-getAbsolutePath` and
-`fix-faux-esm-require` both reported nothing applicable, the second of which confirms `task-036`'s
-hand-written config is what that automigration would have produced.
+## Verification
 
-## What 9.1.20 Looks Like Against The Same Two Blockers
+- `compile`, `lint`, `storybook`, `jest` and `docs` pass as Nix derivations.
+- `nix build '.#internal.x86_64-linux.node_modules'` passes, so the manifest and lockfile agree under
+  `--frozen-lockfile`.
+- `index.json` from a real build: **258 stories across 49 panels, identical pair for pair** to the
+  8.6.18 baseline, with the index format moving from `v4` to `v5` underneath.
+- `story-args-audit.js` at zero findings.
+- Legacy decorator helper in 66 built bundles, TC39 helper in none.
+- `dist/storybook/sb-addons/` lists `links-1` and the core presets; controls and actions are in core.
+- `perSystem/checks.nix` unmodified.
 
-Measured from the published tarballs rather than from the peer ranges, since 10.6's peer range is
-what got this wrong.
+## Corrections To The Task Graph
 
-| | 10.6.0 | 9.1.20 |
-|---|---|---|
-| `<const ` in shipped `.d.ts` | 49 in one chunk | **0** |
-| `oxc-resolver` dependency | `11.21.2` | **absent** |
-| `main` / `types` fields | neither | both |
-| peer `react` | `^16.8.0 \|\| ^17 \|\| ^18 \|\| ^19` | `^16.8.0 \|\| ^17 \|\| ^18 \|\| ^19.0.0-beta` |
-| peer `typescript` | `>= 4.9.x` | `>= 4.9.x` |
-
-9.1.20 clears both blockers. React 16.14.0 remains in range.
-
-Note that 9.1.20 ships `main` and `types`, so `task-035`'s move to `node16` is not strictly required
-by it. That move should be kept regardless: it is correct, it is already landed and green, and it
-found and fixed a real silent gap in faker's type resolution on the way.
-
-## The Decision
-
-Three options, and none of them is this task's to take.
-
-1. **Take 9.1.x.** Clears both blockers, keeps TypeScript 4.9.5, keeps the Nix pipeline as it is. The
-   rest of the phase changes only in which version number it writes, as `task-035`'s note says.
-   `task-037.acceptance` and `task-038.acceptance` both already admit this outcome.
-2. **Stay on 10.6 and upgrade TypeScript to 5.x first, then solve the native module in Nix.** Two
-   projects of unknown size, one of which touches every file in `source/`.
-3. **Stay on 8.6.18 and stop the phase here.** The corpus is converted, the workbench works, and
-   phases 6 to 8 do not depend on the version.
-
-What this task can report is that option 1 is the only one that reaches a working 10.x-line Storybook
-without work outside this epic's scope.
-
-## Files Changed By This Task
-
-None. The 10.6.0 bump was reverted in full and the tree is at `dd5603c42` with `compile`, `lint` and
-`storybook` green.
+1. `task-037`'s title and description name 10.6.x. 10.6.x is unreachable on TypeScript 4.9.5, as is
+   the whole 10 line. The task lands 9.1.20, which `task-035`'s own note names as the documented
+   fallback.
+2. `task-035`'s note says the fallback means "the rest of this phase changes only in which version
+   number it writes". It means more than that: 9.1.x needs classic resolution, so `task-035` and
+   `task-036` are both reverted rather than retained with a different number.
+3. `task-037.implementationNotes` says the addon list shrinks to "roughly `@storybook/addon-links`".
+   Exactly `@storybook/addon-links`.
+4. The same note says `consolidated-imports` rewrites `@storybook/addon-actions` "across the 58 files
+   that import `action()`". It is 63 files, and the codemod does not rewrite them.
 
 ## Review-Log Paths
 
@@ -187,4 +229,22 @@ None. The 10.6.0 bump was reverted in full and the tree is at `dd5603c42` with `
 
 ## Current Outcome
 
-Blocked, pending the owner's decision on the 9.1.x fallback.
+Complete. The repository is on Storybook 9.1.20 with all checks green.
+
+## Self-Review
+
+The instruction was to take the highest version we can support. Taking it literally would have landed
+10.3.6, which passes four of the five gates and builds cleanly; the fifth gate only appears if you run
+the type checker, and the fifth gate is the one that matters, because a red `compile` is not support.
+
+Two counts lied in this task and both lied in the direction of the answer I wanted. The advisory path
+count said 10.3.6 was much worse and it was not; the distinct-advisory count said the three candidates
+are within one advisory of each other. Then the `exports` map said 9.1.20 was CommonJS-importable and
+it is not, because the `types` condition overrides the `require` condition and TypeScript reads the
+types. In both cases the artefact that settled it was a run rather than a document: the diff of
+advisory sets, and 102 compiler errors.
+
+The cost is two reverted commits, and the part worth keeping from them is a finding rather than a
+configuration. That is the right shape. `task-035`'s value was never the setting; it was discovering
+that this repository cannot detect a package whose types stop resolving, which is now written down
+where the TypeScript 5 upgrade will find it.

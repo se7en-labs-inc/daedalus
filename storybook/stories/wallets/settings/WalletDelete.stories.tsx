@@ -1,5 +1,5 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 // Helpers
 import { defineMessages } from 'react-intl';
 import StoryDecorator from '../../_support/StoryDecorator';
