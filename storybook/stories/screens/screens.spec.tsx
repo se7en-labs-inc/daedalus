@@ -20,6 +20,11 @@ import * as noDiskSpace from './loading/NoDiskSpaceErrorPage.stories';
 import * as systemTime from './loading/SystemTimeErrorPage.stories';
 import * as toggleRTSFlags from './knownIssues/ToggleRTSFlagsDialogContainer.stories';
 import * as rtsRecommendation from './knownIssues/RTSFlagsRecommendationOverlayContainer.stories';
+import * as loadingPage from './loading/LoadingPage.stories';
+import * as syncingConnecting from './loading/SyncingConnectingPage.stories';
+import * as mithrilSync from './loading/MithrilSyncContainer.stories';
+import * as chainStorage from './loading/ChainStorageContainer.stories';
+import * as diagnostics from './status/DaedalusDiagnosticsDialog.stories';
 
 /*
  * Every screen story, mounted.
@@ -63,6 +68,11 @@ const modules = {
   SystemTimeErrorPage: systemTime,
   ToggleRTSFlagsDialogContainer: toggleRTSFlags,
   RTSFlagsRecommendationOverlayContainer: rtsRecommendation,
+  LoadingPage: loadingPage,
+  SyncingConnectingPage: syncingConnecting,
+  MithrilSyncContainer: mithrilSync,
+  ChainStorageContainer: chainStorage,
+  DaedalusDiagnosticsDialog: diagnostics,
 };
 
 /*
@@ -78,14 +88,24 @@ const RENDERS_NOTHING = new Set([
   'RTSFlagsRecommendationOverlayContainer:Acknowledged',
 ]);
 
-// reduce rather than flatMap: tsconfig declares target es2019 but lib ["dom"],
-// so the ES2019 array methods are not in the effective library surface.
+/*
+ * `composeStories` is generic over the shape of one story module, and the map
+ * above holds eighteen different ones. Past a dozen the inferred element type
+ * collapses to `unknown` rather than to the component it is, so the result is
+ * named for what the function documents it to return: one component per story.
+ *
+ * reduce rather than flatMap: tsconfig declares target es2019 but lib ["dom"],
+ * so the ES2019 array methods are not in the effective library surface.
+ */
+const composedFrom = (mod): Record<string, React.ComponentType> =>
+  composeStories(mod) as Record<string, React.ComponentType>;
+
 const allStories = Object.entries(modules).reduce<
   Array<{ id: string; Story: React.ComponentType }>
 >(
   (acc, [screen, mod]) =>
     acc.concat(
-      Object.entries(composeStories(mod)).map(([storyName, Story]) => ({
+      Object.entries(composedFrom(mod)).map(([storyName, Story]) => ({
         id: `${screen}:${storyName}`,
         Story,
       }))
@@ -100,13 +120,44 @@ const renderStory = (Story) =>
     </IntlProvider>
   );
 
-const showsSomething = allStories.filter((s) => !RENDERS_NOTHING.has(s.id));
+/*
+ * Seven stories across two containers cannot be mounted here, and the reason is a
+ * defect in a shipped component rather than a limit of the test environment.
+ *
+ * `LogosDisplay.componentDidMount` searches the whole document for
+ * `.LogosDisplay_daedalusLogo svg` and dereferences the result without checking
+ * it. The class name is one css-loader is configured to generate, and the `svg`
+ * is one `lottie-web` produces, so in a browser both hold and the line works. In
+ * jsdom lottie produces no `svg`, the selector misses, and the screen throws
+ * during mount.
+ *
+ * These are asserted to throw rather than skipped. The application has no error
+ * boundary, so this is the launch screen going blank if the selector ever misses
+ * in a real build, and an assertion that it throws is an assertion that will fail
+ * the day a guard is added, at which point these stories join the mounted set.
+ * Written up in .agent/findings/09-launch-screen-depends-on-a-generated-class-name.md.
+ */
+const THROWS_AT_THE_LOGO = new Set([
+  'SyncingConnectingPage:Default',
+  'SyncingConnectingPage:Connecting',
+  'SyncingConnectingPage:MithrilOffer',
+  'SyncingConnectingPage:LongReplay',
+  'LoadingPage:Default',
+  'LoadingPage:NoDiskSpace',
+  'LoadingPage:SystemTimeError',
+]);
+
+const showsSomething = allStories.filter(
+  (s) => !RENDERS_NOTHING.has(s.id) && !THROWS_AT_THE_LOGO.has(s.id)
+);
 const showsNothing = allStories.filter((s) => RENDERS_NOTHING.has(s.id));
+const throwsAtTheLogo = allStories.filter((s) => THROWS_AT_THE_LOGO.has(s.id));
 
 describe('screen stories', () => {
   it('composes every screen story', () => {
-    expect(allStories).toHaveLength(27);
+    expect(allStories).toHaveLength(44);
     expect(showsNothing).toHaveLength(RENDERS_NOTHING.size);
+    expect(throwsAtTheLogo).toHaveLength(THROWS_AT_THE_LOGO.size);
   });
 
   it.each(showsSomething.map((s) => [s.id, s.Story]))(
@@ -122,6 +173,15 @@ describe('screen stories', () => {
     (_id, Story) => {
       const { container } = renderStory(Story);
       expect(container.firstChild).toBeNull();
+    }
+  );
+
+  it.each(throwsAtTheLogo.map((s) => [s.id, s.Story]))(
+    '%s throws at the unguarded logo lookup, which is the defect it records',
+    (_id, Story) => {
+      // The message is asserted rather than the fact of throwing, so this cannot
+      // pass on some other failure introduced later.
+      expect(() => renderStory(Story)).toThrow(/setAttribute/);
     }
   );
 });

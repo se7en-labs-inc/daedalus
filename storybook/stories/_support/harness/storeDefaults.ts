@@ -136,8 +136,9 @@ const networkStatusDefaults = {
    * fixture `_support/environment.ts` installs on the global, so the two agree.
    */
   environment,
-  // A method on the store, passed straight through as a click handler.
+  // Methods on the store, passed straight through as click handlers.
   ignoreSystemTimeChecks: () => {},
+  openStateDirectory: () => {},
   ...requestsFor('networkStatus'),
 };
 

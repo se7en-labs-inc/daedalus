@@ -1594,7 +1594,7 @@
           "id": "task-044",
           "title": "Screen tranche 3: add backend, 5 screens",
           "description": "LoadingPage, SyncingConnectingPage, MithrilSyncContainer, ChainStorageContainer and DaedalusDiagnosticsDialog. LoadingPage is the first screen with several branches worth separate stories and the first that mounts nested containers.",
-          "status": "pending",
+          "status": "completed",
           "priority": "critical",
           "estimatedHours": 13.0,
           "dependencies": [
@@ -1627,31 +1627,31 @@
               "id": "task-044-a",
               "title": "LoadingPage",
               "description": "LoadingPage -> source/renderer/app/containers/loading/LoadingPage.tsx -> storybook/stories/screens/loading/LoadingPage.stories.tsx (stores: backend, networkStatus, profile, app; several branches worth separate stories)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-044-b",
               "title": "SyncingConnectingPage",
               "description": "SyncingConnectingPage -> source/renderer/app/containers/loading/SyncingConnectingPage.tsx -> storybook/stories/screens/loading/SyncingConnectingPage.stories.tsx (stores: backend, networkStatus)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-044-c",
               "title": "MithrilSyncContainer",
               "description": "MithrilSyncContainer -> source/renderer/app/containers/loading/MithrilSyncContainer.tsx -> storybook/stories/screens/loading/MithrilSyncContainer.stories.tsx (stores: backend, with the Mithril fields)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-044-d",
               "title": "ChainStorageContainer",
               "description": "ChainStorageContainer -> source/renderer/app/containers/loading/ChainStorageContainer.tsx -> storybook/stories/screens/loading/ChainStorageContainer.stories.tsx (stores: backend)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-044-e",
               "title": "DaedalusDiagnosticsDialog",
               "description": "DaedalusDiagnosticsDialog -> source/renderer/app/containers/status/DaedalusDiagnosticsDialog.tsx -> storybook/stories/screens/status/DaedalusDiagnosticsDialog.stories.tsx (stores: networkStatus, app)",
-              "status": "pending"
+              "status": "completed"
             }
           ]
         },
