@@ -46,6 +46,24 @@ candidate adds exactly one advisory over staying put.
 A path count measures how many ways a package can be reached. It is not a count of vulnerable code,
 and comparing two trees by it compares their hoisting.
 
+**Worth stating on its own, because the next person to run `yarn audit` on this tree will hit it.**
+Yarn 1 hoists flat, so which copy of a duplicated package wins the top-level slot decides how many
+distinct dependency paths reach every other copy. Change anything that shifts that competition — a
+version bump, a new dependency, a resolution — and the path count moves without a single line of
+vulnerable code being added or removed.
+
+The worked example: `@babel/traverse@7.17.10` is vulnerable and is installed in all three candidate
+trees. At 8.6.18 it wins the top-level slot, and `yarn audit` reports comparatively few paths through
+it. At 10.3.6 the clean `7.29.8` wins instead and `7.17.10` is nested under `@babel/core`,
+`@babel/helpers`, `@babel/helper-module-transforms` and `jest-snapshot`, where `jest` and `stylelint`
+reach it by twenty-two more distinct routes. Read as a path count that is a serious regression. Read
+as distinct advisories it is no change at all, and the tree with *more* reported paths is the one
+where the clean copy is hoisted.
+
+**Compare trees by distinct advisory id, never by path count.** And do not attribute advisories by
+filtering paths for the package you are changing: doing that here hid the twenty-two entirely, because
+none of those paths contains a Storybook package.
+
 **The `exports` map.** `storybook@9.1.20` publishes a `require` condition for every subpath, pointing
 at a real `.cjs` file, which reads as "CommonJS consumers are supported". It is not enough: both
 conditions share **one** `types` entry, that entry is an ESM declaration, and TypeScript takes its

@@ -55,6 +55,19 @@ Each boundary was measured from the published tarballs, not from the peer ranges
 
 ## Gate 5, Which Decided It
 
+**For whoever considers the next bump, the short version.** The Storybook 10 line ships no `main`, no
+`types` and no `typesVersions`. TypeScript 4.9.5 therefore cannot import it under either resolution
+mode: classic `node` resolution has nothing to find, and `node16` finds ESM declarations that a
+CommonJS source file may not import. The setting that works is `moduleResolution: "bundler"`, which
+requires TypeScript 5.0.
+
+**So the 10 bump is strictly downstream of the TypeScript upgrade, not a thing to retry.** Attempting
+it again before TypeScript 5 lands will reproduce this entry. Once TypeScript 5 is in place, the
+`oxc-resolver` native-artifact question still has to be answered in the Nix pipeline before anything
+at or above 10.4.0 will build here.
+
+The long version follows.
+
 Storybook 9 and 10 are ESM-typed packages: `storybook`'s own `package.json` declares
 `"type": "module"`, so its declaration files are ESM declarations. This repository's sources are
 CommonJS, because the root manifest declares no module type.
@@ -118,8 +131,13 @@ development server patched at `>=0.28.1`.
 So on gate 4 alone 10.3.6 would have been marginally preferable to 9.1.20. It fails gate 5, which is
 hard, so the comparison does not arise. **The trade the project owner asked to have surfaced is
 therefore this one: 9.1.20 carries one more moderate-severity advisory than staying on 8.6.18.** It
-is `storybook>@vitest/mocker`, it is not reachable from anything this repository ships, and it is
-listed here rather than resolved.
+is `storybook>@vitest/mocker`, a path traversal in a Vitest mocking helper patched at `>=4.1.11`.
+
+**Accepted by the project owner**, on the reasoning that it is a development dependency rather than
+anything the application ships, that it is not reachable from any shipped code path, and that one
+moderate advisory against identical critical and high counts is a small surface to take in exchange
+for moving off a version line that is two majors behind. Recorded here so the trade reads as a
+decision rather than as something nobody noticed.
 
 `esbuild`'s patched version is outside the range Storybook 10.3.6 declares, so pinning it forward
 would have broken the package's own stated compatibility. Not attempted.
