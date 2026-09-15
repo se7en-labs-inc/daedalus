@@ -1304,7 +1304,7 @@
      "id": "task-038",
      "title": "Verify the bump and close the conversion",
      "description": "Full verification against the converted corpus at 10.6.x, and the point at which the corpus is declared ready for the container work.",
-     "status": "pending",
+     "status": "completed",
      "priority": "high",
      "estimatedHours": 6.0,
      "dependencies": [
