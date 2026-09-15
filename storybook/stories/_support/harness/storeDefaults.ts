@@ -7,11 +7,13 @@ import {
 } from '../../../../source/renderer/app/config/profileConfig';
 import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import environment from '../environment';
+import { backendDefaults } from './fixtures/backend';
 import { requestsFor } from './requestDefaults';
 
 // Re-exported so a screen story has one import for everything the harness
 // offers rather than two.
 export { requestDefault } from './requestDefaults';
+export { backendPhase } from './fixtures/backend';
 
 const storyEnvironment = environment;
 
@@ -226,17 +228,22 @@ const walletsDefaults = {
 /*
  * The 24 keys of StoresMap, in the order stores/index.ts declares them.
  *
- * The ones that are empty objects are empty because nothing this phase covers
+ * The ones that are empty objects are empty because no screen covered so far
  * reads them, not because they are unimportant: walletBackup, walletsLocal and
  * window are read by no screen container at all. A later tranche fills whichever
  * it needs, and a key that is present but empty fails at the field rather than at
  * the store, which is the more useful of the two failures.
+ *
+ * Two of them are filled one field deep rather than properly, because a loading
+ * screen reads one field on each and the rest of those two stores belongs with
+ * the overlay screens that use them. Both are marked below.
  */
 export const createStoreDefaults = () => ({
   addresses: { ...requestsFor('addresses') },
   app: { ...appDefaults },
-  backend: {},
-  appUpdate: {},
+  backend: { ...backendDefaults },
+  // One field deep; the rest arrives with the app-update overlay.
+  appUpdate: { displayAppUpdateNewsItem: false },
   currency: { ...currencyDefaults },
   assets: {
     all: [],
@@ -248,7 +255,12 @@ export const createStoreDefaults = () => ({
   hardwareWallets: { ...requestsFor('hardwareWallets') },
   governance: {},
   networkStatus: { ...networkStatusDefaults },
-  newsFeed: {},
+  /*
+   * One field deep, and that field is a nested object: SyncingConnectingPage
+   * destructures `newsFeed.newsFeedData.unread`, so an empty store here fails
+   * two levels down rather than one.
+   */
+  newsFeed: { newsFeedData: { all: [], read: [], unread: [] } },
   profile: { ...profileDefaults },
   router: {},
   sidebar: {},

@@ -14,6 +14,7 @@ import GeneralSettingsPage from '../../../../source/renderer/app/containers/sett
 // which is a webpack construct. The spec reads the one locale file it needs.
 import enMessages from '../../../../source/renderer/app/i18n/locales/en-US.json';
 import { createStoreDefaults, withStoreOverrides } from './storeDefaults';
+import { backendPhase } from './fixtures/backend';
 import {
   REQUESTS_BY_STORE,
   requestDefault,
@@ -141,6 +142,59 @@ describe('request defaults', () => {
     const first = requestsFor('wallets');
     const second = requestsFor('wallets');
     expect(first.createWalletRequest).not.toBe(second.createWalletRequest);
+  });
+});
+
+describe('backendPhase', () => {
+  // The seven values of LoadingPhase (common/types/watchdog.types.ts:49-56).
+  // Enumerated here so a value added to the type without a preset shows up as a
+  // failure rather than as a screen state no story can reach.
+  const LOADING_PHASES = [
+    'starting',
+    'chain-storage-setup',
+    'bootstrap-decision',
+    'mithril-syncing',
+    'node-starting',
+    'ready',
+    'error',
+  ];
+
+  it('offers a preset for every loading phase', () => {
+    const phases = Object.values(backendPhase).map(
+      (preset) => preset().loadingPhase
+    );
+    expect(phases.sort()).toEqual([...LOADING_PHASES].sort());
+  });
+
+  it('carries the observables behind the phase, not only the phase', () => {
+    // The sync container reads mithrilPhase directly while the loading page
+    // branches on loadingPhase, so a preset that named only the phase would put
+    // the two into a combination the store cannot produce.
+    expect(backendPhase.mithrilSyncing().mithrilPhase).toBe('downloading');
+    expect(backendPhase.bootstrapDecision().hasChain).toBe(false);
+    expect(backendPhase.chainStorageSetup().chainPathConfirmed).toBe(false);
+    expect(backendPhase.error().walletUnrecoverable).toBe(true);
+    expect(backendPhase.ready().walletPort).not.toBeNull();
+  });
+
+  it('gives every preset the commands the loading screens send', () => {
+    const commands = [
+      'startMithril',
+      'startMithrilForce',
+      'startNode',
+      'cancelMithril',
+      'dismissMithrilPrompt',
+      'confirmStorageLocation',
+      'validateChainStorageDirectory',
+      'setChainStorageDirectory',
+      'resetChainStorageDirectory',
+    ];
+    Object.values(backendPhase).forEach((preset) => {
+      const state = preset();
+      commands.forEach((command) => {
+        expect(typeof state[command]).toBe('function');
+      });
+    });
   });
 });
 

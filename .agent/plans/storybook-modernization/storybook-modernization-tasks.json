@@ -1568,7 +1568,7 @@
           "id": "task-043",
           "title": "Add the backend store and the Mithril fields",
           "description": "backend.loadingPhase has no representation in the current StoryProvider and five screens key off it.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 5.0,
           "dependencies": [
