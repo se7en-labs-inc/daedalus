@@ -1,6 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs } from '@storybook/addon-knobs';
 import StoryDecorator from '../_support/StoryDecorator';
 import VotingInfo from '../../../source/renderer/app/components/voting/voting-info/VotingInfo';
 import { FundPhase } from '../../../source/renderer/app/stores/VotingStore';
@@ -36,7 +35,6 @@ export default {
         </VerticalFlexContainer>
       </StoryDecorator>
     ),
-    withKnobs,
   ],
 };
 

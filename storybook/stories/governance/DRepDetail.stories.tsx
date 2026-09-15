@@ -1,9 +1,9 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, select, number } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
+import { optionsFrom, rangeFrom } from '../_support/argTypes';
 import GovernanceShell from './_utils/GovernanceShell';
 import { ROUTES } from '../../../source/renderer/app/routes-config';
 import { LARGEST_KNOWN_DREP_METADATA } from './_utils/drepPopulation';
@@ -120,25 +120,25 @@ export default {
         <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
-    withKnobs,
   ],
 };
 
 export const LoadedWithAnchor = {
-  render: () => {
+  args: { drepActivity: 34, status: 'active' },
+
+  argTypes: {
+    drepActivity: {
+      name: 'Remaining epochs (drepActivity)',
+      ...rangeFrom({ min: 0, max: 60, step: 1 }),
+    },
+    status: optionsFrom(STATUS_OPTIONS),
+  },
+
+  render: ({ drepActivity, status }) => {
     const entry: AppDRepDetail = {
       ...withAnchorEntry,
-      drepActivity: number('Remaining epochs (drepActivity)', 34, {
-        max: 60,
-        min: 0,
-        range: true,
-        step: 1,
-      }),
-      status: select(
-        'Status',
-        STATUS_OPTIONS,
-        'active'
-      ) as AppDRepDetail['status'],
+      drepActivity,
+      status: status as AppDRepDetail['status'],
     };
     return renderDetail(entry);
   },

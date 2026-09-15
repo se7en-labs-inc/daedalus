@@ -1,12 +1,12 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, select, number } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
-import { withState } from '../_support/WithLocalState';
+import { useArgs } from '@storybook/preview-api';
 import type { ListViewMode } from '../../../source/renderer/app/types/listViewTypes';
 import GovernanceShell, { GOVERNANCE_TABS } from './_utils/GovernanceShell';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
+import { optionsFrom, rangeFrom } from '../_support/argTypes';
 import GovernanceWallets from '../../../source/renderer/app/components/governance/wallets/GovernanceWallets';
 import DRepDirectory from '../../../source/renderer/app/components/governance/drep-directory/DRepDirectory';
 import DRepDirectoryList from '../../../source/renderer/app/components/governance/drep-directory/DRepDirectoryList';
@@ -383,28 +383,39 @@ export default {
         <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
-    withKnobs,
   ],
 };
 
-const ConnectedFlowStory = withState(
-  {
-    activeSidebarCategory: ROUTES.GOVERNANCE.ROOT,
-    currentContentRoute: ROUTES.GOVERNANCE.DREPS,
-    favoriteDRepIds: [] as string[],
-  },
-  (store) => {
+const connectedFlowArgs = {
+  activeSidebarCategory: ROUTES.GOVERNANCE.ROOT,
+  currentContentRoute: ROUTES.GOVERNANCE.DREPS,
+  favoriteDRepIds: [] as string[],
+  directoryState: 'loaded',
+};
+
+export const ConnectedFlow = {
+  args: connectedFlowArgs,
+  argTypes: { directoryState: optionsFrom(DIRECTORY_STATE_OPTIONS) },
+
+  render: () => {
+    const [
+      {
+        activeSidebarCategory,
+        currentContentRoute,
+        favoriteDRepIds,
+        directoryState,
+      },
+      updateArgs,
+    ] = useArgs<typeof connectedFlowArgs>();
     const isGovernanceSection =
-      store.state.currentContentRoute.indexOf(ROUTES.GOVERNANCE.ROOT) === 0;
-    const isVotingCenter =
-      store.state.currentContentRoute === ROUTES.GOVERNANCE.DASHBOARD;
+      currentContentRoute.indexOf(ROUTES.GOVERNANCE.ROOT) === 0;
+    const isVotingCenter = currentContentRoute === ROUTES.GOVERNANCE.DASHBOARD;
     const view =
-      store.state.currentContentRoute === ROUTES.GOVERNANCE.FAVORITES
+      currentContentRoute === ROUTES.GOVERNANCE.FAVORITES
         ? ('favorites' as const)
         : ('directory' as const);
-    const { refreshState, entries, error } = resolveDirectoryState(
-      select('Directory state', DIRECTORY_STATE_OPTIONS, 'loaded')
-    );
+    const { refreshState, entries, error } =
+      resolveDirectoryState(directoryState);
 
     return (
       <div style={CONNECTED_FLOW_STYLE}>
@@ -413,22 +424,22 @@ const ConnectedFlowStory = withState(
             <Sidebar
               menus={EMPTY_SIDEBAR_MENUS}
               categories={GOVERNANCE_SIDEBAR_CATEGORIES}
-              activeSidebarCategory={store.state.activeSidebarCategory}
+              activeSidebarCategory={activeSidebarCategory}
               isShowingSubMenus={false}
-              pathname={store.state.currentContentRoute}
+              pathname={currentContentRoute}
               network={TESTNET}
               onActivateCategory={(category) => {
                 action('onActivateCategory')(category);
 
                 if (category === ROUTES.GOVERNANCE.ROOT) {
-                  store.set({
+                  updateArgs({
                     activeSidebarCategory: ROUTES.GOVERNANCE.ROOT,
                     currentContentRoute: ROUTES.GOVERNANCE.DREPS,
                   });
                   return;
                 }
 
-                store.set({
+                updateArgs({
                   activeSidebarCategory: category,
                   currentContentRoute: category,
                 });
@@ -447,23 +458,23 @@ const ConnectedFlowStory = withState(
           {isGovernanceSection ? (
             <GovernanceWithNavigation
               items={GOVERNANCE_TABS}
-              activeItem={store.state.currentContentRoute}
+              activeItem={currentContentRoute}
               isActiveNavItem={(navItemId: string) =>
-                navItemId === store.state.currentContentRoute
+                navItemId === currentContentRoute
               }
               onNavItemClick={(navItemId: string) => {
                 action('onNavItemClick')(navItemId);
-                store.set({ currentContentRoute: navItemId });
+                updateArgs({ currentContentRoute: navItemId });
               }}
             >
               {isVotingCenter ? (
                 <GovernanceWallets
                   wallets={CONNECTED_FLOW_WALLETS}
-                  favoriteDRepIds={new Set(store.state.favoriteDRepIds)}
+                  favoriteDRepIds={new Set(favoriteDRepIds)}
                   totalDRepStake={TOTAL_DREP_STAKE}
                   onToggleFavorite={action('onToggleFavorite')}
                   onChangeDelegation={() =>
-                    store.set({
+                    updateArgs({
                       currentContentRoute: ROUTES.GOVERNANCE.DREPS,
                     })
                   }
@@ -480,21 +491,17 @@ const ConnectedFlowStory = withState(
                     // cohort, so showing all showed the same twenty.
                     allDReps: POPULATION,
                     view,
-                    favoriteDRepIds: new Set(store.state.favoriteDRepIds),
+                    favoriteDRepIds: new Set(favoriteDRepIds),
                     onToggleFavorite: (drepId: string) => {
                       action('onToggleFavorite')(drepId);
-                      store.set({
-                        favoriteDRepIds: store.state.favoriteDRepIds.includes(
-                          drepId
-                        )
-                          ? store.state.favoriteDRepIds.filter(
-                              (id) => id !== drepId
-                            )
-                          : [...store.state.favoriteDRepIds, drepId],
+                      updateArgs({
+                        favoriteDRepIds: favoriteDRepIds.includes(drepId)
+                          ? favoriteDRepIds.filter((id) => id !== drepId)
+                          : [...favoriteDRepIds, drepId],
                       });
                     },
                     onBackToDirectory: () =>
-                      store.set({
+                      updateArgs({
                         currentContentRoute: ROUTES.GOVERNANCE.DREPS,
                       }),
                   }
@@ -502,28 +509,23 @@ const ConnectedFlowStory = withState(
               )}
             </GovernanceWithNavigation>
           ) : (
-            renderNonGovernancePlaceholder(store.state.activeSidebarCategory)
+            renderNonGovernancePlaceholder(activeSidebarCategory)
           )}
         </SidebarLayout>
       </div>
     );
-  }
-);
+  },
 
-export const ConnectedFlow = {
-  render: ConnectedFlowStory,
   name: 'Connected flow',
 };
 
-export const _Loaded = withState(
-  { criteria: DEFAULT_DREP_COHORT_CRITERIA, seed: 1 },
-  (store) => {
-    const pool = selectDRepCohortPool(
-      POPULATION,
-      store.state.criteria,
-      TOTAL_DREP_STAKE
-    );
-    const cohort = drawDRepCohort(pool, store.state.seed);
+export const _Loaded = {
+  args: { criteria: DEFAULT_DREP_COHORT_CRITERIA, seed: 1 },
+
+  render: () => {
+    const [{ criteria, seed }, updateArgs] = useArgs();
+    const pool = selectDRepCohortPool(POPULATION, criteria, TOTAL_DREP_STAKE);
+    const cohort = drawDRepCohort(pool, seed);
 
     return renderCentered(
       GovernanceRefreshState.Loaded,
@@ -532,21 +534,22 @@ export const _Loaded = withState(
       DEFAULT_SYNC_STATE,
       {
         allDReps: POPULATION,
-        cohortCriteria: store.state.criteria,
-        onCohortCriteriaChange: (criteria) => store.set({ criteria }),
+        cohortCriteria: criteria,
+        onCohortCriteriaChange: (nextCriteria) =>
+          updateArgs({ criteria: nextCriteria }),
         relaxedCohortCriteria: pool.relaxed,
         onReroll: () =>
-          store.set({
+          updateArgs({
             seed: nextDistinctDRepCohortSeed(
               pool,
-              store.state.seed,
+              seed,
               new Set(cohort.map((entry) => entry.drepId))
             ),
           }),
       }
     );
-  }
-);
+  },
+};
 
 export const _Empty = () => renderCentered(GovernanceRefreshState.Loaded, []);
 
@@ -573,31 +576,32 @@ export const RefreshFailedRetainedSnapshot = {
   name: 'Refresh failed — retained snapshot',
 };
 
+const syncProgressArgType = {
+  name: 'Sync progress (%)',
+  ...rangeFrom({ min: 0, max: 100, step: 1 }),
+};
+
 export const NodeSyncing = {
-  render: () =>
+  args: { syncProgress: 87 },
+  argTypes: { syncProgress: syncProgressArgType },
+
+  render: ({ syncProgress }) =>
     renderCentered(GovernanceRefreshState.Loaded, baseEntries, null, {
       isNodeInSync: false,
-      syncProgress: number('Sync progress (%)', 87, {
-        max: 100,
-        min: 0,
-        range: true,
-        step: 1,
-      }),
+      syncProgress,
     }),
 
   name: 'Node syncing',
 };
 
 export const NodeSyncingEmptyFallback = {
-  render: () =>
+  args: { syncProgress: 87 },
+  argTypes: { syncProgress: syncProgressArgType },
+
+  render: ({ syncProgress }) =>
     renderCentered(GovernanceRefreshState.Loaded, [], null, {
       isNodeInSync: false,
-      syncProgress: number('Sync progress (%)', 87, {
-        max: 100,
-        min: 0,
-        range: true,
-        step: 1,
-      }),
+      syncProgress,
     }),
 
   name: 'Node syncing — empty fallback',
@@ -626,9 +630,12 @@ export const ShowAllFullPopulation = {
   name: 'Show all — full population',
 };
 
-const FavoriteToggleStory = withState(
-  { favoriteDRepIds: [baseEntries[0].drepId] },
-  (store) => (
+const favoriteToggleArgs = { favoriteDRepIds: [baseEntries[0].drepId] };
+
+const FavoriteToggleStory = () => {
+  const [{ favoriteDRepIds }, updateArgs] =
+    useArgs<typeof favoriteToggleArgs>();
+  return (
     <GovernanceShell activeTab={ROUTES.GOVERNANCE.DREPS}>
       {renderDirectory(
         GovernanceRefreshState.Loaded,
@@ -636,22 +643,23 @@ const FavoriteToggleStory = withState(
         null,
         DEFAULT_SYNC_STATE,
         {
-          favoriteDRepIds: new Set(store.state.favoriteDRepIds),
+          favoriteDRepIds: new Set(favoriteDRepIds),
           onToggleFavorite: (drepId: string) => {
             action('onToggleFavorite')(drepId);
-            store.set({
-              favoriteDRepIds: store.state.favoriteDRepIds.includes(drepId)
-                ? store.state.favoriteDRepIds.filter((id) => id !== drepId)
-                : [...store.state.favoriteDRepIds, drepId],
+            updateArgs({
+              favoriteDRepIds: favoriteDRepIds.includes(drepId)
+                ? favoriteDRepIds.filter((id) => id !== drepId)
+                : [...favoriteDRepIds, drepId],
             });
           },
         }
       )}
     </GovernanceShell>
-  )
-);
+  );
+};
 
 export const FavoriteToggle = {
+  args: favoriteToggleArgs,
   render: FavoriteToggleStory,
   name: 'Favorite toggle',
 };

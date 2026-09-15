@@ -1,6 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, number, select } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
@@ -26,6 +25,7 @@ import {
 } from '../_support/utils';
 import { HwDeviceStatuses } from '../../../source/renderer/app/domains/Wallet';
 import { Locale } from '../../../source/common/types/locales.types';
+import { rangeFrom } from '../_support/argTypes';
 
 const assets = {
   available: [
@@ -84,17 +84,18 @@ export default {
         <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
-    withKnobs,
   ],
 };
 
 export const VotingRegistrationStep1 = {
-  render: () => (
+  args: { numberOfStakePools: 100 },
+
+  render: ({ numberOfStakePools }) => (
     <VotingRegistrationStepsChooseWallet
       onClose={action('onClose')}
       stepsList={stepsList}
       activeStep={1}
-      numberOfStakePools={number('numberOfStakePools', 100)}
+      numberOfStakePools={numberOfStakePools}
       onSelectWallet={action('onSelectWallet')}
       wallets={WALLETS}
       minVotingRegistrationFunds={VOTING_REGISTRATION_MIN_WALLET_FUNDS}
@@ -108,27 +109,31 @@ export const VotingRegistrationStep1 = {
 };
 
 export const VotingRegistrationStep2 = {
-  render: () => (
+  args: {
+    transactionFee: 0.3,
+    isSubmitting: undefined,
+    isHardwareWallet: false,
+    isTrezor: false,
+  },
+
+  argTypes: {
+    transactionFee: { control: { type: 'number', min: 0, max: 1000000 } },
+    isSubmitting: { control: 'boolean' },
+  },
+
+  render: ({ transactionFee, isSubmitting, isHardwareWallet, isTrezor }) => (
     <VotingRegistrationStepsRegister
       onClose={action('onClose')}
       onBack={action('onBack')}
       stepsList={stepsList}
       activeStep={2}
-      transactionFee={
-        new BigNumber(
-          number('transactionFee', 0.3, {
-            min: 0,
-            max: 1000000,
-          })
-        )
-      }
-      // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-      isSubmitting={boolean('isSubmitting')}
+      transactionFee={new BigNumber(transactionFee)}
+      isSubmitting={isSubmitting}
       onConfirm={action('onConfirm')}
       onExternalLinkClick={action('onExternalLinkClick')}
       hwDeviceStatus={HwDeviceStatuses.CONNECTING}
-      isHardwareWallet={boolean('isHardwareWallet', false)}
-      isTrezor={boolean('isTrezor', false)}
+      isHardwareWallet={isHardwareWallet}
+      isTrezor={isTrezor}
       selectedWallet={WALLETS[0]}
     />
   ),
@@ -137,20 +142,35 @@ export const VotingRegistrationStep2 = {
 };
 
 export const VotingRegistrationStep3 = {
-  render: () => (
+  args: {
+    isTransactionPending: true,
+    isTransactionConfirmed: false,
+    transactionConfirmations: 0,
+    transactionError: false,
+  },
+
+  argTypes: {
+    transactionConfirmations: rangeFrom({
+      max: VOTING_REGISTRATION_MIN_TRANSACTION_CONFIRMATIONS,
+    }),
+  },
+
+  render: ({
+    isTransactionPending,
+    isTransactionConfirmed,
+    transactionConfirmations,
+    transactionError,
+  }) => (
     <VotingRegistrationStepsConfirm
       onClose={action('onClose')}
       stepsList={stepsList}
       activeStep={3}
-      isTransactionPending={boolean('isTransactionPending', true)}
-      isTransactionConfirmed={boolean('isTransactionConfirmed', false)}
-      transactionConfirmations={number('transactionConfirmations', 0, {
-        range: true,
-        max: VOTING_REGISTRATION_MIN_TRANSACTION_CONFIRMATIONS,
-      })}
+      isTransactionPending={isTransactionPending}
+      isTransactionConfirmed={isTransactionConfirmed}
+      transactionConfirmations={transactionConfirmations}
       onConfirm={action('onConfirm')}
       onRestart={action('onRestart')}
-      transactionError={boolean('transactionError', false)}
+      transactionError={transactionError}
     />
   ),
 

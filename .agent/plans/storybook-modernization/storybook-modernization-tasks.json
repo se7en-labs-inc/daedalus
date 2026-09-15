@@ -1085,7 +1085,7 @@
      "id": "task-032",
      "title": "Convert knobs in the governance and voting tranche",
      "description": "The four governance files and voting/Voting.stories.tsx. governance/DRepDirectory.stories.tsx also carries withState.",
-     "status": "pending",
+     "status": "completed",
      "priority": "high",
      "estimatedHours": 12.0,
      "dependencies": [

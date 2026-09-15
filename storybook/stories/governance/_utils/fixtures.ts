@@ -1,5 +1,4 @@
 import BigNumber from 'bignumber.js';
-import { select } from '@storybook/addon-knobs';
 import Wallet, {
   WalletSyncStateStatuses,
 } from '../../../../source/renderer/app/domains/Wallet';
@@ -34,12 +33,28 @@ export const currentVoteOptions: Record<string, CurrentVoteOption> = {
   'No Confidence': 'noConfidence',
 };
 
-export function useCurrentVoteKnob(): CurrentVoteOption {
-  // Defaults to a delegated state so the story opens showing the component.
-  // CurrentDRepSummary renders nothing when a wallet has no delegation, which
-  // made 'noDelegation' open as a blank page.
-  return select('Current vote (mock)', currentVoteOptions, 'drepVerified');
-}
+// Defaults to a delegated state so the story opens showing the component.
+// CurrentDRepSummary renders nothing when a wallet has no delegation, which
+// made 'noDelegation' open as a blank page.
+export const currentVoteArgs: { currentVote: CurrentVoteOption } = {
+  currentVote: 'drepVerified',
+};
+
+export const currentVoteArgTypes = {
+  currentVote: {
+    options: Object.values(currentVoteOptions),
+    control: {
+      type: 'select' as const,
+      labels: Object.entries(currentVoteOptions).reduce<Record<string, string>>(
+        (acc, [label, value]) => {
+          acc[value] = label;
+          return acc;
+        },
+        {}
+      ),
+    },
+  },
+};
 
 // The unverified pair is copied from the committed CurrentVoteSummary story;
 // the verified pair encodes the Cardano Academy preprod DRep key hash. Both

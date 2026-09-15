@@ -1,5 +1,4 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import StoryLayout from '../../_support/StoryLayout';
 import { currentThemeOf } from '../../_support/globals';
 import StoryProvider from '../../_support/StoryProvider';
@@ -8,8 +7,6 @@ import { CATEGORIES_BY_NAME } from '../../../../source/renderer/app/config/sideb
 import StakingWithNavigation from '../../../../source/renderer/app/components/staking/layouts/StakingWithNavigation';
 
 export const stakingDecorator = (story, context) => {
-  const storyWithKnobs = withKnobs(story, context);
-
   const getItemFromContext = () => context.parameters.id;
 
   const activeSidebarCategory = CATEGORIES_BY_NAME.STAKING.route;
@@ -23,7 +20,7 @@ export const stakingDecorator = (story, context) => {
           currentTheme={currentThemeOf(context)}
         >
           {context.parameters.id === 'wizard' ? (
-            storyWithKnobs
+            story()
           ) : (
             <StakingWithNavigation
               key="stakingWithNavigation"
@@ -32,7 +29,7 @@ export const stakingDecorator = (story, context) => {
               activeItem={getItemFromContext()}
               onNavItemClick={() => {}}
             >
-              {storyWithKnobs}
+              {story()}
             </StakingWithNavigation>
           )}
         </StoryLayout>
