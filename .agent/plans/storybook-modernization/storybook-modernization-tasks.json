@@ -1226,7 +1226,7 @@
      "id": "task-035",
      "title": "Move tsconfig moduleResolution off node",
      "description": "Storybook 10 removed the typesVersions fields that made node resolution work, so tsconfig.json:29 must move to bundler, node16 or nodenext. bundler needs TypeScript 5.0 and the repository is on typescript@4.9.5 (package.json:188), so the options are node16 and nodenext. Because tsconfig.json carries no include, this changes resolution semantics for source/ as well as storybook/.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 10.0,
      "dependencies": [
