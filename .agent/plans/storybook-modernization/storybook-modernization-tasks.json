@@ -1337,7 +1337,7 @@
      "id": "task-039",
      "title": "Build the store fixture harness core",
      "description": "A plain object keyed by the 24 StoresMap names (stores/index.ts:58-83), each defaulting to an object whose fields are the observable defaults of the real store rather than a real store instance, mounted through a real Provider with the real ActionsMap. Built as an extension of storybook/stories/_support/StoryProvider.tsx, which already supplies three stores at :220-264 and mounts the real Provider at :273-277.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 14.0,
      "dependencies": [

@@ -13,9 +13,19 @@ import {
   BrowserLocalStorageBridge,
 } from '../../../source/renderer/app/features';
 import { DiscreetModeSync } from './DiscreetModeSync';
+import {
+  withStoreOverrides,
+  type StoreOverrides,
+} from './harness/storeDefaults';
 
 type Props = {
   children: Node;
+  /*
+   * A screen story names the stores it reads and the fields it reads on them.
+   * Merged over the full 24-key default map, so an override is two or three
+   * lines rather than a second fixture. See harness/storeDefaults.ts.
+   */
+  storeOverrides?: StoreOverrides;
 };
 export const WALLETS = [
   {
@@ -219,7 +229,13 @@ class StoryProvider extends Component<Props> {
 
   @computed
   get stores(): {} {
-    return {
+    /*
+     * The full store map first, then the fixtures this provider has always
+     * supplied, then whatever the story overrides. Order matters: the three
+     * below carry shapes the component-level stories depend on and would lose
+     * if the defaults were merged on top of them.
+     */
+    return withStoreOverrides({
       assets: {
         getAsset: () => {
           return {
@@ -260,7 +276,8 @@ class StoryProvider extends Component<Props> {
         checkIsTrezorByWalletId: () => {},
         initiateTransaction: null,
       },
-    };
+      ...(this.props.storeOverrides || {}),
+    });
   }
 
   setActiveWalletId = (walletId: string) =>

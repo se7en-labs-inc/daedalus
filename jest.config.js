@@ -89,6 +89,10 @@ module.exports = {
     // Jest does not support WASM imports from ESM modules
     // https://github.com/facebook/jest/issues/9430
     '^@iohk-jormungandr/wallet-js$': 'identity-obj-proxy',
+    // Webpack resolves these to a URL string through asset/resource; jest has no
+    // such rule and would hand the bytes to the transform chain.
+    '\\.(png|jpe?g|gif|webp|woff2?|eot|ttf|otf)$':
+      '<rootDir>/tests/jest/setup/fileStub.js',
     'tests/(.*)': '<rootDir>/tests/$1',
   },
 
@@ -128,7 +132,11 @@ module.exports = {
   // rootDir: undefined,
 
   // A list of paths to directories that Jest should use to search for files in
-  roots: ['<rootDir>/tests', '<rootDir>/source'],
+  // `storybook` is a root so the screen harness can be proven by mounting a real
+  // container through the real Provider. Without it the only evidence a screen
+  // story renders is that the bundle built, which is not evidence: a story can
+  // build, index and render nothing.
+  roots: ['<rootDir>/tests', '<rootDir>/source', '<rootDir>/storybook'],
 
   // Allows you to use a custom runner instead of Jest's default test runner
   // runner: "jest-runner",
