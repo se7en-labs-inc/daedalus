@@ -129,24 +129,52 @@ checklist, and attaches the artifacts each step names.
   `ELECTRON_DISABLE_SANDBOX=true`, exported in the shell profile rather than in
   `.envrc`, which is tracked.
 
-### Scenario 1 — First run, empty cache, offline
+### Scenario 1 — First run, empty cache, metadata sources unreachable
 
-Delete the `asset-metadata-cache` directory. Disconnect the network. Start
-Daedalus and open the token list, the wallet summary, the send form and the
+Do **not** disconnect the network. An earlier revision of this scenario said to,
+and that was wrong: the node cannot sync without it, and every other scenario
+needs a synced node. Full disconnection also breaks the chain reader and the
+pointer channel at the same time, so a pass would prove less than it appears to.
+
+Block the two metadata hosts instead, which isolates the path this scenario is
+about and leaves the node, its relays and the chain database working.
+
+| Platform | Edit |
+|---|---|
+| Windows | `C:\Windows\System32\drivers\etc\hosts`, as administrator |
+| Linux, macOS | `/etc/hosts`, as root |
+
+```
+127.0.0.1 tokens.cardano.org
+127.0.0.1 api.koios.rest
+```
+
+Confirm the cache does not exist before starting. On a profile that has never run
+a build carrying this work there is nothing to delete, which is the expected
+state rather than a missed step.
+
+Start Daedalus and open the token list, the wallet summary, the send form and the
 transaction list.
 
 **Expected:** every held token has a row, immediately. Each row shows its
 fingerprint and its quantity in whole ledger units. No spinner appears on any of
 the four surfaces at any point. No error dialog. The list is complete rather than
-shorter than the wallet's holdings.
+shorter than the wallet's holdings. No token shows a ticker, because nothing can
+resolve.
+
+**Three failures this scenario exists to catch:** a spinner, which would mean
+something still gates rendering on metadata; a list shorter than the holdings,
+which would mean row identity still comes from the metadata lookup rather than
+from the token itself; and any ticker at all, which would mean something resolved
+that could not have.
 
 **Evidence:** a screenshot of the token list showing a row per holding, and the
 log filtered for `Asset metadata: query failed`, which should appear, because
-being offline is a state rather than an error.
+being unreachable is a state rather than an error.
 
 ### Scenario 2 — The same wallet, online
 
-Reconnect the network without restarting Daedalus. Stay on the token list.
+Remove the two `hosts` lines without restarting Daedalus. Stay on the token list.
 
 **Expected:** tickers and formatted amounts appear in place. The list does not
 blank, remount or reorder wholesale, and no row disappears while it resolves.
