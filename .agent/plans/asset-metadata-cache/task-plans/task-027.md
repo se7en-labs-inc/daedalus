@@ -229,35 +229,14 @@ likely to disagree.
 pasted into the checklist. Not a screenshot of a file manager: the path is the
 artifact.
 
-### Scenario 8 — Selfnode reaches the bundled mock and not mainnet
+### Scenario 8 — Selfnode — WITHDRAWN
 
-This scenario exists because nothing else in this plan or in the suite catches
-the failure it looks for, and the failure is silent.
-
-1. In `nix develop`, add the selfnode wallet's own token to
-   `utils/cardano/native-tokens/registry.json` with a ticker no real issuer would
-   publish, for example `ZZMOCK`.
-2. Start the mock server:
-   `mock-token-metadata-server --port 65432 ./utils/cardano/native-tokens/registry.json`
-3. Start Daedalus against selfnode with the port passed through:
-   `MOCK_TOKEN_METADATA_SERVER_PORT=65432 yarn nix:selfnode` and then
-   `yarn dev` in that shell, or the equivalent for the operator's setup.
-4. Hold the token and open the token list.
-
-**Expected:** the row shows `ZZMOCK`. Its amount stays in whole ledger units,
-because the mock's entry carries no `policy` field and an unverified decimal
-count is never applied. No logo appears for it: the mock's `logo` value is ASCII
-text rather than raster bytes and is refused on media type.
-
-Then stop the mock server, delete the cache directory, and restart.
-
-**Expected:** the row shows its fingerprint and no ticker. **If it shows a ticker
-with the mock server stopped, the fetcher reached the public registry and the
-selfnode branch is broken.** That is the failure this scenario exists for.
-
-**Evidence:** two screenshots of the same row, one with the mock running and one
-without, and the log filtered for `Asset registry: request refused` in the second
-case.
+Withdrawn on 2026-09-15: selfnode is scheduled for removal, so exercising the
+selfnode path is effort spent on a target that is going away. The scenario is
+recorded as withdrawn rather than deleted, because the failure it looked for is
+real and silent while selfnode still ships: `launcher-config.nix:448-450` omits
+`metadataUrl` on selfnode, so a wrong endpoint answers plausibly from mainnet.
+If selfnode removal stalls, this scenario comes back.
 
 ### Scenario 9 — The logo
 

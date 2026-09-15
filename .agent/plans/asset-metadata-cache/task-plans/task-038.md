@@ -248,26 +248,20 @@ subject has fallen into the failure backoff rather than the pending one.
 
 **One platform is enough.** This is chain timing, not platform behavior.
 
-### 10. Selfnode has no instance and says nothing about it
+### Scenario 10 — Selfnode — WITHDRAWN
 
-Start a selfnode cluster and open Settings, then Tokens.
-
-**Pass:** the page renders and the selection reads **"Custom index"** with an
-empty address field. That is correct rather than a defect: the launcher
-configures no instance for selfnode, so the preset has no URL and nothing can
-match it. Nothing is stored and no request is issued to any host, which the log
-confirms by carrying no `Koios:` line at all.
-
-Typing an address here is accepted if it answers, which is the only way to use
-the channel on selfnode and is not part of this scenario.
-
-**One platform is enough.**
+Withdrawn on 2026-09-15: selfnode is scheduled for removal, so exercising the
+selfnode path is effort spent on a target that is going away. The scenario is
+recorded as withdrawn rather than deleted, because the failure it looked for is
+real and silent while selfnode still ships: `launcher-config.nix:448-450` omits
+`metadataUrl` on selfnode, so a wrong endpoint answers plausibly from mainnet.
+If selfnode removal stalls, this scenario comes back.
 
 ## Acceptance Criteria
 
 1. Scenarios 1 to 8 are executed on Linux, macOS and Windows.
-2. Scenarios 9 and 10 are executed once, on any platform, and the platform is
-   recorded.
+2. Scenario 9 is executed once, on any platform, and the platform is recorded.
+3. Scenario 10 is withdrawn; selfnode is scheduled for removal.
 3. The checklist below is completed and signed, with the build identifier and
    the date, and the evidence each step names attached.
 4. Any failure is opened as a defect with its scenario number, before the
