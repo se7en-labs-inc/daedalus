@@ -3,8 +3,8 @@
   "title": "Asset Metadata Cache Tasks",
   "created": "2026-09-10",
   "updated": "2026-09-16",
-  "version": "1.6.0",
-  "totalTasks": 43,
+  "version": "1.7.0",
+  "totalTasks": 44,
   "prdReference": ".agent/plans/asset-metadata-cache/asset-metadata-cache-prd.md",
   "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the metadata is cryptographically bound to the minting policy, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
   "sourceFiles": [
@@ -1192,6 +1192,45 @@
       "Every message this branch adds has a description, an id of the documented shape, the !!! marker in source, and a reader",
       "A published count of one renders '1 decimal place' on all four surfaces that name one"
      ]
+    },
+    {
+     "id": "task-044",
+     "title": "Ask for a logo when the cache knows the subject, not when it already holds one",
+     "description": "task-024 gates the row's image request on hasImage, and hasImage is computed from the asset_image table by readImageSubjects. The only thing that writes that table is an image fetch, and the only thing that issues an image fetch is the gate. So hasImage is false for every subject forever, no row ever asks, and no logo renders for any token. The gate becomes the condition the flag was standing in for: the cache holds a registry row for this subject, which is also the earliest point asset_image's foreign key permits a logo to be stored against it.",
+     "status": "completed",
+     "priority": "high",
+     "estimatedHours": 3.0,
+     "dependencies": [
+      "task-024"
+     ],
+     "targetPaths": [
+      "source/renderer/app/components/wallet/tokens/wallet-token/WalletTokenHeader.tsx",
+      "source/renderer/app/components/wallet/tokens/wallet-token/WalletTokenHeader.spec.tsx",
+      "source/main/ipc/assetMetadataChannel.realfs.spec.ts"
+     ],
+     "implementationNotes": [
+      "The break is in the renderer and not in the fetch or the store. Driven against a real database file: readMetadata on a cold image table reports hasImage false for a subject whose registry entry carries a logo; readImage for that subject answers present with image/png; readMetadata then reports hasImage true. The main-process path works and is never reached.",
+      "source is the right condition. A chain row is written only for subjects the registry did not answer (assetMetadataResolver.ts:523-529), so a registry logo cannot exist for one, and gating on source === 'registry' keeps an NFT-heavy wallet from issuing a pointless request per held token.",
+      "A row must not ask before the cache has a row for its subject. asset_image.subject references asset_metadata.subject and foreign keys are on, so a fetch issued first succeeds over the wire and is refused on write; the renderer memo then remembers the resulting null for the life of the window. Confirmed against a real database: absent before the metadata row exists, present after it.",
+      "hasImage stays on the wire and on the merged row. It is a true fact about the cache, the bulk read computes it from an index lookup it already makes, and the IPC contract in the design document specifies it. After this change no component reads it.",
+      "The renderer memo does dedupe as designed: one promise per subject for the life of the window, so a scrolled list that unmounts and remounts a row asks once. It cannot tell a subject with no logo from a request that failed, because the channel answers absent for both, so a transport failure suppresses that row's logo until the window is reloaded."
+     ],
+     "testCases": [
+      "A row whose subject the cache holds a registry row for asks for its logo, whether or not the cache already holds one",
+      "A row the cache has no record of asks for nothing, which is the foreign-key guard",
+      "A chain-sourced row asks for nothing",
+      "A row re-rendered once its metadata arrives asks then, having asked nothing before",
+      "An absent answer adds no element",
+      "hasImage becomes true only after an image has been fetched for the subject, driven against a real database file"
+     ],
+     "acceptance": [
+      "A token whose issuer published a logo renders it in the collapsed row header",
+      "A row with no logo renders exactly what it renders today, with no placeholder element",
+      "At most one image request per subject, asserted on the wire",
+      "compile, lint, stylelint, jest and i18n green from nix build",
+      "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged"
+     ],
+     "notes": "Found in manual QA against a real mainnet wallet on this branch: no logo anywhere, for tokens that certainly have one. HOSKY, subject a0028f350aaabe0545fdcb56b039bfb08e4bb4d8c4d7c3c7d481c235484f534b59, carries a registry logo of about 10,364 base64 characters. task-024's four cases all passed because every one of them supplied hasImage directly; none of them asked where the value comes from, and the answer is that it comes from the request the flag was preventing."
     }
    ]
   },
@@ -1728,8 +1767,8 @@
  ],
  "summary": {
   "totalPhases": 7,
-  "totalTasks": 43,
-  "estimatedTotalHours": 201.0,
+  "totalTasks": 44,
+  "estimatedTotalHours": 204.0,
   "criticalPath": [
    "task-007",
    "task-008",

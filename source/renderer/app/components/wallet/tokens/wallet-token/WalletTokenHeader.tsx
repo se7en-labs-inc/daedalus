@@ -45,7 +45,7 @@ function WalletTokenHeader(props: Props) {
     onCopyAssetParam,
     onToggleFavorite,
   } = props;
-  const { uniqueId, policyId, assetName, hasImage } = asset;
+  const { uniqueId, policyId, assetName, source } = asset;
   const starIcon = isFavorite ? starFilledIcon : starNotFilledIcon;
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
@@ -54,11 +54,27 @@ function WalletTokenHeader(props: Props) {
   // is for one read off a transaction. Derived here so the two cannot disagree.
   const subject = `${policyId}${assetName}`;
 
-  // Keyed on `hasImage` as well as on the subject: a row drawn before its
-  // metadata arrives says it has no logo, and the row that replaces it a moment
-  // later is the first one with a reason to ask.
+  // The condition is that the cache holds a registry row for this subject, and
+  // not that it already holds a logo. Those are different facts and only one of
+  // them can start anything: the cache stores a logo because a row asked for
+  // one, so a row that asks only once the logo is stored never asks at all.
+  //
+  // A registry row is also the earliest point at which a logo can be stored
+  // against this subject, because the image table's key references the metadata
+  // table's. A request issued before the row exists fetches the bytes and is
+  // then refused on write, and the nothing it answers with is remembered for
+  // the life of the window.
+  //
+  // A chain row means the registry did not answer for this subject, so it has
+  // no picture of it either, and a wallet full of them would otherwise ask once
+  // per token for an answer that is known in advance.
+  const isInRegistry = source === 'registry';
+
+  // Keyed on the answer as well as on the subject: a row drawn before its
+  // metadata arrives is in neither channel yet, and the row that replaces it a
+  // moment later is the first one with a reason to ask.
   useEffect(() => {
-    if (!hasImage) return undefined;
+    if (!isInRegistry) return undefined;
     let wanted = true;
     requestAssetImageUrl(subject).then((url) => {
       if (wanted) setLogoUrl(url);
@@ -67,7 +83,7 @@ function WalletTokenHeader(props: Props) {
     return () => {
       wanted = false;
     };
-  }, [subject, hasImage]);
+  }, [subject, isInRegistry]);
 
   const rootStyles = classNames(
     styles.root,

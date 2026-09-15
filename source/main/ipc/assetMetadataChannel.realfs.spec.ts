@@ -505,6 +505,54 @@ describe('assetMetadataChannel', () => {
       });
       expect(response).toEqual({ requestId: 'i-3', status: 'absent' });
     });
+
+    /**
+     * The direction of causation between the two handlers, driven rather than
+     * described, because a reader who has it backwards writes a caller that
+     * never asks: `hasImage` is computed from the image table, and the only
+     * thing that writes the image table is an image request. It is therefore a
+     * report of what has already been fetched and can never be the condition on
+     * fetching. It also cannot be true before the subject has a metadata row at
+     * all, because the image table's key references the metadata table's.
+     */
+    it('reports hasImage only once an image has been fetched for the subject', async () => {
+      const handlers = handlersWith(
+        stubTransport(async () => ({
+          ok: true,
+          status: 200,
+          body: JSON.stringify({
+            subjects: [
+              { subject: SUBJECT, logo: { value: PNG.toString('base64') } },
+            ],
+          }),
+        }))
+      );
+
+      const beforeTheRow = await handlers.readImage({
+        requestId: 'i-4',
+        subject: SUBJECT,
+      });
+      expect(beforeTheRow.status).toBe('absent');
+
+      writeRow(SUBJECT);
+      const cold = await handlers.readMetadata({
+        requestId: 'r-9',
+        subjects: [SUBJECT],
+      });
+      expect(cold.entries[0].hasImage).toBe(false);
+
+      const fetched = await handlers.readImage({
+        requestId: 'i-5',
+        subject: SUBJECT,
+      });
+      expect(fetched.status).toBe('present');
+
+      const warm = await handlers.readMetadata({
+        requestId: 'r-10',
+        subjects: [SUBJECT],
+      });
+      expect(warm.entries[0].hasImage).toBe(true);
+    });
   });
 
   /**
