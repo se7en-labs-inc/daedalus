@@ -14,6 +14,11 @@ import GeneralSettingsPage from '../../../../source/renderer/app/containers/sett
 // which is a webpack construct. The spec reads the one locale file it needs.
 import enMessages from '../../../../source/renderer/app/i18n/locales/en-US.json';
 import { createStoreDefaults, withStoreOverrides } from './storeDefaults';
+import {
+  REQUESTS_BY_STORE,
+  requestDefault,
+  requestsFor,
+} from './requestDefaults';
 
 /*
  * What this file is for.
@@ -92,6 +97,47 @@ describe('createStoreDefaults', () => {
       expect(store).not.toHaveProperty('initialize');
       expect(store).not.toHaveProperty('api');
     });
+  });
+});
+
+describe('request defaults', () => {
+  // The fields the containers read, measured over source/renderer/app/containers.
+  const READ_BY_CONTAINERS = [
+    'isExecuting',
+    'isExecutingFirstTime',
+    'wasExecuted',
+    'error',
+    'result',
+  ];
+
+  it('carries every field a container reads through', () => {
+    const request = requestDefault();
+    READ_BY_CONTAINERS.forEach((field) => {
+      expect(request).toHaveProperty(field);
+    });
+    // Handlers call these, and a handler that throws on click is a worse story
+    // than one that does nothing.
+    expect(typeof request.reset).toBe('function');
+    expect(typeof request.execute).toBe('function');
+  });
+
+  it('gives every request a screen reads a default on its own store', () => {
+    const stores = createStoreDefaults();
+    Object.entries(REQUESTS_BY_STORE).forEach(([storeName, requests]) => {
+      requests.forEach((requestName) => {
+        expect(stores[storeName]).toHaveProperty(requestName);
+        READ_BY_CONTAINERS.forEach((field) => {
+          expect(stores[storeName][requestName]).toHaveProperty(field);
+        });
+      });
+    });
+  });
+
+  it('gives each store a fresh request rather than a shared one', () => {
+    // Two stories running in one workbench must not see each other's edits.
+    const first = requestsFor('wallets');
+    const second = requestsFor('wallets');
+    expect(first.createWalletRequest).not.toBe(second.createWalletRequest);
   });
 });
 

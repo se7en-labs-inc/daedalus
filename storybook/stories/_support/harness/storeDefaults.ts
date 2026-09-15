@@ -7,6 +7,11 @@ import {
 } from '../../../../source/renderer/app/config/profileConfig';
 import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import environment from '../environment';
+import { requestsFor } from './requestDefaults';
+
+// Re-exported so a screen story has one import for everything the harness
+// offers rather than two.
+export { requestDefault } from './requestDefaults';
 
 const storyEnvironment = environment;
 
@@ -29,28 +34,6 @@ const storyEnvironment = environment;
  * at render. The defaults are the only thing standing between a screen story and
  * that failure, which is why they are written out rather than inferred.
  */
-
-/*
- * A request as a container reads one. Every screen that touches a request reads
- * some of `isExecuting`, `error`, `wasExecuted`, `result` and
- * `isExecutingFirstTime`, and reads through without guarding, so an omitted
- * field throws inside render rather than degrading.
- *
- * Provisional here and deliberately minimal: `task-041` sweeps the 48 screen
- * containers for every request a screen reads and promotes this to its own
- * module. It exists at all in this task because the two-store proof below reads
- * one.
- */
-export const requestDefault = (overrides: Record<string, unknown> = {}) => ({
-  isExecuting: false,
-  isExecutingFirstTime: false,
-  wasExecuted: true,
-  error: null,
-  result: null,
-  reset: () => {},
-  execute: () => {},
-  ...overrides,
-});
 
 // The screens read locale, theme and format as settled values rather than as
 // the request-and-result pairs the real store derives them from.
@@ -90,11 +73,59 @@ const profileDefaults = {
   isSubmittingBugReport: false,
   isInitialScreen: false,
   isRTSModeRecommendationAcknowledged: false,
-  // Requests the settings screens read through. task-041 completes the sweep.
-  setProfileLocaleRequest: requestDefault(),
-  getProfileLocaleRequest: requestDefault(),
-  setThemeRequest: requestDefault(),
-  getThemeRequest: requestDefault(),
+  ...requestsFor('profile'),
+};
+
+const networkStatusDefaults = {
+  /*
+   * Observables at the values NetworkStatusStore initialises them to, except
+   * where that value is a state no user waits in. The real store starts
+   * disconnected and unsynced and climbs out within seconds; a harness that
+   * starts there shows every screen its loading shell and nothing else, so the
+   * defaults are the settled state and a screen that wants the loading one says
+   * so.
+   */
+  isNodeResponding: true,
+  isNodeSyncing: true,
+  isNodeInSync: true,
+  isNodeSubscribed: true,
+  isNodeTimeCorrect: true,
+  isSystemTimeIgnored: false,
+  isSplashShown: false,
+  isSyncProgressStalling: false,
+  hasBeenConnected: true,
+  syncProgress: 100,
+  localTip: null,
+  networkTip: null,
+  nextEpoch: null,
+  futureEpoch: null,
+  lastSyncProgressChangeTimestamp: 0,
+  localTimeDifference: 0,
+  decentralizationProgress: 100,
+  desiredPoolNumber: 500,
+  isNotEnoughDiskSpace: false,
+  diskSpaceRequired: '',
+  diskSpaceMissing: '',
+  diskSpaceRecommended: '',
+  diskSpaceAvailable: '',
+  isTlsCertInvalid: false,
+  stateDirectoryPath: '/home/ada/.local/share/Daedalus/mainnet',
+  isShelleyActivated: true,
+  isShelleyPending: false,
+  isAlonzoActivated: true,
+  isAlonzoPending: false,
+  shelleyActivationTime: '',
+  alonzoActivationTime: '',
+  epochLength: null,
+  slotLength: null,
+  // Computed getters, as plain values.
+  isConnected: true,
+  isSystemTimeCorrect: true,
+  isSynced: true,
+  syncPercentage: 100,
+  absoluteSlotNumber: 0,
+  isEpochsInfoAvailable: false,
+  ...requestsFor('networkStatus'),
 };
 
 const appDefaults = {
@@ -174,7 +205,7 @@ const walletsDefaults = {
  * the store, which is the more useful of the two failures.
  */
 export const createStoreDefaults = () => ({
-  addresses: {},
+  addresses: { ...requestsFor('addresses') },
   app: { ...appDefaults },
   backend: {},
   appUpdate: {},
@@ -186,15 +217,15 @@ export const createStoreDefaults = () => ({
     editedAsset: null,
     activeAsset: null,
   },
-  hardwareWallets: {},
+  hardwareWallets: { ...requestsFor('hardwareWallets') },
   governance: {},
-  networkStatus: {},
+  networkStatus: { ...networkStatusDefaults },
   newsFeed: {},
   profile: { ...profileDefaults },
   router: {},
   sidebar: {},
-  staking: {},
-  transactions: {},
+  staking: { ...requestsFor('staking') },
+  transactions: { ...requestsFor('transactions') },
   uiDialogs: {
     // Containers gate on this before reading anything else, so the default is
     // "no dialog open" and a screen that wants one overrides the predicate.
@@ -203,12 +234,12 @@ export const createStoreDefaults = () => ({
     dataForActiveDialog: {},
   },
   uiNotifications: {},
-  voting: {},
-  wallets: { ...walletsDefaults },
+  voting: { ...requestsFor('voting') },
+  wallets: { ...walletsDefaults, ...requestsFor('wallets') },
   walletsLocal: {},
   walletBackup: {},
   walletMigration: {},
-  walletSettings: {},
+  walletSettings: { ...requestsFor('walletSettings') },
   window: {},
 });
 

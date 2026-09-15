@@ -1454,7 +1454,7 @@
      "id": "task-041",
      "title": "Add request-shaped defaults and the networkStatus store",
      "description": "Roughly a dozen screens read isExecuting, error, wasExecuted, result or isExecutingFirstTime off a request field, and containers read through without guarding, so an omitted field throws inside render rather than degrading.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 8.0,
      "dependencies": [
