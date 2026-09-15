@@ -44,3 +44,4 @@ looking for.
 | [05-one-knob-label-is-one-control.md](./05-one-knob-label-is-one-control.md) | Storybook stories, three files: two controls sharing a label were one control, so three screens show a value their source does not state | Open, not scheduled |
 | [06-alonzo-celebration-is-unreachable.md](./06-alonzo-celebration-is-unreachable.md) | Top bar: a config flag makes the Alonzo celebration icon unrenderable, and its prop is still threaded through three components | Open, not scheduled |
 | [07-a-lost-type-entry-is-silent.md](./07-a-lost-type-entry-is-silent.md) | TypeScript config, repository-wide: skipLibCheck plus noImplicitAny off means a package whose types stop resolving reports nothing | Open, not scheduled |
+| [08-general-settings-crashes-on-error.md](./08-general-settings-crashes-on-error.md) | Settings: ProfileSettingsForm renders a LocalizableError as a React child, so a failed locale write blanks the screen | Open, not scheduled |

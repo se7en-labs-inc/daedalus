@@ -6,6 +6,9 @@ import {
   TIME_OPTIONS,
 } from '../../../../source/renderer/app/config/profileConfig';
 import { ROUTES } from '../../../../source/renderer/app/routes-config';
+import environment from '../environment';
+
+const storyEnvironment = environment;
 
 /*
  * A stand-in for the application's store map.
@@ -103,7 +106,11 @@ const appDefaults = {
   currentRoute: ROUTES.ROOT,
   currentPage: '',
   isSetupPage: false,
-  environment: global.environment,
+  // The stories' own environment fixture, not the ambient global, so a screen
+  // that prints a version string prints the same one in the workbench and in a
+  // spec. _support/environment.ts installs the same object on global.environment
+  // for the components that read it there.
+  environment: storyEnvironment,
   openExternalLink: () => {},
   openLocalDirectory: () => {},
 };
@@ -172,7 +179,13 @@ export const createStoreDefaults = () => ({
   backend: {},
   appUpdate: {},
   currency: {},
-  assets: {},
+  assets: {
+    all: [],
+    details: {},
+    favorites: {},
+    editedAsset: null,
+    activeAsset: null,
+  },
   hardwareWallets: {},
   governance: {},
   networkStatus: {},
@@ -182,7 +195,13 @@ export const createStoreDefaults = () => ({
   sidebar: {},
   staking: {},
   transactions: {},
-  uiDialogs: {},
+  uiDialogs: {
+    // Containers gate on this before reading anything else, so the default is
+    // "no dialog open" and a screen that wants one overrides the predicate.
+    isOpen: () => false,
+    activeDialog: null,
+    dataForActiveDialog: {},
+  },
   uiNotifications: {},
   voting: {},
   wallets: { ...walletsDefaults },

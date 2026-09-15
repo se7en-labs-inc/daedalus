@@ -90,8 +90,10 @@ module.exports = {
     // https://github.com/facebook/jest/issues/9430
     '^@iohk-jormungandr/wallet-js$': 'identity-obj-proxy',
     // Webpack resolves these to a URL string through asset/resource; jest has no
-    // such rule and would hand the bytes to the transform chain.
-    '\\.(png|jpe?g|gif|webp|woff2?|eot|ttf|otf)$':
+    // such rule and would hand the bytes to the transform chain. Markdown is in
+    // the list because the terms-of-use screens import their copy as a module,
+    // and a string is what those components expect either way.
+    '\\.(png|jpe?g|gif|webp|woff2?|eot|ttf|otf|md)$':
       '<rootDir>/tests/jest/setup/fileStub.js',
     'tests/(.*)': '<rootDir>/tests/$1',
   },

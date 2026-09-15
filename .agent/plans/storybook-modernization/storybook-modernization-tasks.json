@@ -1368,7 +1368,7 @@
      "id": "task-040",
      "title": "Screen tranche 1: profile and app only, 8 screens",
      "description": "DisplaySettingsPage, GeneralSettingsPage, TermsOfUseSettingsPage, SupportSettingsPage, SecuritySettingsPage, AboutDialog, SplashNetworkPage and AssetSettingsDialogContainer. Harness: store map, actions, intl, theme.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 12.0,
      "dependencies": [
@@ -1404,49 +1404,49 @@
        "id": "task-040-a",
        "title": "DisplaySettingsPage",
        "description": "DisplaySettingsPage -> source/renderer/app/containers/settings/categories/DisplaySettingsPage.tsx -> storybook/stories/screens/settings/DisplaySettingsPage.stories.tsx (stores: profile)",
-       "status": "pending"
+       "status": "completed"
       },
       {
        "id": "task-040-b",
        "title": "GeneralSettingsPage",
        "description": "GeneralSettingsPage -> source/renderer/app/containers/settings/categories/GeneralSettingsPage.tsx -> storybook/stories/screens/settings/GeneralSettingsPage.stories.tsx (stores: profile, app)",
-       "status": "pending"
+       "status": "completed"
       },
       {
        "id": "task-040-c",
        "title": "TermsOfUseSettingsPage",
        "description": "TermsOfUseSettingsPage -> source/renderer/app/containers/settings/categories/TermsOfUseSettingsPage.tsx -> storybook/stories/screens/settings/TermsOfUseSettingsPage.stories.tsx (stores: profile)",
-       "status": "pending"
+       "status": "completed"
       },
       {
        "id": "task-040-d",
        "title": "SupportSettingsPage",
        "description": "SupportSettingsPage -> source/renderer/app/containers/settings/categories/SupportSettingsPage.tsx -> storybook/stories/screens/settings/SupportSettingsPage.stories.tsx (stores: profile, app)",
-       "status": "pending"
+       "status": "completed"
       },
       {
        "id": "task-040-e",
        "title": "SecuritySettingsPage",
        "description": "SecuritySettingsPage -> source/renderer/app/containers/settings/categories/SecuritySettingsPage.tsx -> storybook/stories/screens/settings/SecuritySettingsPage.stories.tsx (stores: none; discreet-mode context only)",
-       "status": "pending"
+       "status": "completed"
       },
       {
        "id": "task-040-f",
        "title": "AboutDialog",
        "description": "AboutDialog -> source/renderer/app/containers/static/AboutDialog.tsx -> storybook/stories/screens/static/AboutDialog.stories.tsx (stores: app)",
-       "status": "pending"
+       "status": "completed"
       },
       {
        "id": "task-040-g",
        "title": "SplashNetworkPage",
        "description": "SplashNetworkPage -> source/renderer/app/containers/splash/SplashNetworkPage.tsx -> storybook/stories/screens/splash/SplashNetworkPage.stories.tsx (stores: app)",
-       "status": "pending"
+       "status": "completed"
       },
       {
        "id": "task-040-h",
        "title": "AssetSettingsDialogContainer",
        "description": "AssetSettingsDialogContainer -> source/renderer/app/containers/assets/AssetSettingsDialogContainer.tsx -> storybook/stories/screens/assets/AssetSettingsDialogContainer.stories.tsx (stores: assets, uiDialogs)",
-       "status": "pending"
+       "status": "completed"
       }
      ]
     },

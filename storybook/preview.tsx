@@ -148,6 +148,10 @@ const parameters = {
         'Discreet Mode',
         ['Discreet Mode Toggle', 'Discreet Asset Amount'],
         'Analytics',
+        // The container-level corpus. Component panels above, screens below, so
+        // the two layers read as two sections rather than interleaving.
+        'Screens',
+        ['Settings', 'Profile', 'Static', 'Splash', 'Assets'],
       ],
     },
   },

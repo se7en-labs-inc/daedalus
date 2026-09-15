@@ -58,3 +58,11 @@ export const applyEnvironmentOs = (osName: string) => {
 };
 
 global.environment = environment;
+
+/*
+ * The same object the module installs on `global.environment`, exported so the
+ * store harness can hand it to a screen rather than reaching for the ambient
+ * global. A screen printing a version string then prints the same one in the
+ * workbench and in a spec.
+ */
+export default environment;
