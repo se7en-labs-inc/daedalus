@@ -387,7 +387,7 @@ export default {
   ],
 };
 
-export const ConnectedFlow = withState(
+const ConnectedFlowStory = withState(
   {
     activeSidebarCategory: ROUTES.GOVERNANCE.ROOT,
     currentContentRoute: ROUTES.GOVERNANCE.DREPS,
@@ -510,7 +510,10 @@ export const ConnectedFlow = withState(
   }
 );
 
-ConnectedFlow.storyName = 'Connected flow';
+export const ConnectedFlow = {
+  render: ConnectedFlowStory,
+  name: 'Connected flow',
+};
 
 export const _Loaded = withState(
   { criteria: DEFAULT_DREP_COHORT_CRITERIA, seed: 1 },
@@ -623,7 +626,7 @@ export const ShowAllFullPopulation = {
   name: 'Show all — full population',
 };
 
-export const FavoriteToggle = withState(
+const FavoriteToggleStory = withState(
   { favoriteDRepIds: [baseEntries[0].drepId] },
   (store) => (
     <GovernanceShell activeTab={ROUTES.GOVERNANCE.DREPS}>
@@ -648,7 +651,10 @@ export const FavoriteToggle = withState(
   )
 );
 
-FavoriteToggle.storyName = 'Favorite toggle';
+export const FavoriteToggle = {
+  render: FavoriteToggleStory,
+  name: 'Favorite toggle',
+};
 
 export const PinnedFavoritesAboveTheCohort = {
   render: () => {
