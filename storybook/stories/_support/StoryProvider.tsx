@@ -227,15 +227,14 @@ class StoryProvider extends Component<Props> {
     };
   }
 
+  /*
+   * The fixtures this provider has always supplied. They carry shapes the
+   * component-level stories depend on, so they sit between the harness defaults
+   * and whatever a screen story asks for.
+   */
   @computed
-  get stores(): {} {
-    /*
-     * The full store map first, then the fixtures this provider has always
-     * supplied, then whatever the story overrides. Order matters: the three
-     * below carry shapes the component-level stories depend on and would lose
-     * if the defaults were merged on top of them.
-     */
-    return withStoreOverrides({
+  get providerFixtures(): StoreOverrides {
+    return {
       assets: {
         getAsset: () => {
           return {
@@ -276,8 +275,28 @@ class StoryProvider extends Component<Props> {
         checkIsTrezorByWalletId: () => {},
         initiateTransaction: null,
       },
-      ...(this.props.storeOverrides || {}),
+    };
+  }
+
+  @computed
+  get stores(): {} {
+    /*
+     * Three layers, each merged one key deep rather than replaced: the harness
+     * defaults, then this provider's fixtures, then the story's own overrides.
+     *
+     * Merging rather than spreading at the same level matters. Spread, a screen
+     * story naming `wallets` to set one flag would silently take away the active
+     * wallet this provider supplies, and the screen would render the state it
+     * shows with no wallet selected while claiming to be on one. Measured: that
+     * is exactly what the top bar story did.
+     */
+    const overrides = this.props.storeOverrides || {};
+    const fixtures = this.providerFixtures;
+    const merged: StoreOverrides = { ...fixtures };
+    Object.keys(overrides).forEach((key) => {
+      merged[key] = { ...(fixtures[key] || {}), ...overrides[key] };
     });
+    return withStoreOverrides(merged);
   }
 
   setActiveWalletId = (walletId: string) =>

@@ -9,6 +9,11 @@ import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import environment from '../environment';
 import { backendDefaults } from './fixtures/backend';
 import { routerAt } from './fixtures/router';
+import { CATEGORIES_LIST } from '../../../../source/renderer/app/config/sidebarConfig';
+import {
+  WalletSortBy,
+  WalletSortOrder,
+} from '../../../../source/renderer/app/types/sidebarTypes';
 import {
   appUpdateDefaults,
   newsFeedDefaults,
@@ -194,6 +199,7 @@ const walletsDefaults = {
   hasLoadedWallets: true,
   hasMaxWallets: false,
   hasRewardsWallets: false,
+  isWalletRoute: false,
   createWalletStep: null,
   createWalletShowAbortConfirmation: false,
   createWalletUseNewProcess: false,
@@ -265,8 +271,27 @@ export const createStoreDefaults = () => ({
    * AppStore.currentRoute is computed from the same field.
    */
   router: routerAt(),
-  sidebar: {},
-  staking: { ...requestsFor('staking') },
+  /*
+   * The real category list, not a stand-in. The sidebar renders one button per
+   * entry and marks one of them active by route, so a shortened list would show
+   * a different application rather than a simpler fixture. `wallets` is the
+   * store's computed grouping and is empty here because no wallet is loaded; the
+   * layout renders its sidebar without one.
+   */
+  sidebar: {
+    CATEGORIES: CATEGORIES_LIST,
+    activeSidebarCategory: CATEGORIES_LIST[0].route,
+    isShowingSubMenus: true,
+    walletSortConfig: {
+      sortBy: WalletSortBy.Date,
+      sortOrder: WalletSortOrder.Asc,
+    },
+    searchValue: '',
+    wallets: [],
+    onChangeWalletSortType: () => {},
+    onSearchValueUpdated: () => {},
+  },
+  staking: { stakingInfoWasOpen: false, ...requestsFor('staking') },
   transactions: { ...requestsFor('transactions') },
   uiDialogs: {
     // Containers gate on this before reading anything else, so the default is

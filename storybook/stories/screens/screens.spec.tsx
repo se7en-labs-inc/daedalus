@@ -29,6 +29,10 @@ import * as newsFeed from './news/NewsFeedContainer.stories';
 import * as newsOverlay from './news/NewsOverlayContainer.stories';
 import * as appUpdate from './appUpdate/AppUpdateContainer.stories';
 import * as notifications from './notifications/NotificationsContainer.stories';
+import * as mainLayout from './chrome/MainLayout.stories';
+import * as topBar from './chrome/TopBarContainer.stories';
+import * as settingsChrome from './chrome/Settings.stories';
+import * as governance from './chrome/Governance.stories';
 
 /*
  * Every screen story, mounted.
@@ -81,6 +85,10 @@ const modules = {
   NewsOverlayContainer: newsOverlay,
   AppUpdateContainer: appUpdate,
   NotificationsContainer: notifications,
+  MainLayout: mainLayout,
+  TopBarContainer: topBar,
+  Settings: settingsChrome,
+  Governance: governance,
 };
 
 /*
@@ -159,14 +167,21 @@ const THROWS_AT_THE_LOGO = new Set([
 ]);
 
 /*
- * One screen renders a tree with no text in it, and that is the state it
- * documents rather than a failure. The notification bar draws one element per
- * configured notification whatever the store says and shows the label only for
- * the active ones, so with none active it is a stack of empty wrappers. Asserted
- * as elements present and text absent, which is a stronger statement than either
- * of the two groups above would make about it.
+ * Two screens render a tree with no text in it, and that is the state they
+ * document rather than a failure. The notification bar draws one element per
+ * configured notification whatever the store says and shows a label only for the
+ * active ones, so with none active it is a stack of empty wrappers. The top bar
+ * with no wallet open, on mainnet, with nothing unread is a row of icons: every
+ * piece of text it can show is behind one of those conditions.
+ *
+ * Asserted as elements present and text absent, which is a stronger statement
+ * than either of the two groups above would make about them.
  */
-const RENDERS_WITHOUT_TEXT = new Set(['NotificationsContainer:Default']);
+const RENDERS_WITHOUT_TEXT = new Set([
+  'NotificationsContainer:Default',
+  'TopBarContainer:Default',
+  'TopBarContainer:WithUnreadNews',
+]);
 
 const showsSomething = allStories.filter(
   (s) =>
@@ -180,7 +195,7 @@ const showsNoText = allStories.filter((s) => RENDERS_WITHOUT_TEXT.has(s.id));
 
 describe('screen stories', () => {
   it('composes every screen story', () => {
-    expect(allStories).toHaveLength(57);
+    expect(allStories).toHaveLength(70);
     expect(showsNothing).toHaveLength(RENDERS_NOTHING.size);
     expect(throwsAtTheLogo).toHaveLength(THROWS_AT_THE_LOGO.size);
     expect(showsNoText).toHaveLength(RENDERS_WITHOUT_TEXT.size);

@@ -1766,7 +1766,7 @@
           "id": "task-048",
           "title": "Screen tranche 5: chrome, 4 screens",
           "description": "MainLayout, TopBarContainer, Settings and Governance. This tranche unblocks everything after it, because every remaining screen renders inside MainLayout.",
-          "status": "pending",
+          "status": "completed",
           "priority": "critical",
           "estimatedHours": 10.0,
           "dependencies": [
@@ -1797,25 +1797,25 @@
               "id": "task-048-a",
               "title": "MainLayout",
               "description": "MainLayout -> source/renderer/app/containers/MainLayout.tsx -> storybook/stories/screens/chrome/MainLayout.stories.tsx (stores: app, sidebar, networkStatus, wallets, uiDialogs; reads router location at :100)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-048-b",
               "title": "TopBarContainer",
               "description": "TopBarContainer -> source/renderer/app/containers/TopBarContainer.tsx -> storybook/stories/screens/chrome/TopBarContainer.stories.tsx (stores: app, sidebar, wallets, networkStatus)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-048-c",
               "title": "Settings",
               "description": "Settings -> source/renderer/app/containers/settings/Settings.tsx -> storybook/stories/screens/chrome/Settings.stories.tsx (stores: app; reads router location at :21-28)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-048-d",
               "title": "Governance",
               "description": "Governance -> source/renderer/app/containers/voting/Governance.tsx -> storybook/stories/screens/chrome/Governance.stories.tsx (stores: withRouter)",
-              "status": "pending"
+              "status": "completed"
             }
           ]
         },

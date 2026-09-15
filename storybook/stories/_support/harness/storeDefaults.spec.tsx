@@ -16,6 +16,7 @@ import enMessages from '../../../../source/renderer/app/i18n/locales/en-US.json'
 import { createStoreDefaults, withStoreOverrides } from './storeDefaults';
 import { backendPhase } from './fixtures/backend';
 import { screenDecorator } from './ScreenStory';
+import StoryProvider from '../StoryProvider';
 import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import {
   alertNewsFeed,
@@ -287,6 +288,28 @@ describe('screenDecorator', () => {
     expect(overrides.profile.currentTheme).toBe('cardano');
     expect(overrides.app.newsFeedIsOpen).toBe(true);
     expect(overrides.app.currentRoute).toBe(ROUTES.WALLETS.ROOT);
+  });
+});
+
+describe('StoryProvider', () => {
+  it('merges a story override onto its own fixture rather than replacing it', () => {
+    /*
+     * The provider supplies an active wallet, an asset lookup and a hardware
+     * wallet stub. A screen story that names one of those three keys to set a
+     * single flag must not lose the rest: it would render the screen it asked
+     * for with the wallet silently gone, which looks like a state rather than
+     * like a fault.
+     */
+    const provider = new StoryProvider({
+      children: null,
+      storeOverrides: { wallets: { hasAnyWallets: true } },
+    });
+    const { wallets } = provider.stores as Record<string, any>;
+    expect(wallets.hasAnyWallets).toBe(true);
+    expect(wallets.active).not.toBeNull();
+    expect(wallets.active).not.toBeUndefined();
+    // And the harness default underneath both is still there.
+    expect(wallets.createWalletRequest).toBeDefined();
   });
 });
 
