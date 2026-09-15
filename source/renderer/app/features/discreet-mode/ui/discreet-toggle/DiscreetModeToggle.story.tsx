@@ -1,11 +1,9 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import { DiscreetModeToggleComponent } from './DiscreetModeToggle';
 
 export default {
   title: 'Discreet Mode / Discreet Mode Toggle',
-  decorators: [withKnobs],
 };
 
 export const Main = () => (

@@ -1009,7 +1009,7 @@
      "id": "task-029",
      "title": "Convert knobs in the settings and profile tranche",
      "description": "settings/ plus the two colocated story files under source/renderer/app/features/discreet-mode and the analytics story. settings/general/General.stories.tsx also carries withState and the single toolbar write-back site.",
-     "status": "pending",
+     "status": "completed",
      "priority": "medium",
      "estimatedHours": 8.0,
      "dependencies": [

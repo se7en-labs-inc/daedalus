@@ -1,11 +1,10 @@
 import React from 'react';
-import { boolean, number } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
-import { useGlobals } from '@storybook/preview-api';
-import { withState } from '../../_support/WithLocalState';
+import { useArgs, useGlobals } from '@storybook/preview-api';
 import SettingsWrapper from '../utils/SettingsWrapper';
 import { themesIds } from '../../_support/config';
 import { localeOf } from '../../_support/globals';
+import { rangeFrom } from '../../_support/argTypes';
 // Screens
 import ProfileSettingsForm from '../../../../source/renderer/app/components/widgets/forms/ProfileSettingsForm';
 import StakePoolsSettings from '../../../../source/renderer/app/components/settings/categories/StakePoolsSettings';
@@ -15,7 +14,11 @@ import TermsOfUseSettings from '../../../../source/renderer/app/components/setti
 import WalletsSettings from '../../../../source/renderer/app/components/settings/categories/WalletsSettings';
 import SecuritySettings from '../../../../source/renderer/app/components/settings/categories/SecuritySettings';
 // Assets and helpers
-import { mockedLocaleState, onLocaleValueChange } from '../utils/helpers';
+import {
+  LocaleStoryStore,
+  mockedLocaleState,
+  onLocaleValueChange,
+} from '../utils/helpers';
 import currenciesList from '../../../../source/renderer/app/config/currenciesList.json';
 import { getLocalizedCurrenciesList } from '../../../../source/renderer/app/config/currencyConfig';
 
@@ -41,49 +44,67 @@ export default {
   decorators: [SettingsWrapper],
 };
 
-export const General = withState(mockedLocaleState, (store) => (
-  <ProfileSettingsForm
-    isSubmitting={boolean('isSubmitting', false)}
-    onSubmit={action('submit')}
-    onChangeItem={(id, value) => onLocaleValueChange(store, id, value)}
-    {...store.state}
-  />
-));
+export const General = {
+  args: { ...mockedLocaleState, isSubmitting: false },
 
-export const Wallets = withState(mockedWalletsState, (store) => (
-  <WalletsSettings
-    currencySelected={store.state.currencySelected}
-    // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-    currencyRate={0.321}
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ aed: { code: string; decimalDi... Remove this comment to see the full error message
-    currencyList={getLocalizedCurrenciesList(currenciesList, 'en-US')}
-    onSelectCurrency={(code) =>
-      store.set({
-        currencySelected: currenciesList[code],
-      })
-    }
-    onToggleCurrencyIsActive={(value) => store.set({ currencyIsActive: value })}
-    onOpenExternalLink={action('onOpenExternalLink')}
-    {...store.state}
-  />
-));
+  render: () => {
+    const [{ isSubmitting, ...locale }, updateArgs] = useArgs<
+      LocaleStoryStore & { isSubmitting: boolean }
+    >();
+    return (
+      <ProfileSettingsForm
+        isSubmitting={isSubmitting}
+        onSubmit={action('submit')}
+        onChangeItem={(id, value) => onLocaleValueChange(updateArgs, id, value)}
+        {...locale}
+      />
+    );
+  },
+};
 
-export const StakePools = () => (
-  <StakePoolsSettings
-    onSelectSmashServerUrl={action('onSelectSmashServerUrl')}
-    onResetSmashServerError={action('onResetSmashServerError')}
-    smashServerUrl="https://smash.cardano-mainnet.iohk.io"
-    onOpenExternalLink={action('onOpenExternalLink')}
-    isSyncing={boolean('isSyncing', false)}
-    syncPercentage={number('syncPercentage', 70, {
-      range: true,
-      min: 0,
-      max: 100,
-      step: 1,
-    })}
-    isLoading={boolean('isLoading', false)}
-  />
-);
+export const Wallets = {
+  args: mockedWalletsState,
+
+  render: () => {
+    const [{ currencyIsActive, currencySelected }, updateArgs] = useArgs();
+    return (
+      <WalletsSettings
+        currencySelected={currencySelected}
+        // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+        currencyRate={0.321}
+        // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ aed: { code: string; decimalDi... Remove this comment to see the full error message
+        currencyList={getLocalizedCurrenciesList(currenciesList, 'en-US')}
+        onSelectCurrency={(code) =>
+          updateArgs({
+            currencySelected: currenciesList[code],
+          })
+        }
+        onToggleCurrencyIsActive={(value) =>
+          updateArgs({ currencyIsActive: value })
+        }
+        onOpenExternalLink={action('onOpenExternalLink')}
+        currencyIsActive={currencyIsActive}
+      />
+    );
+  },
+};
+
+export const StakePools = {
+  args: { isSyncing: false, syncPercentage: 70, isLoading: false },
+  argTypes: { syncPercentage: rangeFrom({ min: 0, max: 100, step: 1 }) },
+
+  render: ({ isSyncing, syncPercentage, isLoading }) => (
+    <StakePoolsSettings
+      onSelectSmashServerUrl={action('onSelectSmashServerUrl')}
+      onResetSmashServerError={action('onResetSmashServerError')}
+      smashServerUrl="https://smash.cardano-mainnet.iohk.io"
+      onOpenExternalLink={action('onOpenExternalLink')}
+      isSyncing={isSyncing}
+      syncPercentage={syncPercentage}
+      isLoading={isLoading}
+    />
+  ),
+};
 
 export const Themes = () => {
   // The toolbar selection is a Storybook global now, so this writes back
@@ -116,20 +137,34 @@ export const TermsOfService = {
   name: 'Terms of Service',
 };
 
-export const Support = () => (
-  <SupportSettings
-    onExternalLinkClick={action('onExternalLinkClick')}
-    onSupportRequestClick={action('onSupportRequestClick')}
-    onDownloadLogs={action('onDownloadLogs')}
-    disableDownloadLogs={boolean('disableDownloadLogs', false)}
-    analyticsAccepted={boolean('analyticsAccepted', false)}
-  />
-);
+export const Support = {
+  args: { disableDownloadLogs: false, analyticsAccepted: false },
 
-export const Security = withState(mockedSecurityStore, (store) => (
-  <SecuritySettings
-    onDiscreetModeToggle={(value) => store.set({ discreetMode: value })}
-    onOpenDiscreetModeToggle={(value) => store.set({ openDiscreetMode: value })}
-    {...store.state}
-  />
-));
+  render: ({ disableDownloadLogs, analyticsAccepted }) => (
+    <SupportSettings
+      onExternalLinkClick={action('onExternalLinkClick')}
+      onSupportRequestClick={action('onSupportRequestClick')}
+      onDownloadLogs={action('onDownloadLogs')}
+      disableDownloadLogs={disableDownloadLogs}
+      analyticsAccepted={analyticsAccepted}
+    />
+  ),
+};
+
+export const Security = {
+  args: mockedSecurityStore,
+
+  render: () => {
+    const [{ discreetMode, openDiscreetMode }, updateArgs] = useArgs();
+    return (
+      <SecuritySettings
+        onDiscreetModeToggle={(value) => updateArgs({ discreetMode: value })}
+        onOpenDiscreetModeToggle={(value) =>
+          updateArgs({ openDiscreetMode: value })
+        }
+        discreetMode={discreetMode}
+        openDiscreetMode={openDiscreetMode}
+      />
+    );
+  },
+};

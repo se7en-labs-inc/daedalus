@@ -1,5 +1,4 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import { linkTo } from '@storybook/addon-links';
 import StoryLayout from '../../_support/StoryLayout';
 import { currentThemeOf } from '../../_support/globals';
@@ -18,10 +17,9 @@ const pageNames = {
 /* eslint-disable react/display-name  */
 
 export default function (
-  story: Record<string, any>,
+  story: () => React.ReactNode,
   context: Record<string, any>
 ) {
-  const storyWithKnobs = withKnobs(story, context);
   const menu = (
     <SettingsMenu
       isFlight={false}
@@ -48,7 +46,7 @@ export default function (
           currentTheme={currentThemeOf(context)}
         >
           <SettingsLayout menu={menu} activePage="/settings">
-            {storyWithKnobs}
+            {story()}
           </SettingsLayout>
         </StoryLayout>
       </StoryProvider>
