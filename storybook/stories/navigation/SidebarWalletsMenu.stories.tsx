@@ -1,6 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs } from '@storybook/addon-knobs';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import { isShelleyTestnetTheme } from '../_support/utils';
@@ -70,7 +69,6 @@ export default {
   title: 'Navigation / Wallets Menu',
 
   decorators: [
-    withKnobs,
     (story) => (
       <StoryDecorator>
         <StoryProvider>

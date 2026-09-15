@@ -16,7 +16,8 @@ sites is in.
 
 ## The surface
 
-360 call sites across 73 files, measured at `de6f7259c`.
+360 call sites across 73 files, measured at `de6f7259c`. 273 across 60 files after
+the shared widgets tranche: 260 renames, 10 hoists, 3 relocations.
 
 | placement | count | what it costs |
 |---|---|---|
@@ -55,10 +56,14 @@ rather than in the function name. `radio` and `inline-radio` map to those contro
 types, `select` and `multi-select` likewise, and `check` and `inline-check` map
 to `check` and `inline-check`. The one site in this corpus uses `inline-radio`.
 
-**`date(n, d)`** returns a number of milliseconds. Storybook's `date` control
-returns a `Date`. So the call site adjusts rather than the declaration: the one
-site reads `new Date(date('startDateTime')).toISOString()`, and with an arg that
-is already a `Date` the inner construction is redundant.
+**`date(n, d)`** returns a number of milliseconds, and the arg that replaces it
+holds a `Date`. The one site reads
+`new Date(date('startDateTime')).toISOString()`, and the construction around the
+value stays. It is tempting to drop it as redundant once the arg is a `Date`, and
+it is not: what a date control hands back after a viewer edits it cannot be
+verified in this tree, because there is no controls addon installed to hand
+anything back. `new Date(x)` reads a `Date` and a timestamp alike, so it is
+correct under either answer and costs nothing.
 
 **`button(n, handler)`** has no arg equivalent, and not for want of looking. Args
 are values; a button is an action. Both sites are in
@@ -66,6 +71,24 @@ are values; a button is an action. Both sites are in
 notification the story then hides on a timer. Each is either dropped, if the
 story's other controls already reach the state, or kept as an ordinary control in
 the story body.
+
+**A `select` whose options are not primitives** cannot use the row above.
+Storybook rejects a non-primitive `options` array by name: `Invalid argType:
+'<name>.options' should only contain primitives. Use a 'mapping' for complex
+values.` The arg holds the label, `options` is the list of labels, and the story
+body looks the value up: `stakePoolsOptions[stakePool]`. Storybook's own
+`mapping` would do that lookup and is deliberately not used, because composing a
+story through `@storybook/react` with `mapping` set hands the render the label
+rather than the mapped value. Whether the preview differs cannot be settled
+without a browser, and a lookup written in the story body gives the same result
+under either answer. `labelOptionsFrom` in `_support/argTypes.ts` builds the
+options half.
+
+A knob's label becomes the arg's name, so **a label that is not an identifier
+becomes a camelCase name**: `Is configurable` becomes `isConfigurable`,
+`unit / decimals` becomes `unitDecimals`, `Duration (seconds)` becomes
+`durationSeconds`. Arg keys may contain spaces, but they are what the URL carries
+and what a render destructures, and neither reads well with punctuation in it.
 
 A group id, the trailing `groupId` argument or the shared `LOADING_KNOB_GROUP`,
 becomes `argTypes: { n: { table: { category: 'Loading' } } }`.

@@ -2,7 +2,6 @@ import React from 'react';
 import { defineMessages, IntlProvider } from 'react-intl';
 import { observable, action as mobxAction } from 'mobx';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, number, text, date } from '@storybook/addon-knobs';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import StoryLayout from '../_support/StoryLayout';
@@ -117,14 +116,18 @@ export default {
         </StoryDecorator>
       );
     },
-    withKnobs,
   ],
 };
 
 export const _CountdownWidget = {
-  render: () => (
+  args: { startDateTime: new Date() },
+  argTypes: { startDateTime: { control: 'date' } },
+
+  // The arg holds a Date until the control is first changed and a timestamp
+  // afterwards, so the construction around it reads both.
+  render: ({ startDateTime }) => (
     <CountdownWidget
-      startDateTime={new Date(date('startDateTime')).toISOString()}
+      startDateTime={new Date(startDateTime).toISOString()}
       format="DD-HH-mm-ss"
     />
   ),
@@ -133,7 +136,33 @@ export const _CountdownWidget = {
 };
 
 export const _InlineEditingInput = {
-  render: () => (
+  args: {
+    inputFieldLabel: 'Input label',
+    inputFieldPlaceholder: 'Enter you text here',
+    validationErrorMessage: 'Error!',
+    successfullyUpdated: true,
+    isActive: true,
+    isSubmitting: false,
+    inputBlocked: false,
+    disabled: false,
+    readOnly: false,
+    maxLength: undefined,
+  },
+
+  argTypes: { maxLength: { control: 'number' } },
+
+  render: ({
+    inputFieldLabel,
+    inputFieldPlaceholder,
+    validationErrorMessage,
+    successfullyUpdated,
+    isActive,
+    isSubmitting,
+    inputBlocked,
+    disabled,
+    readOnly,
+    maxLength,
+  }) => (
     <div>
       <div
         style={{
@@ -143,21 +172,20 @@ export const _InlineEditingInput = {
         }}
       >
         <InlineEditingInput
-          label={text('inputFieldLabel', 'Input label')}
+          label={inputFieldLabel}
           value=""
-          placeholder={text('inputFieldPlaceholder', 'Enter you text here')}
+          placeholder={inputFieldPlaceholder}
           onSubmit={action('onSubmit')}
           isValid={(value) => value && value.length > 3 && value !== 'error'}
           // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-          validationErrorMessage={text('validationErrorMessage', 'Error!')}
-          successfullyUpdated={boolean('successfullyUpdated', true)}
-          isActive={boolean('isActive', true)}
-          isSubmitting={boolean('isSubmitting', false)}
-          inputBlocked={boolean('inputBlocked', false)}
-          disabled={boolean('disabled', false)}
-          readOnly={boolean('readOnly', false)}
-          // @ts-ignore ts-migrate(2554) FIXME: Expected 2-4 arguments, but got 1.
-          maxLength={number('maxLength')}
+          validationErrorMessage={validationErrorMessage}
+          successfullyUpdated={successfullyUpdated}
+          isActive={isActive}
+          isSubmitting={isSubmitting}
+          inputBlocked={inputBlocked}
+          disabled={disabled}
+          readOnly={readOnly}
+          maxLength={maxLength}
         />
       </div>
     </div>

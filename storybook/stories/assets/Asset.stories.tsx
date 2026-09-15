@@ -1,25 +1,55 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, number, text } from '@storybook/addon-knobs';
 import StoryDecorator from '../_support/StoryDecorator';
 import Asset from '../../../source/renderer/app/components/assets/Asset';
 
 export default {
   title: 'Assets / Asset pill',
-  decorators: [
-    (story) => <StoryDecorator>{story()}</StoryDecorator>,
-    withKnobs,
-  ],
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
 
-export const Default = () => {
-  const policyId = text(
-    'policyId',
-    '6e8dc8b1f3591e8febcc47c51e9f2667c413a497aebd54cf38979086'
-  );
-  const assetName = text('assetName', '6861707079636f696e');
-  return (
+export const Default = {
+  args: {
+    policyId: '6e8dc8b1f3591e8febcc47c51e9f2667c413a497aebd54cf38979086',
+    assetName: '6861707079636f696e',
+    fingerprint: 'asset18v86ulgre52g4l7lvl5shl8h5cm4u3dmrjg2e8',
+    quantity: 1,
+    name: undefined,
+    ticker: undefined,
+    description: undefined,
+    unitDecimals: undefined,
+    unitName: undefined,
+    small: false,
+    hidePopOver: undefined,
+    isConfigurable: true,
+  },
+
+  // Storybook infers a control from the arg's value, so the args that stood in
+  // for a knob with no default have nothing to infer from and say what they are.
+  argTypes: {
+    name: { control: 'text' },
+    ticker: { control: 'text' },
+    description: { control: 'text' },
+    unitDecimals: { control: 'number' },
+    unitName: { control: 'text' },
+    hidePopOver: { control: 'boolean' },
+  },
+
+  render: ({
+    policyId,
+    assetName,
+    fingerprint,
+    quantity,
+    name,
+    ticker,
+    description,
+    unitDecimals,
+    unitName,
+    small,
+    hidePopOver,
+    isConfigurable,
+  }) => (
     <div
       style={{
         padding: '30px',
@@ -30,37 +60,26 @@ export const Default = () => {
           policyId,
           assetName,
           uniqueId: `${policyId}${assetName}`,
-          fingerprint: text(
-            'fingerprint',
-            'asset18v86ulgre52g4l7lvl5shl8h5cm4u3dmrjg2e8'
-          ),
-          quantity: new BigNumber(number('quantity', 1)),
+          fingerprint,
+          quantity: new BigNumber(quantity),
           decimals: 0,
           recommendedDecimals: null,
           metadata: {
-            // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-            name: text('name'),
-            // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-            ticker: text('ticker'),
-            // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-            description: text('description'),
+            name,
+            ticker,
+            description,
             // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
             unit: {
-              // @ts-ignore ts-migrate(2554) FIXME: Expected 2-4 arguments, but got 1.
-              decimals: number('unit / decimals'),
-              // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-              name: text('unit / name'),
+              decimals: unitDecimals,
+              name: unitName,
             },
           },
         }}
-        small={boolean('small', false)}
-        // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-        hidePopOver={boolean('hidePopOver')}
+        small={small}
+        hidePopOver={hidePopOver}
         onCopyAssetParam={action('onCopyAssetParam')}
-        onClickSettings={
-          boolean('Is configurable', true) ? action('onClickSettings') : null
-        }
+        onClickSettings={isConfigurable ? action('onClickSettings') : null}
       />
     </div>
-  );
+  ),
 };

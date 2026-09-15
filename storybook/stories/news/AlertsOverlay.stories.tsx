@@ -1,7 +1,6 @@
 import React from 'react';
 import { defineMessages, IntlProvider } from 'react-intl';
 import { action } from '@storybook/addon-actions';
-import { select, withKnobs } from '@storybook/addon-knobs';
 import StoryDecorator from '../_support/StoryDecorator';
 import enMessages from '../../../source/renderer/app/i18n/locales/en-US.json';
 import jpMessages from '../../../source/renderer/app/i18n/locales/ja-JP.json';
@@ -13,6 +12,8 @@ import {
 import AlertsOverlay from '../../../source/renderer/app/components/news/AlertsOverlay';
 import RTSFlagsRecommendationOverlay from '../../../source/renderer/app/components/knownIssues/RTSFlagsRecommendationOverlay/RTSFlagsRecommendationOverlay';
 import { localeOf } from '../_support/globals';
+import { optionsFrom } from '../_support/argTypes';
+import { dateOptions } from '../_support/profileSettings';
 
 const { intl: enIntl } = new IntlProvider({
   locale: 'en-US',
@@ -90,32 +91,34 @@ const getAlerts = (locale: string) => [
 export default {
   title: 'News / Overlays',
 
-  decorators: [
-    (story, context) => (
-      <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-    ),
-  ],
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
 
 export const Alerts = {
-  render: (_args, context) => (
-    <AlertsOverlay
-      allAlertsCount={getAlerts(localeOf(context)).length}
-      alerts={getAlerts(localeOf(context))}
-      onCloseOpenAlert={() => null}
-      onMarkNewsAsRead={action('onMarkNewsAsRead')}
-      onOpenExternalLink={action('onOpenExternalLink')}
-      onProceedNewsAction={action('onProceedNewsAction')}
-      currentDateFormat={select(
-        'currentDateFormat',
-        dateOptionsIntl[localeOf(context)].reduce((obj, { label, value }) => {
-          obj[label] = value;
-          return obj;
-        }, {}),
-        dateOptionsIntl[localeOf(context)][0].value
-      )}
-    />
-  ),
+  // The options this control offers used to be the current locale's date
+  // formats. An arg is declared once, outside the body, so it cannot depend on
+  // a global: it offers both locales' formats instead. Left undefined, the
+  // default still follows the locale, which is what the knob did.
+  args: { currentDateFormat: undefined },
+  argTypes: { currentDateFormat: optionsFrom(dateOptions) },
+
+  render: ({ currentDateFormat }, context) => {
+    const locale = localeOf(context);
+    const alerts = getAlerts(locale);
+    return (
+      <AlertsOverlay
+        allAlertsCount={alerts.length}
+        alerts={alerts}
+        onCloseOpenAlert={() => null}
+        onMarkNewsAsRead={action('onMarkNewsAsRead')}
+        onOpenExternalLink={action('onOpenExternalLink')}
+        onProceedNewsAction={action('onProceedNewsAction')}
+        currentDateFormat={
+          currentDateFormat ?? dateOptionsIntl[locale][0].value
+        }
+      />
+    );
+  },
 };
 
 export const RtsRecommendation = {

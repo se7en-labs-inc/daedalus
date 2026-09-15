@@ -1,7 +1,6 @@
 import React from 'react';
 import { observable, runInAction } from 'mobx';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, select } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 import {
   DEVELOPMENT,
@@ -13,6 +12,7 @@ import StoryProvider from '../_support/StoryProvider';
 import { isShelleyTestnetTheme } from '../_support/utils';
 import Sidebar from '../../../source/renderer/app/components/sidebar/Sidebar';
 import { currentThemeOf } from '../_support/globals';
+import { optionsFrom } from '../_support/argTypes';
 import {
   CATEGORIES_WITH_DELEGATION_COUNTDOWN,
   CATEGORIES_WITHOUT_DELEGATION_COUNTDOWN,
@@ -106,6 +106,12 @@ const sidebarMenusHardware = observable({
 });
 let emptyMenus;
 
+const networkOptions = {
+  Development: DEVELOPMENT,
+  Test: TESTNET,
+  Staging: STAGING,
+};
+
 export default {
   title: 'Navigation / Sidebar',
 
@@ -115,7 +121,6 @@ export default {
         <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
-    withKnobs,
   ],
 };
 
@@ -244,7 +249,10 @@ export const // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {  
   };
 
 export const NetworkLabel = {
-  render: (_args, context) => (
+  args: { network: TESTNET },
+  argTypes: { network: optionsFrom(networkOptions) },
+
+  render: ({ network }, context) => (
     <Sidebar
       menus={emptyMenus}
       categories={CATEGORIES_WITH_DELEGATION_COUNTDOWN}
@@ -257,15 +265,7 @@ export const NetworkLabel = {
       onSubmitSupportRequest={() => {}}
       pathname="/"
       currentTheme={currentThemeOf(context)}
-      network={select(
-        'Netork badge',
-        {
-          Development: DEVELOPMENT,
-          Test: TESTNET,
-          Staging: STAGING,
-        },
-        TESTNET
-      )}
+      network={network}
       isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
     />
   ),

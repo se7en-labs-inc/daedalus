@@ -957,7 +957,7 @@
      "id": "task-027",
      "title": "Convert knobs in the shared widgets tranche",
      "description": "common, assets, dapps, notifications, navigation and news. Three of these files also carry withState, and both rewrites land on the same story bodies, so they are done in one pass per file.",
-     "status": "pending",
+     "status": "completed",
      "priority": "high",
      "estimatedHours": 14.0,
      "dependencies": [

@@ -1,10 +1,10 @@
 import React from 'react';
-import { select, withKnobs } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import IncidentOverlay from '../../../source/renderer/app/components/news/IncidentOverlay';
 import { dateOptions } from '../_support/profileSettings';
 import { DATE_ENGLISH_OPTIONS } from '../../../source/renderer/app/config/profileConfig';
+import { optionsFrom } from '../_support/argTypes';
 
 export default {
   title: 'News / Overlays',
@@ -27,40 +27,32 @@ export default {
       platformVersion: '10.14.6',
     },
     title: 'Lazarus Incident',
+    currentDateFormat: DATE_ENGLISH_OPTIONS[0].value,
   },
 
-  decorators: [
-    (story) => <StoryDecorator>{story()}</StoryDecorator>,
-    withKnobs,
-  ],
+  argTypes: { currentDateFormat: optionsFrom(dateOptions) },
+
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
 
 export const _IncidentOverlay = {
-  render: (args) => (
+  render: ({ currentDateFormat, ...args }) => (
     <IncidentOverlay
       incident={args}
       onOpenExternalLink={action('onOpenExternalLink')}
       onProceedNewsAction={action('onProceedNewsAction')}
-      currentDateFormat={select(
-        'currentDateFormat',
-        dateOptions,
-        DATE_ENGLISH_OPTIONS[0].value
-      )}
+      currentDateFormat={currentDateFormat}
     />
   ),
 };
 
 export const IncidentThemed = {
-  render: (args) => (
+  render: ({ currentDateFormat, ...args }) => (
     <IncidentOverlay
       incident={{ ...args, color: 'theme-default' }}
       onOpenExternalLink={action('onOpenExternalLink')}
       onProceedNewsAction={action('onProceedNewsAction')}
-      currentDateFormat={select(
-        'currentDateFormat',
-        dateOptions,
-        DATE_ENGLISH_OPTIONS[0].value
-      )}
+      currentDateFormat={currentDateFormat}
     />
   ),
 
@@ -68,16 +60,12 @@ export const IncidentThemed = {
 };
 
 export const IncidentGrey = {
-  render: (args) => (
+  render: ({ currentDateFormat, ...args }) => (
     <IncidentOverlay
       incident={{ ...args, color: 'grey' }}
       onOpenExternalLink={action('onOpenExternalLink')}
       onProceedNewsAction={action('onProceedNewsAction')}
-      currentDateFormat={select(
-        'currentDateFormat',
-        dateOptions,
-        DATE_ENGLISH_OPTIONS[0].value
-      )}
+      currentDateFormat={currentDateFormat}
     />
   ),
 

@@ -1,186 +1,183 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import {
-  withKnobs,
-  button,
-  boolean,
-  text,
-  number,
-} from '@storybook/addon-knobs';
-import { withState } from '../_support/WithLocalState';
+import { useArgs } from '@storybook/preview-api';
 import StoryDecorator from '../_support/StoryDecorator';
 import Notification from '../../../source/renderer/app/components/notifications/Notification';
 import InlineNotification from '../../../source/renderer/app/components/notifications/InlineNotification';
 import { NOTIFICATION_DEFAULT_DURATION } from '../../../source/renderer/app/config/timingConfig';
 
-export default {
-  title: 'Common / Notifications',
-  decorators: [
-    (story) => <StoryDecorator>{story()}</StoryDecorator>,
-    withKnobs,
-  ],
+const triggerAreaStyle = {
+  lineHeight: 1.38,
+  margin: '20px 0 10px',
+  paddingLeft: '20px',
+  fontFamily: '"NotoSans-Regular, NotoSansCJKjp-Regular", sans-serif',
 };
 
-export const General = withState(
-  {
+export default {
+  title: 'Common / Notifications',
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
+};
+
+export const General = {
+  args: {
     isVisible: false,
+    keepVisible: false,
+    durationSeconds: NOTIFICATION_DEFAULT_DURATION / 1000,
+    clickToClose: true,
+    hasCloseButton: true,
+    content: 'Notification content',
   },
-  (store) => {
-    const keepVisible = boolean('Keep notification visible', false);
-    const { isVisible } = store.state;
-    let clickToClose;
-    let onClose = action('onClose');
 
-    if (!keepVisible) {
-      let timeout;
-      const duration = number(
-        'Duration (seconds)',
-        NOTIFICATION_DEFAULT_DURATION / 1000
-      );
+  render: () => {
+    const [
+      {
+        isVisible,
+        keepVisible,
+        durationSeconds,
+        clickToClose,
+        hasCloseButton,
+        content,
+      },
+      updateArgs,
+    ] = useArgs();
+    let timeout;
 
-      const showNotification = () => {
-        clearTimeout(timeout);
-        store.set({
-          isVisible: true,
-        });
-        timeout = setTimeout(() => {
-          store.set({
-            isVisible: false,
-          });
-        }, duration * 1000);
-        return false;
-      };
-
-      button('Trigger notification', showNotification);
-      clickToClose = boolean('clickToClose', true);
-
-      onClose = () => {
-        store.set({
+    // A button is an action rather than a value, so it has no arg. It stays as
+    // the control it always was, in the story rather than in a panel, and it
+    // only exists when the notification is on a timer.
+    const showNotification = () => {
+      clearTimeout(timeout);
+      updateArgs({
+        isVisible: true,
+      });
+      timeout = setTimeout(() => {
+        updateArgs({
           isVisible: false,
         });
-        action('onClose');
-      };
-    }
+      }, durationSeconds * 1000);
+    };
 
-    const hasCloseButton = boolean('hasCloseButton', true);
     return (
       <>
         <Notification
           isVisible={isVisible || keepVisible}
-          onClose={onClose}
-          clickToClose={clickToClose}
+          onClose={
+            keepVisible
+              ? action('onClose')
+              : () =>
+                  updateArgs({
+                    isVisible: false,
+                  })
+          }
+          clickToClose={keepVisible ? undefined : clickToClose}
           hasCloseButton={hasCloseButton}
         >
-          {text('Content', 'Notification content')}
+          {content}
         </Notification>
-        <h2
-          style={{
-            lineHeight: 1.38,
-            margin: '20px 0 10px',
-            opacity: 0.5,
-            paddingLeft: '20px',
-            fontFamily: '"NotoSans-Regular, NotoSansCJKjp-Regular", sans-serif',
-          }}
-        >
-          Use the knob button to trigger the notification
-        </h2>
+        {!keepVisible && (
+          <div style={triggerAreaStyle}>
+            <button type="button" onClick={showNotification}>
+              Trigger notification
+            </button>
+          </div>
+        )}
       </>
     );
-  }
-);
-
-const WithActionsStory = withState(
-  {
-    isVisible: false,
   },
-  (store) => {
-    const keepVisible = boolean('Keep notification visible', true);
-    const { isVisible } = store.state;
-    let clickToClose;
-    let onClose = action('onClose');
+};
 
-    if (!keepVisible) {
-      let timeout;
-      const duration = number(
-        'Duration (seconds)',
-        NOTIFICATION_DEFAULT_DURATION / 1000
-      );
+export const WithActions = {
+  args: {
+    isVisible: false,
+    keepVisible: true,
+    durationSeconds: NOTIFICATION_DEFAULT_DURATION / 1000,
+    clickToClose: true,
+    hasCloseButton: true,
+    secondaryLabel: 'Secondary',
+    primaryLabel: 'Primary',
+    content: 'Notification content',
+  },
 
-      const showNotification = () => {
-        clearTimeout(timeout);
-        store.set({
-          isVisible: true,
-        });
-        timeout = setTimeout(() => {
-          store.set({
-            isVisible: false,
-          });
-        }, duration * 1000);
-        return false;
-      };
+  render: () => {
+    const [
+      {
+        isVisible,
+        keepVisible,
+        durationSeconds,
+        clickToClose,
+        hasCloseButton,
+        secondaryLabel,
+        primaryLabel,
+        content,
+      },
+      updateArgs,
+    ] = useArgs();
+    let timeout;
 
-      button('Trigger notification', showNotification);
-      clickToClose = boolean('clickToClose', true);
-
-      onClose = () => {
-        store.set({
+    const showNotification = () => {
+      clearTimeout(timeout);
+      updateArgs({
+        isVisible: true,
+      });
+      timeout = setTimeout(() => {
+        updateArgs({
           isVisible: false,
         });
-        action('onClose');
-      };
-    }
+      }, durationSeconds * 1000);
+    };
 
     const actions = [
       {
-        label: text('Secondary label', 'Secondary'),
+        label: secondaryLabel,
       },
       {
-        label: text('Primary label', 'Primary'),
+        label: primaryLabel,
         primary: true,
       },
     ];
-    const hasCloseButton = boolean('hasCloseButton', true);
     return (
       <>
         <Notification
           isVisible={isVisible || keepVisible}
-          onClose={onClose}
-          clickToClose={clickToClose}
+          onClose={
+            keepVisible
+              ? action('onClose')
+              : () =>
+                  updateArgs({
+                    isVisible: false,
+                  })
+          }
+          clickToClose={keepVisible ? undefined : clickToClose}
           hasCloseButton={hasCloseButton}
           actions={actions}
         >
-          {text('Content', 'Notification content')}
+          {content}
         </Notification>
-        <h2
-          style={{
-            lineHeight: 1.38,
-            margin: '20px 0 10px',
-            opacity: 0.5,
-            paddingLeft: '20px',
-            fontFamily: '"NotoSans-Regular, NotoSansCJKjp-Regular", sans-serif',
-          }}
-        >
-          Use the knob button to trigger the notification
-        </h2>
+        {!keepVisible && (
+          <div style={triggerAreaStyle}>
+            <button type="button" onClick={showNotification}>
+              Trigger notification
+            </button>
+          </div>
+        )}
       </>
     );
-  }
-);
+  },
 
-export const WithActions = {
-  render: WithActionsStory,
   name: 'With actions',
 };
 
-export const Inline = () => (
-  <div
-    style={{
-      position: 'relative',
-      padding: 40,
-    }}
-  >
-    <InlineNotification show>
-      {text('Content', 'Inline notification content')}
-    </InlineNotification>
-  </div>
-);
+export const Inline = {
+  args: { content: 'Inline notification content' },
+
+  render: ({ content }) => (
+    <div
+      style={{
+        position: 'relative',
+        padding: 40,
+      }}
+    >
+      <InlineNotification show>{content}</InlineNotification>
+    </div>
+  ),
+};

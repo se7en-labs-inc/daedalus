@@ -1,38 +1,52 @@
 import React from 'react';
-import { number, withKnobs, radios, boolean } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import AppUpdateOverlay from '../../../source/renderer/app/components/appUpdate/AppUpdateOverlay';
 import { update, version, availableAppVersion } from './_utils/fakeDataUpdate';
 import { rangeMap } from '../../../source/renderer/app/utils/numbers';
 import { localeOf } from '../_support/globals';
+import { radioOptionsFrom, rangeFrom } from '../_support/argTypes';
 
 export default {
   title: 'News / Overlays',
-  decorators: [
-    (story) => <StoryDecorator>{story()}</StoryDecorator>,
-    withKnobs,
-  ],
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
 
+const scenarioOptions = {
+  Downloading: 'downloading',
+  'Download complete': 'downloaded',
+  'Process failed': 'failed',
+};
+
+const percentRange = { min: 0, max: 100, step: 1 };
+
 export const Update = {
-  render: (_args, context) => {
+  args: {
+    scenario: 'downloading',
+    isUpdateDownloaded: true,
+    isLinux: false,
+    isFlight: false,
+    isTestnet: false,
+    isWaitingToQuitDaedalus: false,
+    installationProgress: 30,
+    downloadProgress: 30,
+  },
+
+  argTypes: {
+    scenario: radioOptionsFrom(scenarioOptions),
+    installationProgress: rangeFrom(percentRange),
+    downloadProgress: rangeFrom(percentRange),
+  },
+
+  render: (args, context) => {
     const locale = localeOf(context);
-    const scenario = radios(
-      'Scenario',
-      {
-        Downloading: 'downloading',
-        'Download complete': 'downloaded',
-        'Process failed': 'failed',
-      },
-      'downloading'
-    );
-    let isUpdateDownloaded = boolean('isUpdateDownloaded', true);
+    const { scenario, isLinux, isFlight, isTestnet, isWaitingToQuitDaedalus } =
+      args;
+    // The knobs this replaced declared `isLinux` and `isWaitingToQuitDaedalus`
+    // twice with the same label, which addon-knobs treated as one control. One
+    // arg serves both reads.
+    let isUpdateDownloaded = args.isUpdateDownloaded;
     let isAutomaticUpdateFailed = false;
-    let isLinux = boolean('isLinux', false);
-    const isFlight = boolean('isFlight', false);
-    const isTestnet = boolean('isTestnet', false);
-    let isWaitingToQuitDaedalus = boolean('isWaitingToQuitDaedalus', false);
     let installationProgress = 0;
 
     if (scenario === 'downloading') {
@@ -40,26 +54,13 @@ export const Update = {
     } else if (scenario === 'failed') {
       isAutomaticUpdateFailed = true;
     } else if (scenario === 'downloaded') {
-      isLinux = boolean('isLinux', false);
-      isWaitingToQuitDaedalus = boolean('isWaitingToQuitDaedalus', false);
-      if (isLinux && isWaitingToQuitDaedalus)
-        installationProgress = number('installationProgress', 30, {
-          range: true,
-          min: 0,
-          max: 100,
-          step: 1,
-        });
+      if (isLinux && isWaitingToQuitDaedalus) {
+        installationProgress = args.installationProgress;
+      }
     }
 
     const downloadProgress =
-      scenario === 'downloading'
-        ? number('downloadProgress', 30, {
-            range: true,
-            min: 0,
-            max: 100,
-            step: 1,
-          })
-        : 0;
+      scenario === 'downloading' ? args.downloadProgress : 0;
     const timeLeftNumber = parseInt(
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
       rangeMap(downloadProgress, 0, 100, 30, 1),

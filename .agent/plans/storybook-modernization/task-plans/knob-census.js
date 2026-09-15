@@ -133,8 +133,11 @@ const files = (roots.length ? roots : DEFAULT_ROOTS)
 
 const results = files.map(analyse).filter(Boolean);
 const sites = results.flatMap((r) => r.sites);
-const MECHANICAL = new Set(['binding', 'jsx']);
-const costly = sites.filter((s) => !MECHANICAL.has(s.placement));
+// The three numbers a tranche reports against. A rename changes the story
+// signature and the reference; a hoist crosses a function boundary; a
+// relocation has no story body to move into and the call site moves first.
+const RENAME = new Set(['binding', 'jsx', 'argument']);
+const costly = sites.filter((s) => !RENAME.has(s.placement));
 
 const PLACEMENTS = ['binding', 'jsx', 'argument', 'callback', 'module'];
 
@@ -143,7 +146,7 @@ if (flags.has('--by-type')) {
   for (const s of sites) {
     byType[s.type] = byType[s.type] || { total: 0, costly: 0 };
     byType[s.type].total += 1;
-    if (!MECHANICAL.has(s.placement)) byType[s.type].costly += 1;
+    if (!RENAME.has(s.placement)) byType[s.type].costly += 1;
   }
   console.log('type          total  costly');
   for (const [t, c] of Object.entries(byType).sort((a, b) => b[1].total - a[1].total)) {
@@ -163,7 +166,7 @@ if (flags.has('--by-placement')) {
 if (flags.has('--by-file')) {
   console.log('total  costly  file');
   for (const r of results.slice().sort((a, b) => b.sites.length - a.sites.length)) {
-    const n = r.sites.filter((s) => !MECHANICAL.has(s.placement)).length;
+    const n = r.sites.filter((s) => !RENAME.has(s.placement)).length;
     console.log(`${String(r.sites.length).padStart(5)}${String(n).padStart(8)}  ${r.file}`);
   }
   console.log('');
@@ -178,8 +181,10 @@ if (flags.has('--list')) {
 
 console.log(`files importing from addon-knobs:  ${results.length}`);
 console.log(`  of those, importing withKnobs:   ${results.filter((r) => r.usesWithKnobs).length}`);
+const count = (p) => sites.filter((s) => s.placement === p).length;
 console.log(`knob call sites:                   ${sites.length}`);
-console.log(`  mechanical (binding or jsx):     ${sites.length - costly.length}`);
-console.log(`  needing more than a rename:      ${costly.length}`);
+console.log(`  renames:                         ${sites.length - costly.length}`);
+console.log(`  hoists (callback):               ${count('callback')}`);
+console.log(`  relocations (module scope):      ${count('module')}`);
 
 process.exit(sites.length ? 1 : 0);

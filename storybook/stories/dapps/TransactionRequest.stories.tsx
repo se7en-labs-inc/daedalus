@@ -1,14 +1,14 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, select, number, boolean } from '@storybook/addon-knobs';
-import { withState } from '../_support/WithLocalState';
+import { useArgs } from '@storybook/preview-api';
 import StoryDecorator from '../_support/StoryDecorator';
 import DappTransactionRequest from '../../../source/renderer/app/components/dapp/DappTransactionRequest';
 import Notification from '../../../source/renderer/app/components/notifications/Notification';
 import StoryProvider, { WALLETS_V2 } from '../_support/StoryProvider';
 import { generateAssetToken } from '../_support/utils';
 import { localeOf } from '../_support/globals';
+import { optionsFrom } from '../_support/argTypes';
 
 const allAssets = [
   generateAssetToken(
@@ -41,18 +41,30 @@ export default {
         <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
-    withKnobs,
   ],
 };
 
-export const Request = withState(
-  {
-    selectedWallet: null,
+export const Request = {
+  args: {
+    // The state this replaced held the selected wallet object. An id is a
+    // primitive, so it survives the round trip through the URL, and the wallet
+    // is the same lookup the select handler already did.
+    selectedWalletId: null,
+    adaAmount: 50,
+    hasWallets: true,
+    triggeredFrom: 'safari',
   },
-  (store) => {
-    const { selectedWallet } = store.state;
-    const adaAmount = number('adaAmount', 50);
-    const wallets = boolean('Has wallets?', true)
+
+  argTypes: {
+    triggeredFrom: optionsFrom({ safari: 'safari', chrome: 'chrome' }),
+  },
+
+  render: () => {
+    const [
+      { selectedWalletId, adaAmount, hasWallets, triggeredFrom },
+      updateArgs,
+    ] = useArgs();
+    const wallets = hasWallets
       ? WALLETS_V2.map((wallet, index) => {
           let assetsList = allAssets;
           let { name, amount } = wallet;
@@ -78,6 +90,8 @@ export const Request = withState(
           return { ...wallet, assets, name, amount };
         })
       : [];
+    const selectedWallet =
+      wallets.find(({ id }) => id === selectedWalletId) || null;
     const assetsAmounts = [...Array(allAssets.length)].map(
       (x, index) => new BigNumber(index + 10)
     );
@@ -93,20 +107,12 @@ export const Request = withState(
         onClose={action('onClose')}
         onSubmit={action('onSubmit')}
         onSelectWallet={(walletId) => {
-          const newSelectedWallet = wallets.find(({ id }) => id === walletId);
-          store.set({
-            selectedWallet: newSelectedWallet,
+          updateArgs({
+            selectedWalletId: walletId,
           });
         }}
         selectedWallet={selectedWallet}
-        triggeredFrom={select(
-          'triggeredFrom',
-          {
-            safari: 'safari',
-            chrome: 'chrome',
-          },
-          'safari'
-        )}
+        triggeredFrom={triggeredFrom}
         wallets={wallets}
         assets={allAssets}
         assetsAmounts={assetsAmounts}
@@ -163,8 +169,8 @@ export const Request = withState(
         )}
       />
     );
-  }
-);
+  },
+};
 
 export const Notifications = {
   render: (_args, context) => {
