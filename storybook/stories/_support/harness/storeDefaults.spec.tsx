@@ -119,6 +119,9 @@ describe('request defaults', () => {
     // than one that does nothing.
     expect(typeof request.reset).toBe('function');
     expect(typeof request.execute).toBe('function');
+    // A method, so a screen calling it on a plain object throws rather than
+    // reading undefined.
+    expect(typeof request.isExecutingWithArgs).toBe('function');
   });
 
   it('gives every request a screen reads a default on its own store', () => {

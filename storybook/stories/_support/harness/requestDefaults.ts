@@ -25,6 +25,13 @@ export const requestDefault = (overrides: Record<string, unknown> = {}) => ({
   result: null,
   reset: () => {},
   execute: () => {},
+  /*
+   * `Request` also answers "is the in-flight call the one with these arguments",
+   * which the system-time screen uses to tell a forced clock check from a
+   * routine one. A method rather than a field, so it has to be here: a screen
+   * calling it on a plain object throws rather than reading undefined.
+   */
+  isExecutingWithArgs: () => false,
   ...overrides,
 });
 

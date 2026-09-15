@@ -125,7 +125,35 @@ const networkStatusDefaults = {
   syncPercentage: 100,
   absoluteSlotNumber: 0,
   isEpochsInfoAvailable: false,
+  isRTSFlagsModeEnabled: false,
+  /*
+   * Not a field of NetworkStatusStore: `environment` is declared on the Store
+   * base class at stores/lib/Store.ts:10, so every store carries it and the RTS
+   * recommendation overlay reads it through this one. It is set here rather than
+   * on all 24 keys because this is the store a screen reads it from; the same
+   * fixture `_support/environment.ts` installs on the global, so the two agree.
+   */
+  environment,
+  // A method on the store, passed straight through as a click handler.
+  ignoreSystemTimeChecks: () => {},
   ...requestsFor('networkStatus'),
+};
+
+/*
+ * CurrencyStore's observables, plus the two computed getters that derive from
+ * them. `isActive` gates the whole conversion panel, and the real store starts
+ * it off, so a screen that wants the panel open says so.
+ */
+const currencyDefaults = {
+  isFetchingList: false,
+  isFetchingRate: false,
+  isActive: false,
+  list: [],
+  selected: null,
+  rate: null,
+  lastFetched: null,
+  localizedCurrencyList: [],
+  localizedCurrency: null,
 };
 
 const appDefaults = {
@@ -209,7 +237,7 @@ export const createStoreDefaults = () => ({
   app: { ...appDefaults },
   backend: {},
   appUpdate: {},
-  currency: {},
+  currency: { ...currencyDefaults },
   assets: {
     all: [],
     details: {},

@@ -12,9 +12,17 @@ import * as security from './settings/SecuritySettingsPage.stories';
 import * as about from './static/AboutDialog.stories';
 import * as splashNetwork from './splash/SplashNetworkPage.stories';
 import * as assetSettings from './assets/AssetSettingsDialogContainer.stories';
+import * as initialSettings from './profile/InitialSettingsPage.stories';
+import * as termsOfUsePage from './profile/TermsOfUsePage.stories';
+import * as analyticsConsent from './profile/AnalyticsConsentPage.stories';
+import * as walletsSettings from './settings/WalletsSettingsPage.stories';
+import * as noDiskSpace from './loading/NoDiskSpaceErrorPage.stories';
+import * as systemTime from './loading/SystemTimeErrorPage.stories';
+import * as toggleRTSFlags from './knownIssues/ToggleRTSFlagsDialogContainer.stories';
+import * as rtsRecommendation from './knownIssues/RTSFlagsRecommendationOverlayContainer.stories';
 
 /*
- * Every screen story in the tranche, mounted.
+ * Every screen story, mounted.
  *
  * A story that builds and indexes is not a story that renders: phase 3 found
  * thirteen in this corpus that did the first two and not the third, and nothing
@@ -47,17 +55,27 @@ const modules = {
   AboutDialog: about,
   SplashNetworkPage: splashNetwork,
   AssetSettingsDialogContainer: assetSettings,
+  InitialSettingsPage: initialSettings,
+  TermsOfUsePage: termsOfUsePage,
+  AnalyticsConsentPage: analyticsConsent,
+  WalletsSettingsPage: walletsSettings,
+  NoDiskSpaceErrorPage: noDiskSpace,
+  SystemTimeErrorPage: systemTime,
+  ToggleRTSFlagsDialogContainer: toggleRTSFlags,
+  RTSFlagsRecommendationOverlayContainer: rtsRecommendation,
 };
 
 /*
- * Two containers return null by design, and both states are worth a story: the
- * dialog that is shut is what most routes see, and the splash screen does not
- * exist outside a Flight build. They are listed rather than branched on inside an
+ * Three containers return null by design, and each of those states is worth a
+ * story: the dialog that is shut is what most routes see, the splash screen does
+ * not exist outside a Flight build, and the RTS recommendation is gone for good
+ * once it has been dismissed. They are listed rather than branched on inside an
  * assertion, so each case has its own expectation.
  */
 const RENDERS_NOTHING = new Set([
   'AssetSettingsDialogContainer:Closed',
   'SplashNetworkPage:NotAFlightBuild',
+  'RTSFlagsRecommendationOverlayContainer:Acknowledged',
 ]);
 
 // reduce rather than flatMap: tsconfig declares target es2019 but lib ["dom"],
@@ -85,9 +103,9 @@ const renderStory = (Story) =>
 const showsSomething = allStories.filter((s) => !RENDERS_NOTHING.has(s.id));
 const showsNothing = allStories.filter((s) => RENDERS_NOTHING.has(s.id));
 
-describe('screen tranche 1', () => {
-  it('composes every story in the tranche', () => {
-    expect(allStories).toHaveLength(12);
+describe('screen stories', () => {
+  it('composes every screen story', () => {
+    expect(allStories).toHaveLength(27);
     expect(showsNothing).toHaveLength(RENDERS_NOTHING.size);
   });
 
