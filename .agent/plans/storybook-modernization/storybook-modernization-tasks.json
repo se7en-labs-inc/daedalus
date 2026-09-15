@@ -1193,7 +1193,7 @@
      "id": "task-034",
      "title": "Remove addon-knobs and storybook-state from the manifest",
      "description": "package.json:85 declares @storybook/addon-knobs. It becomes unreferenced once the last call site is gone (@dump247/storybook-state was already removed in phase 2 by task-063), and removing them is what unblocks the 10.6.x bump, because neither loads at Storybook 9 or above.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 3.0,
      "dependencies": [

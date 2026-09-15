@@ -27,7 +27,6 @@ module.exports = {
     // Controls is an addon at 8.x and moves into core at 9, so this entry is
     // temporary by construction and goes at the version bump.
     '@storybook/addon-controls',
-    '@storybook/addon-knobs',
     '@storybook/addon-actions',
     '@storybook/addon-links',
   ],

@@ -16,8 +16,13 @@ sites is in.
 
 ## The surface
 
-360 call sites across 73 files, measured at `de6f7259c`. 273 across 60 files after
-the shared widgets tranche: 260 renames, 10 hoists, 3 relocations.
+360 call sites across 73 files, measured at `de6f7259c`, and really 404: the census
+that produced that figure could not see a knob reached through a factory, and
+`loading/_support/loadingKnobs.ts` wrapped five of them for 44 call sites across
+seven files. Corrected at `task-028`.
+
+Zero as of `task-065`. The table below describes the surface this phase started
+from and is kept because the patterns outlive the count.
 
 | placement | count | what it costs |
 |---|---|---|
