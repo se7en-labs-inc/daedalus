@@ -1659,7 +1659,7 @@
           "id": "task-045",
           "title": "Add the newsFeed, appUpdate and uiNotifications stores",
           "description": "Four overlay screens depend on these three keys and nothing else new.",
-          "status": "pending",
+          "status": "completed",
           "priority": "medium",
           "estimatedHours": 4.0,
           "dependencies": [

@@ -1,3 +1,4 @@
+import { version as packageVersion } from '../../../package.json';
 import type { Environment } from '../../../source/common/types/environment.types';
 
 const environment: Environment = {
@@ -36,7 +37,14 @@ const environment: Environment = {
   ram: 16 * 1024 * 1024 * 1024,
   hasMetHardwareRequirements: true,
   installerVersion: 'storybook',
-  version: 'storybook',
+  /*
+   * A real semver, not a label. The application's own version is read from
+   * package.json, and the newsfeed filters items by matching a target range
+   * against it with semver.satisfies (domains/News.ts:104). A placeholder here
+   * parses as nothing, so every news item carrying a version target was silently
+   * dropped and the news stories rendered an empty feed.
+   */
+  version: packageVersion,
   isWindows: false,
   isMacOS: true,
   isLinux: false,

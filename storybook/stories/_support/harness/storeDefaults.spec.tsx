@@ -16,6 +16,12 @@ import enMessages from '../../../../source/renderer/app/i18n/locales/en-US.json'
 import { createStoreDefaults, withStoreOverrides } from './storeDefaults';
 import { backendPhase } from './fixtures/backend';
 import {
+  alertNewsFeed,
+  incidentNewsFeed,
+  populatedNewsFeed,
+  updateAvailable,
+} from './fixtures/news';
+import {
   REQUESTS_BY_STORE,
   requestDefault,
   requestsFor,
@@ -195,6 +201,41 @@ describe('backendPhase', () => {
         expect(typeof state[command]).toBe('function');
       });
     });
+  });
+});
+
+describe('news fixtures', () => {
+  /*
+   * The assertion that matters is that the items survive.
+   *
+   * `NewsCollection` filters every item against the running platform and version
+   * before anything can read it, and an item that fails either test is dropped
+   * with no signal. These fixtures were producing empty collections for exactly
+   * that reason, and a story showing an empty feed looks like a story about an
+   * empty feed. Counting what comes out is the only thing that tells them apart.
+   */
+  it('produces items the collection keeps rather than discards', () => {
+    expect(populatedNewsFeed().all.length).toBe(4);
+    expect(incidentNewsFeed().all.length).toBe(2);
+    expect(alertNewsFeed().all.length).toBe(1);
+  });
+
+  it('gives the containers the branches they read', () => {
+    // Each container picks its view from one of these, so each has to be
+    // reachable from some fixture.
+    expect(incidentNewsFeed().incident).not.toBeNull();
+    expect(populatedNewsFeed().incident).toBeNull();
+    expect(alertNewsFeed().alerts.unread.length).toBe(1);
+    // One of the two alerts is marked read, so unread is not just the list.
+    expect(populatedNewsFeed().alerts.all.length).toBe(2);
+    expect(populatedNewsFeed().alerts.unread.length).toBe(1);
+  });
+
+  it('offers an update the overlay will render', () => {
+    // The container returns null without one, so this is the whole difference
+    // between a story and an empty panel.
+    expect(updateAvailable().availableUpdate).not.toBeNull();
+    expect(createStoreDefaults().appUpdate.availableUpdate).toBeNull();
   });
 });
 
