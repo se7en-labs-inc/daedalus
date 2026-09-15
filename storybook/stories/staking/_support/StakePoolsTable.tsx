@@ -1,10 +1,17 @@
 import React from 'react';
-import { number } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import { FormattedMessage } from 'react-intl';
 import STAKE_POOLS from '../../../../source/renderer/app/config/stakingStakePools.dummy.json';
 import { StakePoolsTable } from '../../../../source/renderer/app/components/staking/stake-pools/StakePoolsTable';
 import { StakePoolsSearch } from '../../../../source/renderer/app/components/staking/stake-pools/StakePoolsSearch';
+import { rangeFrom } from '../../_support/argTypes';
+
+export const poolsRange = { min: 37, max: 300, step: 1 };
+
+// One control, read three times. The three knobs shared the label `Pools`, and
+// a knob is one control per label and group.
+export const stakePoolsTableArgs = { pools: 300 };
+export const stakePoolsTableArgTypes = { pools: rangeFrom(poolsRange) };
 
 const listTitle = {
   id: 'staking.stakePools.listTitle',
@@ -13,6 +20,7 @@ const listTitle = {
 };
 type Props = {
   currentTheme: string;
+  pools: number;
 };
 export function StakePoolsTableStory(props: Props) {
   return (
@@ -47,45 +55,19 @@ export function StakePoolsTableStory(props: Props) {
         <FormattedMessage
           {...listTitle}
           values={{
-            pools: STAKE_POOLS.slice(
-              0,
-              number('Pools', 300, {
-                range: true,
-                min: 37,
-                max: 300,
-                step: 1,
-              })
-            ).length,
+            pools: STAKE_POOLS.slice(0, props.pools).length,
           }}
         />
       </h2>
       <StakePoolsTable
         listName="selectedIndexList"
         // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-        stakePoolsList={STAKE_POOLS.slice(
-          0,
-          number('Pools', 300, {
-            range: true,
-            min: 37,
-            max: 300,
-            step: 1,
-          })
-        )}
+        stakePoolsList={STAKE_POOLS.slice(0, props.pools)}
         currentLocale="en-US"
         currentTheme={props.currentTheme}
         onOpenExternalLink={action('onOpenExternalLink')}
         containerClassName="StakingWithNavigation_page"
-        numberOfRankedStakePools={
-          STAKE_POOLS.slice(
-            0,
-            number('Pools', 300, {
-              range: true,
-              min: 37,
-              max: 300,
-              step: 1,
-            })
-          ).length
-        }
+        numberOfRankedStakePools={STAKE_POOLS.slice(0, props.pools).length}
         onTableHeaderMouseEnter={() => {}}
         onTableHeaderMouseLeave={() => {}}
       />

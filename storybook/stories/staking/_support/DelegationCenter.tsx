@@ -2,9 +2,10 @@ import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { find } from 'lodash';
 import BigNumber from 'bignumber.js';
-import { number } from '@storybook/addon-knobs';
 import DelegationCenter from '../../../../source/renderer/app/components/staking/delegation-center/DelegationCenter';
 import STAKE_POOLS from '../../../../source/renderer/app/config/stakingStakePools.dummy';
+import { rangeFrom } from '../../_support/argTypes';
+import { poolsRange } from './StakePoolsTable';
 import Wallet, {
   WalletDelegationStatuses,
 } from '../../../../source/renderer/app/domains/Wallet';
@@ -351,17 +352,18 @@ const wallets = [
       RECOVERY_PHRASE_VERIFICATION_TYPES.NEVER_VERIFIED,
   }),
 ];
-export function StakingDelegationCenterStory({
-  locale,
-  isLoading,
-  isEpochsInfoAvailable,
-  currentTheme,
-}: {
-  locale: string;
-  isLoading: boolean;
-  isEpochsInfoAvailable: boolean;
-  currentTheme: string;
-}) {
+export const delegationCenterArgs = { pools: 300 };
+export const delegationCenterArgTypes = { pools: rangeFrom(poolsRange) };
+
+export function StakingDelegationCenterStory(
+  props: {
+    locale: string;
+    isLoading: boolean;
+    isEpochsInfoAvailable: boolean;
+    currentTheme: string;
+  } & typeof delegationCenterArgs
+) {
+  const { locale, isLoading, isEpochsInfoAvailable, currentTheme } = props;
   return (
     <DelegationCenter
       wallets={wallets}
@@ -383,17 +385,7 @@ export function StakingDelegationCenterStory({
       epochLength={null}
       containerClassName="StakingWithNavigation_page"
       currentTheme={currentTheme}
-      numberOfRankedStakePools={
-        STAKE_POOLS.slice(
-          0,
-          number('Pools', 300, {
-            range: true,
-            min: 37,
-            max: 300,
-            step: 1,
-          })
-        ).length
-      }
+      numberOfRankedStakePools={STAKE_POOLS.slice(0, props.pools).length}
       onOpenExternalLink={action('onOpenExternalLink')}
     />
   );

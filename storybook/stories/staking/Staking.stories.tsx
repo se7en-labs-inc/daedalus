@@ -1,18 +1,35 @@
 import React from 'react';
-import { withKnobs, number, boolean } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import { stakingDecorator } from './_support/decorator';
 import DelegationCenterNoWallets from '../../../source/renderer/app/components/staking/delegation-center/DelegationCenterNoWallets';
-import { StakePoolsStory } from './_support/StakePools';
+import {
+  StakePoolsStory,
+  stakePoolsArgTypes,
+  stakePoolsArgs,
+} from './_support/StakePools';
 import { StakingRewardsStory } from './_support/Rewards';
-import { StakingDelegationCenterStory } from './_support/DelegationCenter';
-import { StakingDelegationSteps } from './_support/DelegationSteps';
+import {
+  StakingDelegationCenterStory,
+  delegationCenterArgTypes,
+  delegationCenterArgs,
+} from './_support/DelegationCenter';
+import {
+  StakingDelegationSteps,
+  delegationStepsArgTypes,
+  delegationStepsArgs,
+} from './_support/DelegationSteps';
 import {
   StakingUndelegateConfirmationStory,
+  undelegateConfirmationArgs,
   StakingUndelegateConfirmationResultStory,
 } from './_support/Undelegate';
-import { StakePoolsTableStory } from './_support/StakePoolsTable';
+import {
+  StakePoolsTableStory,
+  stakePoolsTableArgTypes,
+  stakePoolsTableArgs,
+} from './_support/StakePoolsTable';
 import { currentThemeOf, localeOf } from '../_support/globals';
+import { rangeFrom } from '../_support/argTypes';
 
 export default {
   title: 'Decentralization / Staking',
@@ -20,8 +37,12 @@ export default {
 };
 
 export const DelegationCenter = {
-  render: (_args, context) => (
+  args: delegationCenterArgs,
+  argTypes: delegationCenterArgTypes,
+
+  render: (args, context) => (
     <StakingDelegationCenterStory
+      {...args}
       locale={localeOf(context)}
       currentTheme={currentThemeOf(context)}
       isLoading={false}
@@ -35,8 +56,12 @@ export const DelegationCenter = {
 };
 
 export const DelegationCenterLoading = {
-  render: (_args, context) => (
+  args: delegationCenterArgs,
+  argTypes: delegationCenterArgTypes,
+
+  render: (args, context) => (
     <StakingDelegationCenterStory
+      {...args}
       locale={localeOf(context)}
       currentTheme={currentThemeOf(context)}
       isLoading
@@ -52,8 +77,12 @@ export const DelegationCenterLoading = {
 };
 
 export const DelegationCenterNotAnShelleyEra = {
-  render: (_args, context) => (
+  args: delegationCenterArgs,
+  argTypes: delegationCenterArgTypes,
+
+  render: (args, context) => (
     <StakingDelegationCenterStory
+      {...args}
       locale={localeOf(context)}
       currentTheme={currentThemeOf(context)}
       isLoading={false}
@@ -69,10 +98,12 @@ export const DelegationCenterNotAnShelleyEra = {
 };
 
 export const _DelegationCenterNoWallets = {
-  render: () => (
+  args: { minDelegationFunds: 10 },
+
+  render: ({ minDelegationFunds }) => (
     <DelegationCenterNoWallets
       onGoToCreateWalletClick={action('onGoToCreateWalletClick')}
-      minDelegationFunds={number('minDelegationFunds', 10)}
+      minDelegationFunds={minDelegationFunds}
     />
   ),
 
@@ -80,8 +111,12 @@ export const _DelegationCenterNoWallets = {
 };
 
 export const PoolsIndex = {
-  render: (_args, context) => (
+  args: stakePoolsArgs,
+  argTypes: stakePoolsArgTypes,
+
+  render: (args, context) => (
     <StakePoolsStory
+      {...args}
       locale={localeOf(context)}
       currentTheme={currentThemeOf(context)}
       isLoading={false}
@@ -94,8 +129,12 @@ export const PoolsIndex = {
 };
 
 export const PoolsIndexLoading = {
-  render: (_args, context) => (
+  args: stakePoolsArgs,
+  argTypes: stakePoolsArgTypes,
+
+  render: (args, context) => (
     <StakePoolsStory
+      {...args}
       locale={localeOf(context)}
       currentTheme={currentThemeOf(context)}
       isLoading
@@ -110,8 +149,11 @@ export const PoolsIndexLoading = {
 };
 
 export const StakePoolsList = {
-  render: (_args, context) => (
-    <StakePoolsTableStory currentTheme={currentThemeOf(context)} />
+  args: stakePoolsTableArgs,
+  argTypes: stakePoolsTableArgTypes,
+
+  render: (args, context) => (
+    <StakePoolsTableStory {...args} currentTheme={currentThemeOf(context)} />
   ),
 
   parameters: {
@@ -128,18 +170,19 @@ export const Rewards = {
 };
 
 export const DelegationWizard = {
-  render: (_args, context) => {
-    const oversaturationPercentage = number('Oversaturation Percentage', 0, {
-      min: 0,
-      max: 1000,
-      step: 1,
-      range: true,
-    });
+  args: { ...delegationStepsArgs, oversaturationPercentage: 0 },
+
+  argTypes: {
+    ...delegationStepsArgTypes,
+    oversaturationPercentage: rangeFrom({ min: 0, max: 1000, step: 1 }),
+  },
+
+  render: (args, context) => {
     return (
       <StakingDelegationSteps
+        {...args}
         locale={localeOf(context)}
         currentTheme={currentThemeOf(context)}
-        oversaturationPercentage={oversaturationPercentage}
       />
     );
   },
@@ -150,8 +193,12 @@ export const DelegationWizard = {
 };
 
 export const DelegationWizardDelegationNotAvailable = {
-  render: (_args, context) => (
+  args: delegationStepsArgs,
+  argTypes: delegationStepsArgTypes,
+
+  render: (args, context) => (
     <StakingDelegationSteps
+      {...args}
       locale={localeOf(context)}
       currentTheme={currentThemeOf(context)}
       oversaturationPercentage={0}
@@ -166,11 +213,8 @@ export const DelegationWizardDelegationNotAvailable = {
 };
 
 export const UndelegateConfirmation = {
-  render: () => (
-    <StakingUndelegateConfirmationStory
-      isHardwareWallet={boolean('isHardwareWallet', false)}
-    />
-  ),
+  args: { ...undelegateConfirmationArgs, isHardwareWallet: false },
+  render: (args) => <StakingUndelegateConfirmationStory {...args} />,
 
   parameters: {
     id: 'undelegate-confirmation',
@@ -178,7 +222,11 @@ export const UndelegateConfirmation = {
 };
 
 export const UndelegateConfirmationUnknownnStakePool = {
-  render: () => <StakingUndelegateConfirmationStory unknownStakePool />,
+  args: undelegateConfirmationArgs,
+
+  render: (args) => (
+    <StakingUndelegateConfirmationStory {...args} unknownStakePool />
+  ),
 
   name: 'Undelegate Confirmation - unknownn stake pool',
 

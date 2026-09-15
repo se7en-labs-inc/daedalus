@@ -1,7 +1,6 @@
 import React from 'react';
 import { find } from 'lodash';
 import BigNumber from 'bignumber.js';
-import { number, boolean, select } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import StakePools from '../../../../source/renderer/app/components/staking/stake-pools/StakePools';
 import {
@@ -9,6 +8,8 @@ import {
   INITIAL_DESIRED_POOLS_NUMBER,
 } from '../../../../source/renderer/app/config/stakingConfig';
 import STAKE_POOLS from '../../../../source/renderer/app/config/stakingStakePools.dummy.json';
+import { optionsFrom, rangeFrom } from '../../_support/argTypes';
+import { poolsRange } from './StakePoolsTable';
 import {
   generateHash,
   generatePolicyIdHash,
@@ -67,42 +68,44 @@ const dummyWallets = [
 const maxDelegationFunds = Math.round(
   CIRCULATING_SUPPLY / INITIAL_DESIRED_POOLS_NUMBER
 );
+
+// The options were wallet ids keyed by wallet name, plus one for all wallets.
+const selectedWalletOptions = {
+  'All wallets': '0',
+  ...dummyWallets.reduce((obj, wallet) => {
+    obj[wallet.name] = wallet.id;
+    return obj;
+  }, {}),
+};
+
+export const stakePoolsArgs = {
+  selectedWallet: null,
+  pools: 300,
+  isFetching: false,
+};
+
+export const stakePoolsArgTypes = {
+  selectedWallet: optionsFrom(selectedWalletOptions),
+  pools: rangeFrom(poolsRange),
+};
 type Props = {
   currentTheme: string;
   locale: string;
   isLoading: boolean;
-};
+} & typeof stakePoolsArgs;
 export function StakePoolsStory(props: Props) {
-  const selectedWallet = select(
-    'selectedWallet',
-    {
-      'All wallets': '0',
-      ...dummyWallets.reduce((obj, wallet) => {
-        obj[wallet.name] = wallet.id;
-        return obj;
-      }, {}),
-    },
-    null
-  );
+  const { selectedWallet } = props;
   return (
     // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
     <StakePools
-      stakePoolsList={STAKE_POOLS.slice(
-        0,
-        number('Pools', 300, {
-          range: true,
-          min: 37,
-          max: 300,
-          step: 1,
-        })
-      )}
+      stakePoolsList={STAKE_POOLS.slice(0, props.pools)}
       stakePoolsDelegatingList={[
         STAKE_POOLS[1],
         STAKE_POOLS[3],
         STAKE_POOLS[20],
         STAKE_POOLS[36],
       ]}
-      isFetching={boolean('isFetching', false)}
+      isFetching={props.isFetching}
       onOpenExternalLink={action('onOpenExternalLink')}
       currentTheme={props.currentTheme}
       currentLocale={props.locale}

@@ -2,7 +2,6 @@ import React from 'react';
 import BigNumber from 'bignumber.js';
 import moment from 'moment';
 import { linkTo } from '@storybook/addon-links';
-import { number, boolean } from '@storybook/addon-knobs';
 import STAKE_POOLS from '../../../../source/renderer/app/config/stakingStakePools.dummy.json';
 import {
   generateHash,
@@ -12,6 +11,12 @@ import {
 // Screens
 import UndelegateWalletConfirmationDialog from '../../../../source/renderer/app/components/wallet/settings/UndelegateWalletConfirmationDialog';
 import UndelegateWalletSuccessDialog from '../../../../source/renderer/app/components/wallet/settings/UndelegateWalletSuccessDialog';
+
+export const undelegateConfirmationArgs = {
+  fee: 3,
+  depositsReclaimed: 10,
+  isTrezor: false,
+};
 
 const assets = {
   available: [
@@ -66,10 +71,12 @@ const hardwareWallet = generateWallet(
   'ready',
   true
 );
-export function StakingUndelegateConfirmationStory(props: {
-  unknownStakePool?: boolean;
-  isHardwareWallet?: boolean;
-}) {
+export function StakingUndelegateConfirmationStory(
+  props: {
+    unknownStakePool?: boolean;
+    isHardwareWallet?: boolean;
+  } & typeof undelegateConfirmationArgs
+) {
   return (
     <UndelegateWalletConfirmationDialog
       selectedWallet={props.isHardwareWallet ? hardwareWallet : generalWallet}
@@ -84,12 +91,12 @@ export function StakingUndelegateConfirmationStory(props: {
       isSubmitting={false}
       error={null}
       fees={{
-        fee: new BigNumber(number('fee', 3)),
+        fee: new BigNumber(props.fee),
         deposits: new BigNumber(0),
-        depositsReclaimed: new BigNumber(number('depositsReclaimed', 10)),
+        depositsReclaimed: new BigNumber(props.depositsReclaimed),
       }}
       hwDeviceStatus="ready"
-      isTrezor={boolean('isTrezor', false)}
+      isTrezor={props.isTrezor}
     />
   );
 }

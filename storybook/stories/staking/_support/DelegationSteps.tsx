@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { BigNumber } from 'bignumber.js';
 import moment from 'moment';
-import { number, boolean } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import { find } from 'lodash';
 import DelegationStepsIntroDialog from '../../../../source/renderer/app/components/staking/delegation-setup-wizard/DelegationStepsIntroDialog';
@@ -13,6 +12,8 @@ import DelegationStepsSuccessDialog from '../../../../source/renderer/app/compon
 import { MIN_DELEGATION_FUNDS } from '../../../../source/renderer/app/config/stakingConfig';
 import translations from '../../../../source/renderer/app/i18n/translations';
 import STAKE_POOLS from '../../../../source/renderer/app/config/stakingStakePools.dummy.json';
+import { rangeFrom } from '../../_support/argTypes';
+import { poolsRange } from './StakePoolsTable';
 import {
   generateHash,
   generatePolicyIdHash,
@@ -102,31 +103,29 @@ const getDelegationWizardStepsList = (locale) => [
   translations[locale]['staking.delegationSetup.steps.step.3.label'],
 ];
 
+// Both knobs sat inside this class, which is module scope: there is no story
+// body to hoist them to, so they arrive as props.
+export const delegationStepsArgs = { pools: 100, isTrezor: false };
+export const delegationStepsArgTypes = { pools: rangeFrom(poolsRange) };
+
 type Props = {
   currentTheme: string;
   locale: string;
   isDisabled?: boolean;
   oversaturationPercentage: number;
-};
+} & typeof delegationStepsArgs;
 type State = {
   currentStep: number;
 };
 const NUMBER_OF_STEPS = 6;
+
 export class StakingDelegationSteps extends Component<Props, State> {
   state = {
     currentStep: 0,
   };
 
   get dialogs() {
-    const stakePoolsList = STAKE_POOLS.slice(
-      0,
-      number('Pools', 100, {
-        range: true,
-        min: 37,
-        max: 300,
-        step: 1,
-      })
-    );
+    const stakePoolsList = STAKE_POOLS.slice(0, this.props.pools);
 
     if (this.props.isDisabled) {
       return [
@@ -197,7 +196,7 @@ export class StakingDelegationSteps extends Component<Props, State> {
         isHardwareWallet={false}
         hwDeviceStatus={HwDeviceStatuses.CONNECTING}
         onExternalLinkClick={action('onOpenExternalLink')}
-        isTrezor={boolean('isTrezor', false)}
+        isTrezor={this.props.isTrezor}
         maxDelegationFunds={63000000}
         oversaturationPercentage={this.props.oversaturationPercentage}
       />,

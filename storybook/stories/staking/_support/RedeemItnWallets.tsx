@@ -1,5 +1,4 @@
 import React from 'react';
-import { select, boolean, number } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 import { action } from '@storybook/addon-actions';
 // Screens
@@ -17,6 +16,7 @@ import {
   generatePolicyIdHash,
   generateWallet,
 } from '../../_support/utils';
+import { labelOptionsFrom, rangeFrom } from '../../_support/argTypes';
 
 const assets = {
   available: [
@@ -74,26 +74,59 @@ const WALLETS = [
 // undefined,
 // true,
 // WalletSyncStateStatuses.SYNCING
-export function Step1ConfigurationDialogStory() {
-  const redeemWallet = select(
-    'Redeem Wallet',
-    WALLETS.reduce((obj, wallet) => {
-      obj[wallet.name] = wallet;
-      return obj;
-    }, {}),
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'Wallet' is not assignable to par... Remove this comment to see the full error message
-    WALLETS[0]
-  );
+// The redeem-wallet select offered wallet records, which an argType's options
+// cannot hold, so the arg holds the name and each story looks the wallet up.
+const redeemWalletOptions = WALLETS.reduce((obj, wallet) => {
+  obj[wallet.name] = wallet;
+  return obj;
+}, {});
+
+export const redeemWalletArgs = { redeemWallet: WALLETS[0].name };
+export const redeemWalletArgTypes = {
+  redeemWallet: labelOptionsFrom(redeemWalletOptions),
+};
+
+export const step1Args = {
+  ...redeemWalletArgs,
+  isWalletValid: undefined,
+  isCalculatingReedemFees: undefined,
+};
+export const step1ArgTypes = {
+  ...redeemWalletArgTypes,
+  isWalletValid: { control: 'boolean' },
+  isCalculatingReedemFees: { control: 'boolean' },
+};
+
+export const step2Args = {
+  ...redeemWalletArgs,
+  transactionFees: 100000,
+  redeemedRewards: 100000,
+  isSubmitting: false,
+};
+export const step2ArgTypes = redeemWalletArgTypes;
+
+export const step3SuccessArgs = {
+  ...redeemWalletArgs,
+  transactionFees: 100000,
+  redeemedRewards: 100000,
+};
+export const step3SuccessArgTypes = redeemWalletArgTypes;
+
+export const redemptionUnavailableArgs = { syncPercentage: 37 };
+export const redemptionUnavailableArgTypes = {
+  syncPercentage: rangeFrom({ min: 0, max: 100, step: 1 }),
+};
+
+export function Step1ConfigurationDialogStory(props: typeof step1Args) {
+  const redeemWallet = redeemWalletOptions[props.redeemWallet];
   return (
     <Step1ConfigurationDialog
       key="Step1ConfigurationDialog"
       wallets={WALLETS}
-      // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       wallet={redeemWallet}
-      // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-      isWalletValid={boolean('isWalletValid')}
-      // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-      isCalculatingReedemFees={boolean('isCalculatingReedemFees')}
+      // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+      isWalletValid={props.isWalletValid}
+      isCalculatingReedemFees={props.isCalculatingReedemFees}
       syncPercentage={99.55}
       mnemonicValidator={isValidMnemonic}
       onSelectWallet={action('onSelectWallet')}
@@ -105,47 +138,31 @@ export function Step1ConfigurationDialogStory() {
     />
   );
 }
-export function Step2ConfirmationDialogStory() {
-  const redeemWallet = select(
-    'Redeem Wallet',
-    WALLETS.reduce((obj, wallet) => {
-      obj[wallet.name] = wallet;
-      return obj;
-    }, {}),
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'Wallet' is not assignable to par... Remove this comment to see the full error message
-    WALLETS[0]
-  );
+export function Step2ConfirmationDialogStory(props: typeof step2Args) {
+  const redeemWallet = redeemWalletOptions[props.redeemWallet];
   return (
     <Step2ConfirmationDialog
       key="Step2ConfirmationDialog"
-      // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       wallet={redeemWallet}
-      transactionFees={new BigNumber(number('transactionFees', 100000))}
-      redeemedRewards={new BigNumber(number('redeemedRewards', 100000))}
+      transactionFees={new BigNumber(props.transactionFees)}
+      // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+      redeemedRewards={new BigNumber(props.redeemedRewards)}
       onContinue={action('onContinue')}
       onClose={action('onClose')}
       onBack={action('onBack')}
-      isSubmitting={boolean('isSubmitting', false)}
+      isSubmitting={props.isSubmitting}
     />
   );
 }
-export function Step3SuccessDialogStory() {
-  const redeemWallet = select(
-    'Redeem Wallet',
-    WALLETS.reduce((obj, wallet) => {
-      obj[wallet.name] = wallet;
-      return obj;
-    }, {}),
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'Wallet' is not assignable to par... Remove this comment to see the full error message
-    WALLETS[0]
-  );
+export function Step3SuccessDialogStory(props: typeof step3SuccessArgs) {
+  const redeemWallet = redeemWalletOptions[props.redeemWallet];
   return (
     <Step3SuccessDialog
       key="Step2ConfirmationDialog"
-      // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       wallet={redeemWallet}
-      transactionFees={new BigNumber(number('transactionFees', 100000))}
-      redeemedRewards={new BigNumber(number('redeemedRewards', 100000))}
+      transactionFees={new BigNumber(props.transactionFees)}
+      // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+      redeemedRewards={new BigNumber(props.redeemedRewards)}
       onContinue={action('onContinue')}
       onClose={action('onClose')}
     />
@@ -164,16 +181,13 @@ export function NoWalletsDialogDialogStory() {
     />
   );
 }
-export function RedemptionUnavailableDialogDialogStory() {
+export function RedemptionUnavailableDialogDialogStory(
+  props: typeof redemptionUnavailableArgs
+) {
   return (
     <RedemptionUnavailableDialog
       onClose={action('onClose')}
-      syncPercentage={number('syncPercentage', 37, {
-        range: true,
-        min: 0,
-        max: 100,
-        step: 1,
-      })}
+      syncPercentage={props.syncPercentage}
     />
   );
 }

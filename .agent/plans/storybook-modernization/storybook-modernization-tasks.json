@@ -1061,7 +1061,7 @@
      "id": "task-031",
      "title": "Convert knobs in the staking tranche",
      "description": "Staking, DelegationCenter, DelegationSteps, StakePools, StakePoolsTable, Rewards, RedeemItnWallets and Undelegate.",
-     "status": "pending",
+     "status": "completed",
      "priority": "high",
      "estimatedHours": 16.0,
      "dependencies": [
