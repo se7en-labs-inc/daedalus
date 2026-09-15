@@ -1,8 +1,7 @@
 import React from 'react';
-import { withKnobs, boolean, text } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
+import { useArgs } from '@storybook/preview-api';
 import BigNumber from 'bignumber.js';
-import { withState } from '../../_support/WithLocalState';
 // Helpers and config
 import {
   generateAssetToken,
@@ -138,37 +137,40 @@ const walletTokens = {
 
 export default {
   title: 'Wallets / Tokens',
-  decorators: [WalletsWrapper, withKnobs],
+  decorators: [WalletsWrapper],
 };
 
-const _WalletTokensStory = withState(
-  {
+export const _WalletTokens = {
+  args: {
+    hasTokens: true,
+    isLoadingAssets: false,
+    searchValue: '',
     favorites: {},
   },
-  (store) => (
-    <WalletTokens
-      assets={boolean('Has Tokens', true) ? assets : []}
-      assetSettingsDialogWasOpened
-      currentLocale="en-US"
-      isLoadingAssets={boolean('isLoadingAssets', false)}
-      onAssetSettings={action('onAssetSettings')}
-      onCopyAssetParam={action('onCopyAssetParam')}
-      onOpenAssetSend={action('onOpenAssetSend')}
-      searchValue={text('searchValue', '')}
-      wallet={generateWallet('Wallet name', '45119903750165', walletTokens)}
-      onToggleFavorite={({ uniqueId }: { uniqueId: string }) => {
-        const { favorites } = store.state;
-        const newState = { ...favorites, [uniqueId]: !favorites[uniqueId] };
-        store.set({
-          favorites: newState,
-        });
-      }}
-      tokenFavorites={store.state.favorites}
-    />
-  )
-);
 
-export const _WalletTokens = {
-  render: _WalletTokensStory,
+  render: () => {
+    const [{ hasTokens, isLoadingAssets, searchValue, favorites }, updateArgs] =
+      useArgs();
+    return (
+      <WalletTokens
+        assets={hasTokens ? assets : []}
+        assetSettingsDialogWasOpened
+        currentLocale="en-US"
+        isLoadingAssets={isLoadingAssets}
+        onAssetSettings={action('onAssetSettings')}
+        onCopyAssetParam={action('onCopyAssetParam')}
+        onOpenAssetSend={action('onOpenAssetSend')}
+        searchValue={searchValue}
+        wallet={generateWallet('Wallet name', '45119903750165', walletTokens)}
+        onToggleFavorite={({ uniqueId }: { uniqueId: string }) => {
+          updateArgs({
+            favorites: { ...favorites, [uniqueId]: !favorites[uniqueId] },
+          });
+        }}
+        tokenFavorites={favorites}
+      />
+    );
+  },
+
   name: 'WalletTokens',
 };

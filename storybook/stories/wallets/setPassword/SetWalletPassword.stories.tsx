@@ -1,5 +1,4 @@
 import React from 'react';
-import { boolean, withKnobs } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 // Screens
 import SetWalletPassword from '../../../../source/renderer/app/components/wallet/settings/SetWalletPassword';
@@ -63,38 +62,38 @@ let walletPasswordIsOpen = false;
 export default {
   title: 'Wallets / Set Password',
 
-  decorators: [
-    (story, context) => (
-      <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-    ),
-  ],
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
 
-export const _SetWalletPassword = () => (
-  <>
-    <SetWalletPassword
-      isSetWalletPasswordDialogOpen={false}
-      onSetWalletPassword={() => {
-        walletPasswordIsOpen = !walletPasswordIsOpen;
-      }}
-    />
-    {boolean('isSetWalletPasswordDialogOpen', false) && (
-      <ChangeSpendingPasswordDialog
-        isSpendingPasswordSet={false}
-        currentPasswordValue={''}
-        newPasswordValue={''}
-        repeatedPasswordValue={''}
-        onSave={() => {}}
-        onCancel={() => {}}
-        onDataChange={() => {}}
-        isSubmitting={false}
-        error={undefined}
-        walletName={activeWallet.name}
-        currentLocale={'en-US'}
+export const _SetWalletPassword = {
+  args: { isSetWalletPasswordDialogOpen: false },
+
+  render: ({ isSetWalletPasswordDialogOpen }) => (
+    <>
+      <SetWalletPassword
+        isSetWalletPasswordDialogOpen={false}
+        onSetWalletPassword={() => {
+          walletPasswordIsOpen = !walletPasswordIsOpen;
+        }}
       />
-    )}
-  </>
-);
+      {isSetWalletPasswordDialogOpen && (
+        <ChangeSpendingPasswordDialog
+          isSpendingPasswordSet={false}
+          currentPasswordValue={''}
+          newPasswordValue={''}
+          repeatedPasswordValue={''}
+          onSave={() => {}}
+          onCancel={() => {}}
+          onDataChange={() => {}}
+          isSubmitting={false}
+          error={undefined}
+          walletName={activeWallet.name}
+          currentLocale={'en-US'}
+        />
+      )}
+    </>
+  ),
+};
 
 export const ChangeWalletPassword = () => (
   <ChangeSpendingPasswordDialog

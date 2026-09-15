@@ -1,5 +1,4 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 import StoryDecorator from '../../../../../../../storybook/stories/_support/StoryDecorator';
 import StoryProvider from '../../../../../../../storybook/stories/_support/StoryProvider';
@@ -65,7 +64,6 @@ export default {
         <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
-    withKnobs,
   ],
 };
 

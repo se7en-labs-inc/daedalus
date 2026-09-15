@@ -1,5 +1,4 @@
 import React from 'react';
-import { boolean, number, select, text } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import moment from 'moment';
 import { defineMessages } from 'react-intl';
@@ -25,6 +24,11 @@ import {
   WALLET_PUBLIC_KEY_DERIVATION_PATH,
 } from '../../../../../source/renderer/app/config/walletsConfig';
 import type { ReactIntlMessage } from '../../../../../source/renderer/app/types/i18nTypes';
+import {
+  inCategory,
+  labelOptionsFrom,
+  optionsFrom,
+} from '../../../_support/argTypes';
 
 /* eslint-disable react/display-name  */
 const basicSettingsId = 'Basic Settings';
@@ -67,6 +71,85 @@ const recoveryDialogOptions = {
   'Step 3 - Verification successful': 3,
   'Step 4 - Verification failure': 4,
 };
+// Args, grouped as the knobs were grouped. Two controls were labelled
+// `Wallet Name` in different groups, which addon-knobs keys separately, so the
+// second is named for the dialog it fills.
+const basicSettingsArgs = {
+  walletName: 'Wallet Name',
+  hasWalletFunds: false,
+  isBackupNoticeAccepted: false,
+};
+
+const changePasswordArgs = {
+  showChangePasswordDialog: false,
+  isSpendingPasswordSet: false,
+  changePasswordWalletName: 'Wallet Name',
+  changePasswordIsSubmitting: false,
+};
+
+const deleteWalletArgs = {
+  showDeleteWalletDialog: false,
+  removeConfirmationWalletName: 'Wallet To Delete',
+  deleteWalletConfirmationValue: 'Wallet name',
+  deleteWalletIsSubmitting: false,
+  unpairWalletConfirmationValue: 'Wallet name',
+  unpairWalletIsSubmitting: false,
+};
+
+const recoveryPhraseArgs = {
+  recoveryPhraseVerification: 'Already Checked - Ok',
+  activeDialog: recoveryDialogOptions.None,
+};
+
+const publicKeyArgs = {
+  publicKeyQrCodeWalletName: 'Wallet',
+};
+
+const undelegateArgs = {
+  delegationStatus: 'delegating',
+};
+
+// The two countdown knobs passed their group id where the number options
+// belong, so neither was ever in a group. Left ungrouped, as they rendered.
+const ungroupedArgs = {
+  isLegacy: false,
+  deleteWalletCountdown: 9,
+  unpairWalletCountdown: 9,
+  wordCount: 12,
+  shouldDisplayRecoveryPhrase: true,
+};
+
+export const walletSettingsScreenArgs = {
+  ...basicSettingsArgs,
+  ...changePasswordArgs,
+  ...deleteWalletArgs,
+  ...recoveryPhraseArgs,
+  ...publicKeyArgs,
+  ...undelegateArgs,
+  ...ungroupedArgs,
+};
+
+export const walletSettingsScreenArgTypes = {
+  ...inCategory('Basic Settings', basicSettingsArgs),
+  ...inCategory('Change Password', changePasswordArgs),
+  ...inCategory('Delete Wallet', deleteWalletArgs),
+  ...inCategory('Recovery Phrase', recoveryPhraseArgs, {
+    // The options were verification records. An argType's options have to be
+    // primitives, so the arg holds the label and the screen looks the record up.
+    recoveryPhraseVerification: labelOptionsFrom(
+      recoveryPhraseVerificationDateOptions
+    ),
+    activeDialog: optionsFrom(recoveryDialogOptions),
+  }),
+  ...inCategory('Wallet Public Key', publicKeyArgs),
+  ...inCategory('Undelegate Wallet', undelegateArgs, {
+    delegationStatus: optionsFrom({
+      Delegating: 'delegating',
+      'Not delegating': 'not_delegating',
+    }),
+  }),
+};
+
 const getWalletDates = (type: string, status: string) => {
   let date = new Date();
   if (status === 'warning')
@@ -85,36 +168,18 @@ const getWalletDates = (type: string, status: string) => {
   };
 };
 
-export default function (props: { locale: Locale }) {
+type Props = { locale: Locale } & typeof walletSettingsScreenArgs;
+
+export default function (props: Props) {
   const { locale } = props;
-  // @ts-ignore ts-migrate(2339) FIXME: Property 'type' does not exist on type 'SelectType... Remove this comment to see the full error message
-  const { type, status } = select(
-    'Wallet Recovery Phrase Verification',
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ 'Never Checked - Ok': { type: ... Remove this comment to see the full error message
-    recoveryPhraseVerificationDateOptions,
-    recoveryPhraseVerificationDateOptions['Already Checked - Ok'],
-    recoveryPhraseId
-  );
+  const { type, status } =
+    recoveryPhraseVerificationDateOptions[props.recoveryPhraseVerification];
   const { recoveryPhraseVerificationDate, creationDate } = getWalletDates(
     type,
     status
   );
-  const recoveryDialog = select(
-    'Active dialog',
-    recoveryDialogOptions,
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
-    'None',
-    recoveryPhraseId
-  );
-  const delegationStakePoolStatus = select(
-    'Delegation status',
-    {
-      Delegating: 'delegating',
-      'Not delegating': 'not_delegating',
-    },
-    'delegating',
-    undelegateWalletId
-  );
+  const recoveryDialog = props.activeDialog;
+  const delegationStakePoolStatus = props.delegationStatus;
   const walletMessages: Record<string, ReactIntlMessage> = defineMessages({
     dialogTitle: {
       id: 'wallet.settings.walletPublicKey',
@@ -141,18 +206,14 @@ export default function (props: { locale: Locale }) {
   });
   return (
     <WalletSettings
-      isLegacy={boolean('isLegacy', false)}
+      isLegacy={props.isLegacy}
       isDialogOpen={(dialog) => {
         if (dialog === ChangeSpendingPasswordDialog) {
-          return boolean(
-            'Change Password - Show dialog',
-            false,
-            changePasswordId
-          );
+          return props.showChangePasswordDialog;
         }
 
         if (dialog === WalletSettingsRemoveConfirmationDialog) {
-          return boolean('Delete Wallet - Show dialog', false, deleteWalletId);
+          return props.showDeleteWalletDialog;
         }
 
         if (dialog === WalletRecoveryPhraseStep1Dialog) {
@@ -185,7 +246,7 @@ export default function (props: { locale: Locale }) {
       onStopEditing={() => {}}
       openDialogAction={() => {}}
       walletId="walletId"
-      walletName={text('Wallet Name', 'Wallet Name', basicSettingsId)}
+      walletName={props.walletName}
       delegationStakePoolStatus={delegationStakePoolStatus}
       lastDelegationStakePoolStatus={delegationStakePoolStatus}
       isRestoring={false}
@@ -193,22 +254,14 @@ export default function (props: { locale: Locale }) {
       walletPublicKey={walletPublicKeyId}
       icoPublicKey={icoPublicKeyId}
       spendingPasswordUpdateDate={moment().subtract(1, 'month').toDate()}
-      isSpendingPasswordSet={boolean(
-        'isSpendingPasswordSet',
-        false,
-        changePasswordId
-      )}
+      isSpendingPasswordSet={props.isSpendingPasswordSet}
       changeSpendingPasswordDialog={
         <ChangeSpendingPasswordDialog
-          walletName={text('Wallet Name', 'Wallet Name')}
+          walletName={props.changePasswordWalletName}
           currentPasswordValue="current"
           newPasswordValue="new"
           repeatedPasswordValue="new"
-          isSpendingPasswordSet={boolean(
-            'isSpendingPasswordSet',
-            false,
-            changePasswordId
-          )}
+          isSpendingPasswordSet={props.isSpendingPasswordSet}
           onSave={action('Change Password - onSave')}
           onCancel={action('Change Password - onCancel')}
           // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
@@ -216,11 +269,7 @@ export default function (props: { locale: Locale }) {
             'Change Password - onPasswordSwitchToggle'
           )}
           onDataChange={action('Change Password - onDataChange')}
-          isSubmitting={boolean(
-            'Change Password - isSubmitting',
-            false,
-            changePasswordId
-          )}
+          isSubmitting={props.changePasswordIsSubmitting}
           error={null}
           currentLocale={'en-US'}
         />
@@ -245,11 +294,7 @@ export default function (props: { locale: Locale }) {
       }
       walletPublicKeyQRCodeDialogContainer={
         <PublicKeyQRCodeDialog
-          walletName={text(
-            'PublicKeyQRCodeDialog: Wallet Name',
-            'Wallet',
-            walletPublicKeyId
-          )}
+          walletName={props.publicKeyQrCodeWalletName}
           walletPublicKey={walletPublicKeyId}
           onCopyWalletPublicKey={action('Wallet Public Key QR Code - copy')}
           onClose={action('Wallet Public Key QR Code - onClose')}
@@ -259,11 +304,7 @@ export default function (props: { locale: Locale }) {
       }
       icoPublicKeyQRCodeDialogContainer={
         <PublicKeyQRCodeDialog
-          walletName={text(
-            'PublicKeyQRCodeDialog: Wallet Name',
-            'Wallet',
-            walletPublicKeyId
-          )}
+          walletName={props.publicKeyQrCodeWalletName}
           walletPublicKey={icoPublicKeyId}
           onCopyWalletPublicKey={action('ICO Public Key QR Code - copy')}
           onClose={action('ICO Public Key QR Code - onClose')}
@@ -277,72 +318,34 @@ export default function (props: { locale: Locale }) {
       undelegateWalletDialogContainer={null}
       deleteWalletDialogContainer={
         <WalletSettingsRemoveConfirmationDialog
-          walletName={text(
-            'WalletSettingsRemoveConfirmationDialog: Wallet Name',
-            'Wallet To Delete',
-            deleteWalletId
-          )}
-          hasWalletFunds={boolean('hasWalletFunds', false, basicSettingsId)}
-          countdownFn={() =>
-            // @ts-ignore ts-migrate(2559) FIXME: Type '"Delete Wallet"' has no properties in common... Remove this comment to see the full error message
-            number('Delete Wallet Countdown', 9, deleteWalletId)
-          }
-          isBackupNoticeAccepted={boolean(
-            'isBackupNoticeAccepted',
-            false,
-            basicSettingsId
-          )}
+          walletName={props.removeConfirmationWalletName}
+          hasWalletFunds={props.hasWalletFunds}
+          countdownFn={() => props.deleteWalletCountdown}
+          isBackupNoticeAccepted={props.isBackupNoticeAccepted}
           onAcceptBackupNotice={action('Delete Wallet - onAcceptBackupNotice')}
           onContinue={action('Delete Wallet - onContinue')}
           onCancel={action('Delete Wallet - onCancel')}
-          confirmationValue={text(
-            'Delete Wallet Confirmation Value',
-            'Wallet name',
-            deleteWalletId
-          )}
+          confirmationValue={props.deleteWalletConfirmationValue}
           onConfirmationValueChange={action(
             'Delete Wallet - onConfirmationValueChange'
           )}
-          isSubmitting={boolean(
-            'Delete Wallet - isSubmitting',
-            false,
-            deleteWalletId
-          )}
+          isSubmitting={props.deleteWalletIsSubmitting}
         />
       }
       unpairWalletDialogContainer={
         <WalletSettingsRemoveConfirmationDialog
-          walletName={text(
-            'WalletSettingsRemoveConfirmationDialog: Wallet Name',
-            'Wallet To Unpair',
-            deleteWalletId
-          )}
-          hasWalletFunds={boolean('hasWalletFunds', false, basicSettingsId)}
-          countdownFn={() =>
-            // @ts-ignore ts-migrate(2559) FIXME: Type '"Delete Wallet"' has no properties in common... Remove this comment to see the full error message
-            number('Unpair Wallet Countdown', 9, deleteWalletId)
-          }
-          isBackupNoticeAccepted={boolean(
-            'isBackupNoticeAccepted',
-            false,
-            basicSettingsId
-          )}
+          walletName={props.removeConfirmationWalletName}
+          hasWalletFunds={props.hasWalletFunds}
+          countdownFn={() => props.unpairWalletCountdown}
+          isBackupNoticeAccepted={props.isBackupNoticeAccepted}
           onAcceptBackupNotice={action('Unpair Wallet - onAcceptBackupNotice')}
           onContinue={action('Unpair Wallet - onContinue')}
           onCancel={action('Unpair Wallet - onCancel')}
-          confirmationValue={text(
-            'Unpair Wallet Confirmation Value',
-            'Wallet name',
-            deleteWalletId
-          )}
+          confirmationValue={props.unpairWalletConfirmationValue}
           onConfirmationValueChange={action(
             'Unpair Wallet - onConfirmationValueChange'
           )}
-          isSubmitting={boolean(
-            'Unpair Wallet - isSubmitting',
-            false,
-            deleteWalletId
-          )}
+          isSubmitting={props.unpairWalletIsSubmitting}
         />
       }
       onVerifyRecoveryPhrase={action('onVerifyRecoveryPhrase')}
@@ -360,8 +363,8 @@ export default function (props: { locale: Locale }) {
         type || RECOVERY_PHRASE_VERIFICATION_TYPES.NEVER_VERIFIED
       }
       locale={locale}
-      wordCount={number('wordCount', 12)}
-      shouldDisplayRecoveryPhrase={boolean('shouldDisplayRecoveryPhrase', true)}
+      wordCount={props.wordCount}
+      shouldDisplayRecoveryPhrase={props.shouldDisplayRecoveryPhrase}
       isHardwareWallet={false}
       isDelegating={false}
     />

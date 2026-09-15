@@ -1,6 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { boolean } from '@storybook/addon-knobs';
 // Helpers
 import WalletsWrapper from '../_utils/WalletsWrapper';
 // Screens
@@ -12,11 +11,13 @@ export default {
 };
 
 export const RestoreOld = {
-  render: () => (
+  args: { isSubmitting: false },
+
+  render: ({ isSubmitting }) => (
     <WalletRestoreDialog
       onSubmit={action('onSubmit')}
       onCancel={action('onCancel')}
-      isSubmitting={boolean('isSubmitting', false)}
+      isSubmitting={isSubmitting}
       mnemonicValidator={action('mnemonicValidator')}
       suggestedMnemonics={[]}
       onChoiceChange={action('onChoiceChange')}

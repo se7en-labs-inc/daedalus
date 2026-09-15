@@ -1,6 +1,8 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import CreateWalletScreens from '../_utils/CreateWalletScreens';
+import CreateWalletScreens, {
+  createWalletScreensArgs,
+} from '../_utils/CreateWalletScreens';
 import WalletCreateDialog from '../../../../source/renderer/app/components/wallet/WalletCreateDialog';
 import { localeOf } from '../../_support/globals';
 // Assets and helpers
@@ -12,7 +14,8 @@ export default {
 };
 
 export const CreateNewProcess = {
-  render: () => <CreateWalletScreens />,
+  args: createWalletScreensArgs,
+  render: (args) => <CreateWalletScreens {...args} />,
   name: 'Create - New process',
 };
 

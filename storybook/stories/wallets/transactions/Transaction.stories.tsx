@@ -1,12 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import {
-  withKnobs,
-  select,
-  number,
-  boolean,
-  text,
-} from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 // Screens
 import Transaction from '../../../../source/renderer/app/components/wallet/transactions/Transaction';
@@ -23,6 +16,7 @@ import {
   TransactionStates,
 } from '../../../../source/renderer/app/domains/WalletTransaction';
 import { LOVELACES_PER_ADA } from '../../../../source/renderer/app/config/numbersConfig';
+import { inCategory, optionsFrom } from '../../_support/argTypes';
 
 const date = new Date();
 const assetsMetadata = [
@@ -110,108 +104,142 @@ export default {
   title: 'Wallets / Transactions',
 
   decorators: [
-    withKnobs,
-    (story, context) => (
+    (story) => (
       <StoryProvider>
-        <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
+        <StoryDecorator>{story()}</StoryDecorator>
       </StoryProvider>
     ),
   ],
 };
 
-export const _Transaction = () => {
-  const direction = select(
-    'direction',
-    {
-      outgoing: 'Sent',
-      incoming: 'Received',
-    },
-    'incoming'
-  );
-  const tokens = [
-    {
-      ...transactionTokens[0],
-      quantity: new BigNumber(number('amount', 10, {}, 'First Asset')),
-    },
-    ...transactionTokens.slice(1),
-  ];
-  const decimals = number('decimals', 1, {}, 'First Asset');
-  const hasMetadata = boolean('hasMetadata', true, 'First Asset');
-  const assetTokens = tokens.map((token, index) => ({
-    ...token,
-    uniqueId: token.policyId + token.assetName,
-    decimals: 0,
-    recommendedDecimals: null,
-    metadata:
-      index === 0
-        ? hasMetadata && {
-            name: text('md - name', 'MakerDAO', 'First Asset'),
-            ticker: text('md - ticker', 'DAO', 'First Asset'),
-            description: text(
-              'md - description',
-              'Test description',
-              'First Asset'
-            ),
-            unit: {
-              name: text('md - unit name', 'DAI', 'First Asset'),
-              decimals,
-            },
-          }
-        : assetsMetadata[index],
-  }));
-  const amount = new BigNumber(number('amount', 10, {}, 'Transaction'));
-  const transaction = new WalletTransaction({
-    id: generateHash(),
-    confirmations: number('confirmations', 10, {}, 'Transaction'),
-    slotNumber: number('slotNumber', 10, {}, 'Transaction'),
-    epochNumber: number('epochNumber', 10, {}, 'Transaction'),
-    // @ts-ignore ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
-    title: direction === 'outgoing' ? 'Ada sent' : 'Ada received',
-    type:
+// Two knobs were both labelled `amount`, one in each group, and addon-knobs
+// keys a control by its group and its label together, so they were two
+// controls. Two args cannot share a name, so the asset's is named for the asset.
+const firstAssetArgs = {
+  assetAmount: 10,
+  assetDecimals: 1,
+  hasMetadata: true,
+  metadataName: 'MakerDAO',
+  metadataTicker: 'DAO',
+  metadataDescription: 'Test description',
+  metadataUnitName: 'DAI',
+};
+
+const transactionArgs = {
+  amount: 10,
+  confirmations: 10,
+  slotNumber: 10,
+  epochNumber: 10,
+  fee: 1,
+  deposit: 1,
+  isExpanded: true,
+  isRestoreActive: false,
+};
+
+export const _Transaction = {
+  args: {
+    direction: 'incoming',
+    ...firstAssetArgs,
+    ...transactionArgs,
+    isLastInList: false,
+    isShowingMetadata: false,
+    isDeletingTransaction: false,
+    hasAssetsEnabled: true,
+    isLoadingAssets: false,
+  },
+
+  argTypes: {
+    direction: optionsFrom({ outgoing: 'Sent', incoming: 'Received' }),
+    ...inCategory('First Asset', firstAssetArgs),
+    ...inCategory('Transaction', transactionArgs),
+  },
+
+  render: (args) => {
+    const {
+      direction,
+      assetAmount,
+      assetDecimals,
+      hasMetadata,
+      metadataName,
+      metadataTicker,
+      metadataDescription,
+      metadataUnitName,
+    } = args;
+    const tokens = [
+      {
+        ...transactionTokens[0],
+        quantity: new BigNumber(assetAmount),
+      },
+      ...transactionTokens.slice(1),
+    ];
+    const assetTokens = tokens.map((token, index) => ({
+      ...token,
+      uniqueId: token.policyId + token.assetName,
+      decimals: 0,
+      recommendedDecimals: null,
+      metadata:
+        index === 0
+          ? hasMetadata && {
+              name: metadataName,
+              ticker: metadataTicker,
+              description: metadataDescription,
+              unit: {
+                name: metadataUnitName,
+                decimals: assetDecimals,
+              },
+            }
+          : assetsMetadata[index],
+    }));
+    const amount = new BigNumber(args.amount);
+    const transaction = new WalletTransaction({
+      id: generateHash(),
+      confirmations: args.confirmations,
+      slotNumber: args.slotNumber,
+      epochNumber: args.epochNumber,
       // @ts-ignore ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
-      direction === 'outgoing'
-        ? TransactionTypes.EXPEND
-        : TransactionTypes.INCOME,
-    amount,
-    fee: new BigNumber(number('fee', 1, {}, 'Transaction')).dividedBy(
-      LOVELACES_PER_ADA
-    ),
-    deposit: new BigNumber(number('deposit', 1, {}, 'Transaction')).dividedBy(
-      LOVELACES_PER_ADA
-    ),
-    assets: tokens,
-    date,
-    description: '',
-    addresses: {
-      from: ['65bc72542b0ca20391caaf66a4d4e7897d282f9c136cd3513136945c'],
-      to: ['65bc72542b0ca20391caaf66a4d4e7897d282f9c136cd3513136945c'],
-      withdrawals: [],
-    },
-    state: TransactionStates.OK,
-    metadata: {},
-  });
-  return (
-    <Transaction
-      data={transaction}
-      state={TransactionStates.OK}
-      isExpanded={boolean('isExpanded', true, 'Transaction')}
-      isRestoreActive={boolean('isRestoreActive', false, 'Transaction')}
-      isLastInList={boolean('isLastInList', false)}
-      isShowingMetadata={boolean('isShowingMetadata', false)}
-      isDeletingTransaction={boolean('isDeletingTransaction', false)}
-      hasAssetsEnabled={boolean('hasAssetsEnabled', true)}
-      isLoadingAssets={boolean('isLoadingAssets', false)}
-      currentTimeFormat="hh:mm:ss A"
-      walletId={generateHash()}
-      assetTokens={assetTokens}
-      onShowMetadata={action('onShowMetadata')}
-      getUrlByType={action('getUrlByType')}
-      deletePendingTransaction={action('deletePendingTransaction')}
-      formattedWalletAmount={action('formattedWalletAmount')}
-      onDetailsToggled={action('onDetailsToggled')}
-      onOpenExternalLink={action('onOpenExternalLink')}
-      isInternalAddress={() => direction === 'incoming'}
-      onCopyAssetParam={action('onCopyAssetParam')}
-    />
-  );
+      title: direction === 'outgoing' ? 'Ada sent' : 'Ada received',
+      type:
+        // @ts-ignore ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
+        direction === 'outgoing'
+          ? TransactionTypes.EXPEND
+          : TransactionTypes.INCOME,
+      amount,
+      fee: new BigNumber(args.fee).dividedBy(LOVELACES_PER_ADA),
+      deposit: new BigNumber(args.deposit).dividedBy(LOVELACES_PER_ADA),
+      assets: tokens,
+      date,
+      description: '',
+      addresses: {
+        from: ['65bc72542b0ca20391caaf66a4d4e7897d282f9c136cd3513136945c'],
+        to: ['65bc72542b0ca20391caaf66a4d4e7897d282f9c136cd3513136945c'],
+        withdrawals: [],
+      },
+      state: TransactionStates.OK,
+      metadata: {},
+    });
+    return (
+      <Transaction
+        data={transaction}
+        state={TransactionStates.OK}
+        isExpanded={args.isExpanded}
+        isRestoreActive={args.isRestoreActive}
+        isLastInList={args.isLastInList}
+        isShowingMetadata={args.isShowingMetadata}
+        isDeletingTransaction={args.isDeletingTransaction}
+        hasAssetsEnabled={args.hasAssetsEnabled}
+        isLoadingAssets={args.isLoadingAssets}
+        currentTimeFormat="hh:mm:ss A"
+        walletId={generateHash()}
+        assetTokens={assetTokens}
+        onShowMetadata={action('onShowMetadata')}
+        getUrlByType={action('getUrlByType')}
+        deletePendingTransaction={action('deletePendingTransaction')}
+        formattedWalletAmount={action('formattedWalletAmount')}
+        onDetailsToggled={action('onDetailsToggled')}
+        onOpenExternalLink={action('onOpenExternalLink')}
+        isInternalAddress={() => direction === 'incoming'}
+        onCopyAssetParam={action('onCopyAssetParam')}
+      />
+    );
+  },
 };

@@ -1035,7 +1035,7 @@
      "id": "task-030",
      "title": "Convert knobs in the wallets tranche",
      "description": "The largest knob population in the corpus, spread across send, receive, summary, tokens, transactions, settings and import. Two of these files also carry withState.",
-     "status": "pending",
+     "status": "completed",
      "priority": "critical",
      "estimatedHours": 26.0,
      "dependencies": [

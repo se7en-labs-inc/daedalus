@@ -2,7 +2,10 @@ import React from 'react';
 // Helpers
 import WalletsWrapper from '../_utils/WalletsWrapper';
 // Screens
-import WalletSettingsScreen from './_support/WalletSettingsScreen';
+import WalletSettingsScreen, {
+  walletSettingsScreenArgs,
+  walletSettingsScreenArgTypes,
+} from './_support/WalletSettingsScreen';
 import { localeOf } from '../../_support/globals';
 
 export default {
@@ -11,7 +14,10 @@ export default {
 };
 
 export const WalletSettings = {
-  render: (_args, context) => (
-    <WalletSettingsScreen locale={localeOf(context)} />
+  args: walletSettingsScreenArgs,
+  argTypes: walletSettingsScreenArgTypes,
+
+  render: (args, context) => (
+    <WalletSettingsScreen {...args} locale={localeOf(context)} />
   ),
 };

@@ -1,6 +1,5 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, select } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 // Assets and helpers
 import {
@@ -24,6 +23,16 @@ import type { TransactionFilterOptionsType } from '../../../../source/renderer/a
 import WalletTransactions from '../../../../source/renderer/app/components/wallet/transactions/WalletTransactions';
 import { WALLET_ASSETS_ENABLED } from '../../../../source/renderer/app/config/walletsConfig';
 import Asset from '../../../../source/renderer/app/domains/Asset';
+import { optionsFrom } from '../../_support/argTypes';
+
+const transactionsOptions = {
+  'Grouped by days': 'groupedByDays',
+  'Confirmed and pending transactions': 'confirmedAndPendingTransactions',
+  'Rendering many transactions': 'renderingManyTransactions',
+  'Unresolved income addresses': 'unresolvedIncomeAddresses',
+  'Without income addresses': 'withoutIncomeAddresses',
+  'With withdrawal addresses': 'withWithdrawalAddresses',
+};
 
 type Props = {
   defaultFilterOptions: TransactionFilterOptionsType;
@@ -135,32 +144,21 @@ const getAsset = (
 export default {
   title: 'Wallets / Transactions',
 
+  // The knob this replaced was in the decorator rather than in a story, so the
+  // arg is on the meta and the decorator reads it off the context.
+  args: { transactionsOption: 'groupedByDays' },
+  argTypes: { transactionsOption: optionsFrom(transactionsOptions) },
+
   decorators: [
-    withKnobs,
-    (getStory, props) => {
-      const transactionsOption = select(
-        'Transactions',
-        {
-          'Grouped by days': 'groupedByDays',
-          'Confirmed and pending transactions':
-            'confirmedAndPendingTransactions',
-          'Rendering many transactions': 'renderingManyTransactions',
-          'Unresolved income addresses': 'unresolvedIncomeAddresses',
-          'Without income addresses': 'withoutIncomeAddresses',
-          'With withdrawal addresses': 'withWithdrawalAddresses',
-        },
-        'groupedByDays'
-      );
-      return (
-        // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-        <WalletsTransactionsWrapper
-          {...props}
-          locale={localeOf(props)}
-          transactionsOption={transactionsOption}
-          getStory={getStory}
-        />
-      );
-    },
+    (getStory, props) => (
+      // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+      <WalletsTransactionsWrapper
+        {...props}
+        locale={localeOf(props)}
+        transactionsOption={props.args.transactionsOption}
+        getStory={getStory}
+      />
+    ),
     WalletsWrapper,
   ],
 };

@@ -1,13 +1,11 @@
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import StoryLayout from '../../_support/StoryLayout';
 import StoryProvider from '../../_support/StoryProvider';
 import StoryDecorator from '../../_support/StoryDecorator';
 import WalletWithNavigationLayout from './WalletWithNavigationLayout';
 import { currentThemeOf } from '../../_support/globals';
 
-export default function (story: any, context: any) {
-  const storyWithKnobs = withKnobs(story, context);
+export default function (story: () => React.ReactNode, context: any) {
   return (
     <StoryDecorator>
       <StoryProvider>
@@ -18,10 +16,10 @@ export default function (story: any, context: any) {
         >
           {context.story !== 'Empty' && context.story !== 'Wallet Add' ? (
             <WalletWithNavigationLayout context={context}>
-              {storyWithKnobs}
+              {story()}
             </WalletWithNavigationLayout>
           ) : (
-            storyWithKnobs
+            story()
           )}
         </StoryLayout>
       </StoryProvider>
