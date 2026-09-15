@@ -1108,7 +1108,7 @@
      "id": "task-033",
      "title": "Sweep the remaining withState sites and record the exceptions",
      "description": "17 call sites across 10 files. Eight of the ten were converted alongside their knobs in the tranche tasks; this sweeps the rest, checks the whole population and writes down which sites took the useState exception and why.",
-     "status": "pending",
+     "status": "completed",
      "priority": "high",
      "estimatedHours": 5.0,
      "dependencies": [
