@@ -175,6 +175,12 @@ export class AssetMetadataChannelHandlers {
       this._resolver.setPointerSourceUrl(
         typeof request?.sourceUrl === 'string' ? request.sourceUrl : null
       );
+      // After the pointer source is set, so a retry uses the current setting,
+      // and before the read, so a subject this request also names is claimed
+      // once rather than twice.
+      if (request?.connectivityRestored === true) {
+        this._resolver.retryTransientFailures();
+      }
       const rows = this._resolver.request(subjects, {
         force: request?.refresh === true,
       });

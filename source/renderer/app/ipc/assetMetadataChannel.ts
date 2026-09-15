@@ -79,10 +79,18 @@ const imageWaiters = new Map<
  *
  * `sourceUrl` is the user's selected pointer source. It travels with every read
  * because the setting lives here and the client that uses it lives there.
+ *
+ * `connectivityRestored` reports that this window observed the machine come back
+ * online. It names no subjects: which of them were waiting on the network is
+ * known in the main process and not here.
  */
 export const requestAssetMetadata = (
   subjects: Array<string>,
-  options: { refresh?: boolean; sourceUrl?: string | null } = {}
+  options: {
+    refresh?: boolean;
+    sourceUrl?: string | null;
+    connectivityRestored?: boolean;
+  } = {}
 ): Promise<AssetMetadataMainResponse> =>
   new Promise((resolve) => {
     const requestId = uuidv4();
@@ -93,6 +101,7 @@ export const requestAssetMetadata = (
         subjects,
         refresh: options.refresh === true,
         sourceUrl: options.sourceUrl ?? null,
+        connectivityRestored: options.connectivityRestored === true,
       })
       .then((response) => deliver(metadataWaiters, response))
       // A rejected response arrives without an id, so it cannot be handed to the

@@ -222,7 +222,11 @@ describe('the request body', () => {
     const transport = stub([ok([])]);
     const result = await query([], { transport });
     expect(transport.calls).toHaveLength(0);
-    expect(result).toEqual({ entries: [], resolutions: [] });
+    expect(result).toEqual({
+      entries: [],
+      resolutions: [],
+      transientFailures: [],
+    });
   });
 
   it('requests a duplicated subject once and resolves it once', async () => {
@@ -292,6 +296,88 @@ describe('status handling', () => {
     const result = await query([SUBJECT], { transport });
     expect(transport.calls).toHaveLength(1);
     expect(stateOf(result.resolutions, SUBJECT)).toBe('failed');
+  });
+});
+
+/**
+ * Which failures are conditions of the network rather than of the request.
+ *
+ * Every case here produces `state: 'failed'`, so the state cannot tell them
+ * apart and the assertion has to be on the list itself. The list is what decides
+ * whose wait a connectivity retry is allowed to withdraw.
+ */
+describe('transient failures', () => {
+  it.each([500, 503])('reports a %i as transient', async (status) => {
+    const transport = stub([{ ok: true, status, body: '' }]);
+    const result = await query([SUBJECT], { transport });
+    expect(result.transientFailures).toEqual([SUBJECT]);
+    expect(stateOf(result.resolutions, SUBJECT)).toBe('failed');
+  });
+
+  it.each(['timeout', 'network'] as const)(
+    'reports a %s as transient',
+    async (reason) => {
+      const transport = stub([{ ok: false, reason }]);
+      const result = await query([SUBJECT], { transport });
+      expect(result.transientFailures).toEqual([SUBJECT]);
+    }
+  );
+
+  it.each([400, 401, 403, 404, 413, 429])(
+    'does not report a %i as transient',
+    async (status) => {
+      const transport = stub([{ ok: true, status, body: '' }]);
+      const result = await query([SUBJECT], { transport });
+      expect(result.transientFailures).toEqual([]);
+      expect(stateOf(result.resolutions, SUBJECT)).toBe('failed');
+    }
+  );
+
+  it('does not report an over-sized response as transient', async () => {
+    const transport = stub([{ ok: false, reason: 'too-large' }]);
+    const result = await query([SUBJECT], { transport });
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  // The exchange completed and the far end answered with something that is not
+  // its own format. Reconnecting does not change that.
+  it('does not report an unreadable 200 as transient', async () => {
+    const transport = stub([{ ok: true, status: 200, body: '{not json' }]);
+    const result = await query([SUBJECT], { transport });
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('reports nothing for a batch that succeeded', async () => {
+    const transport = stub([ok([entryFor(SUBJECT)])]);
+    const result = await query([SUBJECT], { transport });
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('reports nothing for a subject the registry does not know', async () => {
+    const transport = stub([ok([])]);
+    const result = await query([SUBJECT], { transport });
+    expect(stateOf(result.resolutions, SUBJECT)).toBe('unregistered');
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('reports nothing for an empty subject list', async () => {
+    const transport = stub([]);
+    const result = await query([], { transport });
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  // The list belongs to subjects rather than to the batch they were asked in.
+  it('reports only the half of a split that timed out', async () => {
+    const subjects = [SUBJECT, OTHER_SUBJECT];
+    const transport = stub((call) => {
+      const asked = JSON.parse(call.body).subjects;
+      if (asked.length === 2) return { ok: true, status: 413, body: '' };
+      if (asked[0] === SUBJECT) return ok([entryFor(SUBJECT)]);
+      return { ok: false, reason: 'timeout' };
+    });
+    const result = await query(subjects, { transport });
+    expect(stateOf(result.resolutions, SUBJECT)).toBe('resolved');
+    expect(result.transientFailures).toEqual([OTHER_SUBJECT]);
   });
 });
 

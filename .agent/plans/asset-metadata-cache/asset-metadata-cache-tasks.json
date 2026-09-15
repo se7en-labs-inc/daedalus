@@ -3,8 +3,8 @@
   "title": "Asset Metadata Cache Tasks",
   "created": "2026-09-10",
   "updated": "2026-09-16",
-  "version": "1.4.0",
-  "totalTasks": 41,
+  "version": "1.5.0",
+  "totalTasks": 42,
   "prdReference": ".agent/plans/asset-metadata-cache/asset-metadata-cache-prd.md",
   "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the metadata is cryptographically bound to the minting policy, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
   "sourceFiles": [
@@ -543,6 +543,67 @@
       "source/main/assets/assetImageStore.ts",
       "source/main/assets/assetDatabase.ts"
      ]
+    },
+    {
+     "id": "task-042",
+     "title": "Retry a network-caused backoff when the machine comes back online",
+     "description": "ASSET_REGISTRY_BACKOFF_BASE_MS is five minutes doubling to a day, and a first failure sets retry_after five minutes out. A user who opens Daedalus with no connectivity records a failure for every subject, connects, and then sees no names for five minutes with nothing explaining why. The condition that caused the failure has changed and nothing notices. The backoff stays; what is missing is the one event that makes a stored wait untrue.",
+     "status": "completed",
+     "priority": "high",
+     "estimatedHours": 4.0,
+     "dependencies": [
+      "task-007",
+      "task-010",
+      "task-013",
+      "task-014",
+      "task-015",
+      "task-016",
+      "task-029",
+      "task-033"
+     ],
+     "targetPaths": [
+      "source/main/assets/assetRegistryClient.ts",
+      "source/main/assets/assetRegistryClient.spec.ts",
+      "source/main/assets/koiosClient.ts",
+      "source/main/assets/koiosClient.spec.ts",
+      "source/main/assets/assetMetadataResolver.ts",
+      "source/main/assets/assetMetadataResolver.realfs.spec.ts",
+      "source/common/ipc/api.ts",
+      "source/main/ipc/assetMetadataChannel.ts",
+      "source/main/ipc/assetMetadataChannel.realfs.spec.ts",
+      "source/renderer/app/ipc/assetMetadataChannel.ts",
+      "source/renderer/app/ipc/assetMetadataChannel.spec.ts",
+      "source/renderer/app/stores/AssetsStore.ts",
+      "source/renderer/app/stores/AssetsStore.spec.ts"
+     ],
+     "implementationNotes": [
+      "The trigger is the renderer's window `online` event, forwarded to the main process as one optional field on the existing metadata request. Electron's `net` is a plain interface with isOnline() and an online property and no event, verified in the pinned version's type declarations, so observing the transition in the main process would mean sampling on a timer.",
+      "The renderer sends an observation and not a subject list. A subject waiting out a backoff and a subject the registry has never heard of look identical from the renderer, so which waits a transition changes is decided where the failures were recorded.",
+      "A failure is transient when the exchange did not complete or the far end reported its own failure: a timeout, a network error, or a status of 500 or more. Everything else is deterministic: any 4xx, a response over the read cap, and a 200 whose body is not the endpoint's format. Both clients already computed exactly this predicate as isRetryable to decide their one in-call retry; it is renamed and asked once more, of the final result.",
+      "Nothing resets for an unregistered subject, a throttle, or a chain row waiting on the local immutable database. None of the three is a network condition, and re-asking unregistered subjects on every reconnection is what their backoff row exists to prevent.",
+      "The retry bypasses the window and the backoff rather than clearing them, reusing task-029's forced read. Clearing before a fetch that then fails leaves a row that looks never-updated and re-schedules on every render; bypassing means a failed retry writes the next rung of the ladder instead.",
+      "Clearing the row and waiting for the next demand would do nothing: AssetsStore adds every rendered subject to _requestedSubjects and never removes one, so a subject is asked for once per window lifetime. The retry issues the read itself and the rows arrive on the update channel the store already subscribes to.",
+      "The classification is held in memory rather than in asset_resolution. A column there changes the table's shape, and the database module's stated migration is to delete a file stamped with any other version, so persisting it would discard every user's cache to cover a restart inside one backoff step.",
+      "A transition is honoured at most once every thirty seconds, and the set is emptied when a pass is issued but left intact when a transition is refused, so a flapping link cannot start a pass per flap and cannot lose the subjects either."
+     ],
+     "testCases": [
+      "A timeout, a network error and a 5xx are reported as transient; a 4xx, an over-sized response and an unreadable 200 are not",
+      "A Koios throttle writes its row and reports nothing as transient",
+      "Coming back online retries a subject inside a network-caused backoff, where an ordinary read is refused",
+      "Coming back online does not retry a subject refused with a 4xx, or one the registry does not know",
+      "A subject that resolves on the retry is not retried by a later transition",
+      "A second transition inside the minimum interval issues nothing and leaves the subject for the next one",
+      "A retry that fails again raises the failure count and lengthens the wait",
+      "Dispatching the online event sends one message with no subjects, and teardown stops the listener"
+     ],
+     "acceptance": [
+      "The rows a retry resolves reach the renderer without the renderer asking again",
+      "No reset for a deterministic failure, an unregistered subject, a throttle or a pending chain row",
+      "Nothing schedules unsolicited work on a timer, asserted on both sides of the boundary",
+      "compile, lint, i18n and jest green from nix build",
+      "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged; ASSET_METADATA_DB_VERSION unchanged"
+     ],
+     "notes": "Found in manual QA on this branch. The backoff is right and stays: it is why a render-driven cache can exist at all. What was missing is that nothing made a stored wait untrue when the condition it was predicated on changed."
     }
    ]
   },
@@ -1635,8 +1696,8 @@
  ],
  "summary": {
   "totalPhases": 7,
-  "totalTasks": 41,
-  "estimatedTotalHours": 195.5,
+  "totalTasks": 42,
+  "estimatedTotalHours": 199.5,
   "criticalPath": [
    "task-007",
    "task-008",

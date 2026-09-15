@@ -85,6 +85,16 @@ export type AssetRegistryQueryOptions = {
 export type AssetRegistryQueryResult = {
   entries: Array<RegistryEntry>;
   resolutions: Array<AssetResolutionWrite>;
+  /**
+   * The subjects whose failure was a condition of the network rather than of
+   * the request: a timeout, a socket error, or a status the endpoint itself
+   * reports as its own failure. Their backoff is predicated on something that
+   * can change without anyone asking, which is what makes them worth retrying
+   * when the machine says the network is back. A 4xx, an over-sized response
+   * and an unreadable body are not here: the same request produces the same
+   * answer whatever the link is doing.
+   */
+  transientFailures: Array<string>;
 };
 
 export const assetRegistryEndpoint = (override?: string | null): string => {
@@ -233,6 +243,7 @@ type BatchOutcome = {
   resolved: Array<string>;
   unregistered: Array<string>;
   failed: Array<string>;
+  transient: Array<string>;
 };
 
 const emptyOutcome = (): BatchOutcome => ({
@@ -240,6 +251,7 @@ const emptyOutcome = (): BatchOutcome => ({
   resolved: [],
   unregistered: [],
   failed: [],
+  transient: [],
 });
 
 const mergeOutcome = (
@@ -250,12 +262,24 @@ const mergeOutcome = (
   resolved: into.resolved.concat(from.resolved),
   unregistered: into.unregistered.concat(from.unregistered),
   failed: into.failed.concat(from.failed),
+  transient: into.transient.concat(from.transient),
 });
 
-// Narrowed by equality rather than by truthiness. `tsconfig.json` runs with
-// `strict: false`, under which `if (!result.ok)` does not narrow a boolean
-// literal discriminant while `if (result.ok === false)` does.
-const isRetryable = (result: RegistryTransportResult): boolean => {
+/**
+ * Whether a result may come out differently without anything here changing.
+ *
+ * Asked twice, of two different results. Of the first result it decides the one
+ * in-call retry. Of the final result it decides whether the subjects of a failed
+ * batch are worth retrying when the machine comes back online: a timeout, a
+ * socket error and a status of 500 or more are conditions of the network or of
+ * the far end, while a 4xx, an over-sized response and an unreadable body are
+ * facts about the request that a link coming up does not change.
+ *
+ * Narrowed by equality rather than by truthiness. `tsconfig.json` runs with
+ * `strict: false`, under which `if (!result.ok)` does not narrow a boolean
+ * literal discriminant while `if (result.ok === false)` does.
+ */
+const isTransientFailure = (result: RegistryTransportResult): boolean => {
   if (result.ok === false) return result.reason !== 'too-large';
   return result.status >= 500;
 };
@@ -274,7 +298,7 @@ async function sendBatch(
     ASSET_REGISTRY_TIMEOUT_MS,
     ASSET_REGISTRY_MAX_RESPONSE_BYTES
   );
-  if (isRetryable(result)) {
+  if (isTransientFailure(result)) {
     await delay(retryBackoffMs);
     result = await transport.post(
       url,
@@ -284,12 +308,14 @@ async function sendBatch(
     );
   }
 
+  const transient = isTransientFailure(result) ? subjects : [];
+
   if (result.ok === false) {
     logger.debug('Asset registry: batch abandoned', {
       reason: result.reason,
       subjectCount: subjects.length,
     });
-    return { ...emptyOutcome(), failed: subjects };
+    return { ...emptyOutcome(), failed: subjects, transient };
   }
 
   if (result.status === 413 && maySplit && subjects.length > 1) {
@@ -328,12 +354,15 @@ async function sendBatch(
         subjectCount: subjects.length,
       });
     }
-    return { ...emptyOutcome(), failed: subjects };
+    return { ...emptyOutcome(), failed: subjects, transient };
   }
 
   const requested = new Set(subjects);
   const entries = parseEntries(result.body, requested);
   if (entries === null) {
+    // The exchange completed and the far end answered with something that is
+    // not its own format. A link coming up does not change that, so these are
+    // not carried as transient.
     logger.debug('Asset registry: response could not be read', {
       subjectCount: subjects.length,
     });
@@ -349,6 +378,7 @@ async function sendBatch(
     // what stops every demand re-scheduling the same subject.
     unregistered: subjects.filter((subject) => !answered.has(subject)),
     failed: [],
+    transient: [],
   };
 }
 
@@ -357,7 +387,9 @@ export async function queryAssetRegistry(
   options: AssetRegistryQueryOptions = {}
 ): Promise<AssetRegistryQueryResult> {
   const distinct = Array.from(new Set(subjects));
-  if (distinct.length === 0) return { entries: [], resolutions: [] };
+  if (distinct.length === 0) {
+    return { entries: [], resolutions: [], transientFailures: [] };
+  }
 
   const transport = options.transport ?? httpRegistryTransport;
   const url = assetRegistryQueryUrl(assetRegistryEndpoint(options.endpoint));
@@ -396,6 +428,7 @@ export async function queryAssetRegistry(
 
   return {
     entries: outcome.entries,
+    transientFailures: outcome.transient,
     resolutions: [
       ...outcome.resolved.map(
         (subject): AssetResolutionWrite => ({

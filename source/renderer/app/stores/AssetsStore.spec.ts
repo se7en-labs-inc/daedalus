@@ -212,6 +212,9 @@ describe('AssetsStore', () => {
       };
       store.setup();
       expect(onAssetMetadataUpdate).toHaveBeenCalledTimes(1);
+      // `setup` registers a window listener, so a store left set up in one case
+      // is still listening in the next.
+      store.teardown();
     });
   });
 
@@ -472,6 +475,40 @@ describe('AssetsStore', () => {
       },
     });
 
+    /**
+     * The main process has no event for this. Electron's `net` offers
+     * `isOnline()` and an `online` property and emits nothing, so the
+     * observation is made here, where Chromium raises it, and sent.
+     */
+    it('tells the cache when the machine comes back online', () => {
+      const { store } = makeStore();
+      (store as any).actions = actionsFor();
+      store.setup();
+      requestAssetMetadata.mockClear();
+
+      window.dispatchEvent(new Event('online'));
+
+      expect(requestAssetMetadata).toHaveBeenCalledTimes(1);
+      const [subjects, options] = requestAssetMetadata.mock.calls[0];
+      // No subjects: which of them are waiting out a backoff is known where the
+      // failures were recorded, not here.
+      expect(subjects).toEqual([]);
+      expect(options.connectivityRestored).toBe(true);
+      store.teardown();
+    });
+
+    it('stops listening for it at teardown', () => {
+      const { store } = makeStore();
+      (store as any).actions = actionsFor();
+      store.setup();
+      store.teardown();
+      requestAssetMetadata.mockClear();
+
+      window.dispatchEvent(new Event('online'));
+
+      expect(requestAssetMetadata).not.toHaveBeenCalled();
+    });
+
     it('schedules nothing to repeat', () => {
       jest.useFakeTimers();
       const repeating = jest.spyOn(global, 'setInterval');
@@ -487,6 +524,7 @@ describe('AssetsStore', () => {
       expect(requestAssetMetadata).not.toHaveBeenCalled();
       repeating.mockRestore();
       jest.useRealTimers();
+      store.teardown();
     });
   });
 

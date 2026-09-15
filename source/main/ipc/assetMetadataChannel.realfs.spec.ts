@@ -366,6 +366,44 @@ describe('assetMetadataChannel', () => {
       ]);
     });
 
+    it('tells the resolver the machine is back, and an ordinary read does not', async () => {
+      const handlers = handlersWith(
+        stubTransport(async () => ({ ok: false, reason: 'network' }))
+      );
+      const resolver = (handlers as any)._resolver;
+      let retries = 0;
+      resolver.retryTransientFailures = () => {
+        retries += 1;
+        return [];
+      };
+
+      await handlers.readMetadata({ requestId: 'r-1', subjects: [SUBJECT] });
+      expect(retries).toBe(0);
+
+      await handlers.readMetadata({
+        requestId: 'r-2',
+        subjects: [],
+        connectivityRestored: true,
+      });
+      expect(retries).toBe(1);
+    });
+
+    it('answers a connectivity message carrying no subjects', async () => {
+      const handlers = handlersWith(
+        stubTransport(async () => ({ ok: false, reason: 'network' }))
+      );
+      const response = await handlers.readMetadata({
+        requestId: 'r-4',
+        subjects: [],
+        connectivityRestored: true,
+      });
+      expect(response).toEqual({
+        requestId: 'r-4',
+        entries: [],
+        unresolved: [],
+      });
+    });
+
     it('answers a refresh from the cache, without waiting for the fetch', async () => {
       writeRow(SUBJECT);
       const handlers = handlersWith(

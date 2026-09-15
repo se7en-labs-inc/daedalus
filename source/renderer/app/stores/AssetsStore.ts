@@ -132,10 +132,20 @@ export default class AssetsStore extends Store {
 
     onAssetMetadataUpdate(this._onMetadataResolved);
     this.registerReactions([this._resolveRenderedSubjects]);
+    // Chromium raises this from the same network change notifier the operating
+    // system uses, so it costs nothing until it fires. The main process has no
+    // equivalent event: Electron's `net` offers `isOnline()` and an `online`
+    // property and emits nothing, so observing it there would mean a timer.
+    window.addEventListener('online', this._onConnectivityRestored);
 
     this._setUpFavorites();
     this._setUpLocalDecimals();
     this._setUpMetadataSource();
+  }
+
+  teardown() {
+    super.teardown();
+    window.removeEventListener('online', this._onConnectivityRestored);
   }
 
   // ==================== PUBLIC ==================
@@ -318,9 +328,22 @@ export default class AssetsStore extends Store {
     return Array.from(subjects);
   };
 
+  /**
+   * Tells the cache the machine is back, and nothing else.
+   *
+   * No subjects: a subject waiting out a backoff looks exactly like one the
+   * registry has never heard of from here, and which of them were waiting on the
+   * network is known where the failures were recorded. Whatever the retry
+   * resolves arrives on the update channel, which is already subscribed, so
+   * nothing here waits for it.
+   */
+  _onConnectivityRestored = () => {
+    this._requestMetadata([], { connectivityRestored: true });
+  };
+
   _requestMetadata = async (
     subjects: Array<string>,
-    options: { refresh?: boolean } = {}
+    options: { refresh?: boolean; connectivityRestored?: boolean } = {}
   ) => {
     const response = await requestAssetMetadata(subjects, {
       ...options,

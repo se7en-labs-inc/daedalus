@@ -124,6 +124,17 @@ describe('assetMetadataChannel', () => {
       expect(sent[0].message.subjects).toEqual([FIRST]);
     });
 
+    it('reports no connectivity transition unless one is asked for', () => {
+      requestAssetMetadata([FIRST]);
+      expect(sent[0].message.connectivityRestored).toBe(false);
+    });
+
+    it('carries a connectivity transition with no subjects', () => {
+      requestAssetMetadata([], { connectivityRestored: true });
+      expect(sent[0].message.connectivityRestored).toBe(true);
+      expect(sent[0].message.subjects).toEqual([]);
+    });
+
     it('mints a different id for every request', () => {
       requestAssetMetadata([FIRST]);
       requestAssetMetadata([SECOND]);

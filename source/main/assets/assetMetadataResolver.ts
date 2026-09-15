@@ -61,6 +61,17 @@ export const ASSET_CHAIN_PENDING_RETRY_MS = 60 * 60 * 1000;
  */
 export const ASSET_CHAIN_REJECTED_RETRY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * The shortest interval between two honoured connectivity retries.
+ *
+ * A network change notifier raises several transitions for one physical event,
+ * and can raise one while the link is not yet usable, so a retry per transition
+ * would be a pass per flap. Chosen rather than measured: long enough to absorb
+ * the burst one event produces, short enough that a genuine reconnection after a
+ * false start is picked up while the user is still looking at the screen.
+ */
+export const ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS = 30 * 1000;
+
 export type AssetMetadataResolverOptions = {
   database?: AssetMetadataDatabase;
   transport?: RegistryTransport;
@@ -300,6 +311,25 @@ export class AssetMetadataResolver {
 
   private _claimed = new Set<string>();
 
+  /**
+   * Subjects whose last outcome was a failure caused by the network rather than
+   * by the request.
+   *
+   * Every pass rewrites membership for the subjects it handled, so this
+   * describes the present rather than a history: a subject that resolved, that
+   * the registry does not know, or that was refused, is not here. It is the set
+   * a connectivity retry acts on, and it is the only thing that decides which
+   * waits a transition is allowed to withdraw.
+   *
+   * Held in memory and not in `asset_resolution`. A column there would change
+   * the table's shape, and the database module's stated migration is to delete a
+   * file stamped with any other version, so persisting this would discard every
+   * user's cache to cover a restart inside one backoff step.
+   */
+  private _transientFailures = new Set<string>();
+
+  private _lastConnectivityRetryAt = 0;
+
   private _pending: Promise<void> = Promise.resolve();
 
   constructor(options: AssetMetadataResolverOptions = {}) {
@@ -329,6 +359,41 @@ export class AssetMetadataResolver {
 
   close(): void {
     this._db.close();
+  }
+
+  /**
+   * Retries the subjects whose backoff was caused by the network, because the
+   * machine has just said the network is back.
+   *
+   * The wait is bypassed rather than cleared, which is the same mechanism a
+   * manual refresh uses and for the same reason: clearing the columns before a
+   * fetch that then fails leaves a row that looks never-updated and re-schedules
+   * on every render. Nothing is written before the read, and a retry that fails
+   * again lands on the next rung of the ladder.
+   *
+   * The set is emptied when the pass is issued, so a second transition arriving
+   * before it finishes finds nothing to do. When the call is refused for being
+   * too soon the set is left intact, so the next honoured transition still has
+   * it. Returns the subjects it issued a read for, which is what the spec and
+   * the log line are about.
+   */
+  retryTransientFailures(): Array<string> {
+    if (this._transientFailures.size === 0) return [];
+    const now = this._now();
+    if (
+      now - this._lastConnectivityRetryAt <
+      ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS
+    ) {
+      return [];
+    }
+    this._lastConnectivityRetryAt = now;
+    const subjects = Array.from(this._transientFailures);
+    this._transientFailures.clear();
+    logger.debug('Asset metadata: retrying after connectivity returned', {
+      subjectCount: subjects.length,
+    });
+    this.request(subjects, { force: true });
+    return subjects;
   }
 
   /** Answers from disk. Never waits on the network. */
@@ -411,6 +476,7 @@ export class AssetMetadataResolver {
 
     let entries: Array<RegistryEntry> = [];
     let resolutions: Array<AssetResolutionWrite> = [];
+    let transient: Array<string> = [];
     try {
       // No database call inside the awaited section, and no transaction held
       // across it.
@@ -423,6 +489,7 @@ export class AssetMetadataResolver {
       });
       entries = result.entries;
       resolutions = result.resolutions;
+      transient = result.transientFailures;
     } catch (error) {
       // Offline is a state, not a failure. Nothing is surfaced to the user.
       logger.debug('Asset metadata: query failed', {
@@ -462,6 +529,7 @@ export class AssetMetadataResolver {
     });
     const unanswered = wanted.filter((subject) => !answered.has(subject));
     const chain = await this._resolveFromChain(unanswered, failureCounts, now);
+    transient = transient.concat(chain.transientFailures);
     chain.rows.forEach((row) => {
       toWrite.push(row);
       changed.push(row.subject);
@@ -476,6 +544,7 @@ export class AssetMetadataResolver {
     if (allResolutions.length > 0) {
       this._db.writeResolutions(allResolutions, now);
     }
+    this._recordTransientFailures(wanted, transient, allResolutions);
 
     const emitted = changed.length > 0 ? this._db.readMetadata(changed) : [];
     if (emitted.length > 0 && this._onResolved) {
@@ -488,6 +557,31 @@ export class AssetMetadataResolver {
       }
     }
     return emitted;
+  }
+
+  /**
+   * Rewrites which of the subjects this pass handled are waiting on the network.
+   *
+   * A subject that resolved is removed even if a channel also failed
+   * transiently for it, because the row it now has is the answer the retry would
+   * have been for.
+   */
+  private _recordTransientFailures(
+    wanted: Array<string>,
+    transient: Array<string>,
+    resolutions: Array<AssetResolutionWrite>
+  ): void {
+    const waiting = new Set(transient);
+    resolutions.forEach((row) => {
+      if (row.state === 'resolved') waiting.delete(row.subject);
+    });
+    wanted.forEach((subject) => {
+      if (waiting.has(subject)) {
+        this._transientFailures.add(subject);
+      } else {
+        this._transientFailures.delete(subject);
+      }
+    });
   }
 
   /**
@@ -505,8 +599,9 @@ export class AssetMetadataResolver {
   ): Promise<{
     rows: Array<AssetMetadataWrite>;
     resolutions: Array<AssetResolutionWrite>;
+    transientFailures: Array<string>;
   }> {
-    const empty = { rows: [], resolutions: [] };
+    const empty = { rows: [], resolutions: [], transientFailures: [] };
     if (subjects.length === 0) return empty;
     if (!this._pointerSourceUrl || !this._immutableDirectory) return empty;
 
@@ -529,7 +624,11 @@ export class AssetMetadataResolver {
     }
 
     if (result.pointers.length === 0) {
-      return { rows: [], resolutions: result.resolutions };
+      return {
+        rows: [],
+        resolutions: result.resolutions,
+        transientFailures: result.transientFailures,
+      };
     }
 
     // One reader for the pass. It lists the immutable directory once to find
@@ -604,7 +703,11 @@ export class AssetMetadataResolver {
       });
     });
 
-    return { rows, resolutions };
+    return {
+      rows,
+      resolutions,
+      transientFailures: result.transientFailures,
+    };
   }
 
   private _supersedes(

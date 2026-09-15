@@ -471,7 +471,12 @@ describe('queryKoiosPointers', () => {
       budget: new KoiosRequestBudget(),
     });
     expect(transport.calls).toHaveLength(0);
-    expect(result).toEqual({ pointers: [], transactions: [], resolutions: [] });
+    expect(result).toEqual({
+      pointers: [],
+      transactions: [],
+      resolutions: [],
+      transientFailures: [],
+    });
   });
 
   it('drops a transaction entry that is not an object', async () => {
@@ -513,5 +518,84 @@ describe('queryKoiosPointers', () => {
     const result = await query(transport);
     expect(result.pointers).toHaveLength(0);
     expect(result.resolutions[0].state).toBe('failed');
+  });
+});
+
+/**
+ * Which failures are conditions of the network rather than of the request.
+ *
+ * Every case here but the throttles produces `state: 'failed'`, so the state
+ * cannot tell them apart and the assertion has to be on the list itself.
+ */
+describe('queryKoiosPointers transient failures', () => {
+  const answering = (answer: HttpTransportResult) =>
+    stub((call) => (call.url.includes('asset_info') ? answer : okBody([])));
+
+  it.each([500, 503])('reports a %i as transient', async (status) => {
+    const result = await query(answering({ ok: true, status, body: '' }));
+    expect(result.resolutions[0].state).toBe('failed');
+    expect(result.transientFailures).toEqual([SUBJECT]);
+  });
+
+  it.each(['timeout', 'network'] as const)(
+    'reports a %s as transient',
+    async (reason) => {
+      const result = await query(answering({ ok: false, reason }));
+      expect(result.transientFailures).toEqual([SUBJECT]);
+    }
+  );
+
+  it.each([400, 404])('does not report a %i as transient', async (status) => {
+    const result = await query(answering({ ok: true, status, body: '' }));
+    expect(result.resolutions[0].state).toBe('failed');
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('does not report an over-sized response as transient', async () => {
+    const result = await query(answering({ ok: false, reason: 'too-large' }));
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('does not report an unreadable 200 as transient', async () => {
+    const result = await query(
+      answering({ ok: true, status: 200, body: 'not json' })
+    );
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  // The instance saying it is being asked too often, and this process reaching
+  // its own ceiling, are neither of them fixed by a link coming up.
+  it('does not report a 429 as transient', async () => {
+    const result = await query(answering({ ok: true, status: 429, body: '' }));
+    expect(result.resolutions[0].retryAfter).toBe(
+      1_000_000 + KOIOS_THROTTLED_RETRY_MS
+    );
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('does not report the per-process ceiling as transient', async () => {
+    const budget = new KoiosRequestBudget(0, 10_000);
+    const result = await query(happy(), { budget });
+    expect(result.resolutions[0].retryAfter).toBe(
+      1_000_000 + KOIOS_THROTTLED_RETRY_MS
+    );
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('reports nothing for a batch that succeeded', async () => {
+    const result = await query(happy());
+    expect(result.transientFailures).toEqual([]);
+  });
+
+  it('reports the batch when the second call of it times out', async () => {
+    const result = await query(
+      stub((call) =>
+        call.url.includes('asset_info')
+          ? okBody([assetInfoRecord()])
+          : { ok: false, reason: 'timeout' }
+      )
+    );
+    expect(result.pointers).toHaveLength(0);
+    expect(result.transientFailures).toEqual([SUBJECT]);
   });
 });

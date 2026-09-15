@@ -108,6 +108,13 @@ export type KoiosQueryResult = {
   pointers: Array<KoiosPointer>;
   transactions: Array<KoiosTransaction>;
   resolutions: Array<AssetResolutionWrite>;
+  /**
+   * The subjects whose failure was a condition of the network rather than of
+   * the request, in the same sense the registry client uses. A throttle is not
+   * one: the instance saying it is being asked too often, and this process
+   * reaching its own ceiling, are both unaffected by a link coming up.
+   */
+  transientFailures: Array<string>;
 };
 
 export type KoiosQueryOptions = {
@@ -284,12 +291,18 @@ const delay = (ms: number): Promise<void> =>
   });
 
 /**
+ * Whether a result may come out differently without anything here changing.
+ *
+ * Asked twice, of two different results: of the first it decides the one in-call
+ * retry, and of the final one it decides whether the batch's subjects are worth
+ * retrying when the machine comes back online.
+ *
  * A `429` is deliberately absent from this. The instance has said it is being
  * asked too often, and the answer to that is to stop, not to ask again after a
  * second. It is handled at the call site as a throttle rather than as a
  * failure.
  */
-const isRetryable = (result: HttpTransportResult): boolean => {
+const isTransientFailure = (result: HttpTransportResult): boolean => {
   if (result.ok === false) return result.reason !== 'too-large';
   return result.status >= 500;
 };
@@ -299,9 +312,15 @@ type Outcome = 'ok' | 'throttled' | 'failed';
 type Answer = {
   outcome: Outcome;
   records: Array<unknown>;
+  /** Only meaningful for `failed`, and false for every other outcome. */
+  transient: boolean;
 };
 
-const failed = (): Answer => ({ outcome: 'failed', records: [] });
+const failed = (transient = false): Answer => ({
+  outcome: 'failed',
+  records: [],
+  transient,
+});
 
 async function send(
   url: string,
@@ -313,7 +332,7 @@ async function send(
 ): Promise<Answer> {
   if (!budget.tryConsume(now)) {
     logger.debug('Koios: per-process request ceiling reached');
-    return { outcome: 'throttled', records: [] };
+    return { outcome: 'throttled', records: [], transient: false };
   }
 
   let result = await transport.post(
@@ -322,10 +341,10 @@ async function send(
     KOIOS_TIMEOUT_MS,
     KOIOS_MAX_RESPONSE_BYTES
   );
-  if (isRetryable(result)) {
+  if (isTransientFailure(result)) {
     await delay(retryBackoffMs);
     if (!budget.tryConsume(now)) {
-      return { outcome: 'throttled', records: [] };
+      return { outcome: 'throttled', records: [], transient: false };
     }
     result = await transport.post(
       url,
@@ -335,27 +354,31 @@ async function send(
     );
   }
 
+  const transient = isTransientFailure(result);
+
   if (result.ok === false) {
     logger.debug('Koios: batch abandoned', { reason: result.reason });
-    return failed();
+    return failed(transient);
   }
 
   if (result.status === 429) {
     logger.debug('Koios: instance refused, backing off');
-    return { outcome: 'throttled', records: [] };
+    return { outcome: 'throttled', records: [], transient: false };
   }
 
   if (result.status < 200 || result.status >= 300) {
     logger.debug('Koios: batch abandoned', { status: result.status });
-    return failed();
+    return failed(transient);
   }
 
   const records = parseArray(result.body);
   if (records === null) {
+    // The exchange completed and the instance answered with something that is
+    // not its own format, which a link coming up does not change.
     logger.debug('Koios: response could not be read');
     return failed();
   }
-  return { outcome: 'ok', records };
+  return { outcome: 'ok', records, transient: false };
 }
 
 /**
@@ -379,6 +402,7 @@ export async function queryKoiosPointers(
     pointers: [],
     transactions: [],
     resolutions: [],
+    transientFailures: [],
   };
   if (distinct.length === 0) return empty;
 
@@ -403,6 +427,7 @@ export async function queryKoiosPointers(
   const pointers: Array<KoiosPointer> = [];
   const transactions: Array<KoiosTransaction> = [];
   const resolutions: Array<AssetResolutionWrite> = [];
+  const transientFailures: Array<string> = [];
 
   const throttle = (batch: Array<string>) => {
     batch.forEach((subject) =>
@@ -415,7 +440,7 @@ export async function queryKoiosPointers(
     );
   };
 
-  const fail = (batch: Array<string>) => {
+  const fail = (batch: Array<string>, transient: boolean) => {
     batch.forEach((subject) => {
       const failureCount = (failureCounts[subject] ?? 0) + 1;
       resolutions.push({
@@ -424,6 +449,7 @@ export async function queryKoiosPointers(
         failureCount,
         retryAfter: now + koiosBackoffMs(failureCount),
       });
+      if (transient) transientFailures.push(subject);
     });
   };
 
@@ -432,7 +458,9 @@ export async function queryKoiosPointers(
    * Extracted from the loop because every early exit inside it is a different
    * reason to stop reading this batch, and `continue` is not available here.
    */
-  const resolveBatch = async (batch: Array<string>): Promise<Outcome> => {
+  const resolveBatch = async (
+    batch: Array<string>
+  ): Promise<{ outcome: Outcome; transient: boolean }> => {
     const assetList = batch.map((subject) => [
       subject.slice(0, POLICY_ID_HEX_LENGTH),
       subject.slice(POLICY_ID_HEX_LENGTH),
@@ -445,7 +473,9 @@ export async function queryKoiosPointers(
       retryBackoffMs,
       now
     );
-    if (info.outcome !== 'ok') return info.outcome;
+    if (info.outcome !== 'ok') {
+      return { outcome: info.outcome, transient: info.transient };
+    }
 
     const requested = new Set(batch);
     const batchPointers: Array<KoiosPointer> = [];
@@ -460,7 +490,7 @@ export async function queryKoiosPointers(
     // The index answered and knows none of them. Not a failure, and not a row:
     // the registry channel records unregistered subjects, and a second channel
     // doing the same would fight it for the same key.
-    if (hashes.length === 0) return 'ok';
+    if (hashes.length === 0) return { outcome: 'ok', transient: false };
 
     const bytes = await send(
       txCborUrl,
@@ -470,7 +500,9 @@ export async function queryKoiosPointers(
       retryBackoffMs,
       now
     );
-    if (bytes.outcome !== 'ok') return bytes.outcome;
+    if (bytes.outcome !== 'ok') {
+      return { outcome: bytes.outcome, transient: bytes.transient };
+    }
 
     const wanted = new Set(hashes);
     const batchTransactions: Array<KoiosTransaction> = [];
@@ -488,22 +520,24 @@ export async function queryKoiosPointers(
       if (answered.has(pointer.mintingTxHash)) pointers.push(pointer);
     });
     batchTransactions.forEach((transaction) => transactions.push(transaction));
-    return 'ok';
+    return { outcome: 'ok', transient: false };
   };
 
   const batches = koiosBatches(distinct);
   // One after another rather than in parallel, so a wallet holding many assets
   // opens one socket at a time and the ceiling is consulted in order.
   for (let index = 0; index < batches.length; index += 1) {
-    const outcome = await resolveBatch(batches[index]);
-    if (outcome === 'throttled') {
+    const answer = await resolveBatch(batches[index]);
+    if (answer.outcome === 'throttled') {
       throttle(batches[index]);
       // The ceiling is a property of the process rather than of this batch, so
       // there is nothing to gain from trying the next one.
       break;
     }
-    if (outcome === 'failed') fail(batches[index]);
+    if (answer.outcome === 'failed') {
+      fail(batches[index], answer.transient);
+    }
   }
 
-  return { pointers, transactions, resolutions };
+  return { pointers, transactions, resolutions, transientFailures };
 }

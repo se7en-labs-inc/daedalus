@@ -575,6 +575,11 @@ export type AssetMetadataRendererRequest = AssetIpcCorrelated<{
   // lives in the main process, so it travels with every read rather than being
   // pushed on its own channel and kept in step.
   sourceUrl?: string | null;
+  // The renderer observed the machine come back online. An observation and not
+  // an instruction: the renderer cannot know which subjects are waiting out a
+  // backoff or why, so it reports the event and the main process decides what,
+  // if anything, it changes. Sent with no subjects.
+  connectivityRestored?: boolean;
 }>;
 export type AssetMetadataMainResponse = AssetIpcCorrelated<{
   entries: Array<AssetMetadataEntry>;

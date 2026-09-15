@@ -11,6 +11,7 @@ import path from 'path';
 import { openAssetMetadataDatabase } from './assetMetadataDb';
 import type { AssetMetadataDatabase } from './assetMetadataDb';
 import {
+  ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS,
   ASSET_METADATA_REFRESH_MS,
   AssetMetadataResolver,
   chainPointerToRow,
@@ -1267,5 +1268,202 @@ describe('openAssetMetadataResolver', () => {
     // Closed through the resolver rather than through the handle the suite
     // holds, so the teardown's own close is the second one.
     expect(database.readMetadata([BTED.subject])).toEqual([]);
+  });
+});
+
+/**
+ * The backoff exists so a failing subject is not retried on every render. It is
+ * also a wait predicated on a condition, and when the machine says that
+ * condition has changed the wait is no longer about anything.
+ *
+ * Which waits that applies to is the whole of this: a timeout is a fact about
+ * the network, a 404 is a fact about the request, and an absent registry record
+ * is not a failure at all. Every one of the three writes `state: 'failed'` or
+ * sits in the same table, so each case here is driven beside its complement.
+ */
+describe('coming back online', () => {
+  const answering = (
+    answer: RegistryTransportResult
+  ): RegistryTransport & { calls: number } => {
+    const stub = {
+      calls: 0,
+      async post(): Promise<RegistryTransportResult> {
+        stub.calls += 1;
+        return answer;
+      },
+    };
+    return stub;
+  };
+
+  /** Fails until `recovered` is set, then answers. */
+  const recovering = (): RegistryTransport & {
+    calls: number;
+    recovered: boolean;
+  } => {
+    const stub = {
+      calls: 0,
+      recovered: false,
+      async post(): Promise<RegistryTransportResult> {
+        stub.calls += 1;
+        if (!stub.recovered) return { ok: false, reason: 'network' };
+        return {
+          ok: true,
+          status: 200,
+          body: JSON.stringify({ subjects: [bted()] }),
+        };
+      },
+    };
+    return stub;
+  };
+
+  it('retries a subject whose backoff came from the network', async () => {
+    const transport = failingTransport();
+    const resolver = resolverWith(transport);
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    const afterFirst = transport.calls;
+    expect(afterFirst).toBeGreaterThan(0);
+
+    // The complement first: an ordinary read is refused, so the case is about
+    // the transition rather than about a resolver that ignores the window.
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    expect(transport.calls).toBe(afterFirst);
+
+    expect(resolver.retryTransientFailures()).toEqual([BTED.subject]);
+    await resolver.pending();
+    expect(transport.calls).toBeGreaterThan(afterFirst);
+  });
+
+  it('does not retry a subject the endpoint refused', async () => {
+    const transport = answering({ ok: true, status: 404, body: '' });
+    const resolver = resolverWith(transport);
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    expect(transport.calls).toBe(1);
+    expect(database.readResolutions([BTED.subject])[0].state).toBe('failed');
+
+    expect(resolver.retryTransientFailures()).toEqual([]);
+    await resolver.pending();
+    expect(transport.calls).toBe(1);
+  });
+
+  it('does not retry a subject the registry does not know', async () => {
+    const transport = transportFor(() => []);
+    const resolver = resolverWith(transport);
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    expect(database.readResolutions([BTED.subject])[0].state).toBe(
+      'unregistered'
+    );
+
+    expect(resolver.retryTransientFailures()).toEqual([]);
+    await resolver.pending();
+    expect(transport.calls).toBe(1);
+  });
+
+  it('does nothing when nothing failed on the network', async () => {
+    const transport = transportFor(() => [bted()]);
+    const resolver = resolverWith(transport);
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    expect(resolver.retryTransientFailures()).toEqual([]);
+    await resolver.pending();
+    expect(transport.calls).toBe(1);
+  });
+
+  it('delivers the rows a retry resolves, without anyone asking again', async () => {
+    const emitted: Array<string> = [];
+    const transport = recovering();
+    let clock = NOW;
+    const resolver = resolverWith(transport, {
+      now: () => clock,
+      onResolved: (rows) => rows.forEach((row) => emitted.push(row.subject)),
+    });
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    expect(emitted).toEqual([]);
+
+    transport.recovered = true;
+    clock = NOW + ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS;
+    resolver.retryTransientFailures();
+    await resolver.pending();
+    expect(emitted).toEqual([BTED.subject]);
+    expect(storedRow().ticker).toBe('BTED');
+  });
+
+  it('stops retrying a subject once it has resolved', async () => {
+    const transport = recovering();
+    let clock = NOW;
+    const resolver = resolverWith(transport, { now: () => clock });
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+
+    transport.recovered = true;
+    clock = NOW + ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS;
+    resolver.retryTransientFailures();
+    await resolver.pending();
+    const afterRetry = transport.calls;
+
+    clock += ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS;
+    expect(resolver.retryTransientFailures()).toEqual([]);
+    await resolver.pending();
+    expect(transport.calls).toBe(afterRetry);
+  });
+
+  it('ignores a second transition inside the minimum interval and keeps the subject for the next one', async () => {
+    const transport = failingTransport();
+    let clock = NOW;
+    const resolver = resolverWith(transport, { now: () => clock });
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+
+    clock += 1;
+    expect(resolver.retryTransientFailures()).toEqual([BTED.subject]);
+    await resolver.pending();
+    const afterFirst = transport.calls;
+
+    clock += 1;
+    expect(resolver.retryTransientFailures()).toEqual([]);
+    await resolver.pending();
+    expect(transport.calls).toBe(afterFirst);
+
+    // The refused transition did not consume the subject, so the next honoured
+    // one still has it.
+    clock += ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS;
+    expect(resolver.retryTransientFailures()).toEqual([BTED.subject]);
+    await resolver.pending();
+    expect(transport.calls).toBeGreaterThan(afterFirst);
+  });
+
+  it('moves a subject up the ladder when the retry fails again', async () => {
+    const transport = failingTransport();
+    let clock = NOW;
+    const resolver = resolverWith(transport, { now: () => clock });
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    const first = database.readResolutions([BTED.subject])[0];
+    expect(first.failureCount).toBe(1);
+
+    clock += ASSET_CONNECTIVITY_RETRY_MIN_INTERVAL_MS;
+    resolver.retryTransientFailures();
+    await resolver.pending();
+    const second = database.readResolutions([BTED.subject])[0];
+    expect(second.failureCount).toBe(2);
+    expect(second.retryAfter - clock).toBeGreaterThan(first.retryAfter - NOW);
+  });
+
+  it('schedules nothing by itself', async () => {
+    const transport = failingTransport();
+    const resolver = resolverWith(transport);
+    resolver.request([BTED.subject]);
+    await resolver.pending();
+    const afterFirst = transport.calls;
+
+    jest.useFakeTimers();
+    jest.advanceTimersByTime(24 * 60 * 60 * 1000);
+    await Promise.resolve();
+    jest.useRealTimers();
+    expect(transport.calls).toBe(afterFirst);
   });
 });
