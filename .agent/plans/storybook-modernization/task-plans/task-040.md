@@ -140,16 +140,27 @@ were chosen to make the screen look right.
 
 ## Corrections To The Task Graph
 
-1. `task-040.acceptance` says the stories should appear "under the settings group". They appear under
-   a new top-level `Screens` group, because five of the eight are not settings screens and mixing
-   container stories into the component panels would make both harder to read. The sort order puts
-   `Screens` after the component panels.
-2. `task-040.implementationNotes` says `AboutDialog` already has a container story at
-   `nodes/about/About.stories.tsx:12-14` built on a props literal at `nodes/_utils/props.ts`, and that
-   the literal should be deleted. The props file is still read by other stories in that panel, so it
-   stays; the About panel keeps its component-level story and the screen story is additional. Deleting
-   the component story would remove a sidebar registration from the 258-pair baseline, which is the
-   one thing this phase may not do.
+1. **`task-040.acceptance` says the stories should appear "under the settings group". They do not, and
+   should not.** Five of the eight are not settings screens: two are profile-adjacent, one is a static
+   dialog, one a splash page and one an asset dialog. Mixing the container layer into the component
+   panels makes both harder to read, and the reader loses the ability to tell at a glance which layer
+   a story belongs to. They appear under a new top-level `Screens` group, placed after the component
+   panels in `preview.tsx`'s sort order. **All 49 component panels keep their titles and their
+   ordering unchanged.** Approved by the project owner.
+
+2. **`task-040.implementationNotes` says to replace the About container story with the harness version
+   and delete the props literal at `nodes/_utils/props.ts`. Following that note would break the
+   258-pair baseline.** Two separate reasons, either of which is sufficient:
+
+   - `storybook/stories/nodes/_utils/props.ts` has other readers in the `Nodes` panel, so deleting it
+     breaks stories the tranche does not touch.
+   - Removing `nodes/about/About.stories.tsx` removes a sidebar registration. The 258-pair label set
+     has been the invariant since phase 3 and is the one thing this phase may not touch: screens are
+     tracked as additions on top of it, never as replacements.
+
+   The About panel keeps its component-level story and the screen story is additional. A later reader
+   following the original note would remove a registration and not find out until the label diff, so
+   the note is corrected here rather than worked around silently. Approved by the project owner.
 
 ## Review-Log Paths
 

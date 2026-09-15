@@ -41,13 +41,19 @@ the real request carries when the call it wraps rejects.
 ## It is the only one
 
 `intl.formatMessage(error)` is how the rest of the application renders a
-`LocalizableError`: 21 components use that idiom, among them
-`WalletRestoreDialog.tsx:583` and `TransferFundsStep1Dialog.tsx:104`, both of
-which render the same construct one call short of this one.
+`LocalizableError`. Counted over `source/renderer/app/components/`:
 
-`grep -rn ">{error}<" source/renderer/app/components/` returns exactly one hit,
-this line. So this is a single omission rather than a pattern, and the fix is to
-match the twenty-one:
+| | count |
+|---|---|
+| `formatMessage(error` call sites | 21, in 21 files |
+| `formatMessage(<name>error` in any spelling, e.g. `errorMessage` | 23 files |
+| bare `>{error}<` | **1**, this line |
+
+Among the 21 are `WalletRestoreDialog.tsx:583` and `TransferFundsStep1Dialog.tsx:104`,
+both of which render the same construct one call short of this one.
+
+So this is a single omission rather than a pattern, and the fix is to match the
+twenty-one:
 
 ```tsx
 {error && <p className={styles.error}>{intl.formatMessage(error)}</p>}

@@ -71,15 +71,35 @@ specs at `containers/governance/DRepDetailPage.spec.tsx` and
 
 So this task adds `<rootDir>/storybook` to `roots` and proves the harness by mounting real containers
 through the real `Provider`. That converts every screen tranche in phases 6 and 7 from "the bundle
-built" to "the container rendered", which is the difference the whole phase turns on.
+built" to "the container rendered", which is the difference the whole phase turns on. It uses tooling
+already in the repository, and it partially recovers what locked decision 7 gave up when the render
+check was dropped for needing a browser: not that a screen looks right, but that it mounts at all.
+
+**The change was approved on evidence rather than on argument.** The same change was declined during
+phase 4, on the reasonable grounds that the exposure there was bounded and the cost was changing what
+CI runs for every future spec. What settled it was the first tranche that used it: `task-040` mounted
+eight screens and found a defect in shipped source that had been reachable since the form was written
+and that no component-level story could have surfaced. The justification is in the record at
+`.agent/findings/08-general-settings-crashes-on-error.md`, not in this paragraph.
 
 Two further configuration gaps surfaced while doing it, both of which any screen render would have
 hit:
 
-- **Binary assets imported as modules.** Webpack turns a `.png` import into a URL string through
-  `asset/resource`; jest had no such rule, so the bytes reached the transform chain and failed to
-  parse. The display settings screen imports nine theme preview images before it renders anything.
-  Added a `moduleNameMapper` stub at `tests/jest/setup/fileStub.js`.
+- **Binary assets imported as modules.** Webpack turns a `.png` import into a URL string through its
+  `asset/resource` rule. Jest has no equivalent, so the file reaches the transform chain as bytes and
+  dies with `SyntaxError: Invalid or unexpected token` pointing at the first byte of a PNG header,
+  which names neither the import nor the screen. `DisplaySettings.tsx` imports **nine** theme preview
+  images before it renders anything, so this is the first thing any screen render hits and the last
+  thing its error message helps with. Added a `moduleNameMapper` entry pointing at
+  `tests/jest/setup/fileStub.js`, which returns a string, because a string is what the components
+  expect from these imports.
+
+  Markdown is mapped to the same stub for the same reason: the terms-of-use screens import their copy
+  as a module, and a string is the right answer there too.
+
+- **A webpack-only module loader.** `source/renderer/app/i18n/translations.ts` bulk-loads every locale
+  through `require.context`, which exists only inside webpack. A spec that imports it fails with
+  `require.context is not a function`. Specs read the single locale file they need instead.
 - **react-polymorph needs its `ThemeProvider`.** Without it a `FormField` renders an undefined element
   type rather than a control, because the skin it resolves through is not in context. `StoryDecorator`
   supplies it in the workbench; the spec supplies the same frame.
