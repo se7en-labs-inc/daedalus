@@ -382,10 +382,11 @@ export default class AdaApi {
         this.config
       );
       const hwLocalData = await getHardwareWalletsLocalData();
-      logger.debug(
-        'AdaApi::getWallets success',
-        filterLogData({ wallets, legacyWallets, hwLocalData })
-      );
+      logger.debug('AdaApi::getWallets success', {
+        wallets: wallets.length,
+        legacyWallets: legacyWallets.length,
+        hardwareWallets: size(hwLocalData),
+      });
       map(legacyWallets, (legacyAdaWallet) => {
         const extraLegacyWalletProps = {
           address_pool_gap: 0,
@@ -460,7 +461,9 @@ export default class AdaApi {
         });
       }
 
-      logger.debug('AdaApi::getWallet success', filterLogData({ wallet }));
+      logger.debug('AdaApi::getWallet success', {
+        walletId: wallet.id,
+      });
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::getWallet error', {
@@ -547,7 +550,7 @@ export default class AdaApi {
       }
 
       logger.debug('AdaApi::getAddresses success', {
-        addresses: response,
+        addresses: response.length,
       });
       return response.map(_createAddressFromServerData);
     } catch (error) {
@@ -572,7 +575,8 @@ export default class AdaApi {
         transactionId
       );
       logger.debug('AdaApi::getTransaction success', {
-        response,
+        transactionId: response.id,
+        status: response.status,
       });
       return _createTransactionFromServerData(response);
     } catch (error) {
@@ -617,7 +621,7 @@ export default class AdaApi {
       }
 
       logger.debug('AdaApi::getTransactions success', {
-        transactions: response,
+        transactions: response.length,
       });
       const transactions = response.map((tx) =>
         _createTransactionFromServerData(tx)
@@ -791,12 +795,12 @@ export default class AdaApi {
         walletId,
       });
       logger.debug('AdaApi::getAssets success', {
-        assets: response,
+        assets: response.length,
       });
       const assetsLocalData =
         await global.daedalus.api.localStorage.getAssetsLocalData();
       logger.debug('AdaApi::getAssetsLocalData success', {
-        assetsLocalData,
+        assets: size(assetsLocalData),
       });
       const assets = response.map((asset) =>
         _createAssetFromServerData(
@@ -829,7 +833,7 @@ export default class AdaApi {
     try {
       const response = await getWithdrawalHistory(this.config, walletId);
       logger.debug('AdaApi::getWithdrawals success', {
-        transactions: response,
+        transactions: response.length,
       });
       let withdrawals = new BigNumber(0);
       const outgoingTransactions = response.filter(
@@ -870,7 +874,9 @@ export default class AdaApi {
       const wallet: AdaWallet = await createWallet(this.config, {
         walletInitData,
       });
-      logger.debug('AdaApi::createWallet success', filterLogData({ wallet }));
+      logger.debug('AdaApi::createWallet success', {
+        walletId: wallet.id,
+      });
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::createWallet error', {
@@ -903,13 +909,11 @@ export default class AdaApi {
       );
       // Generate address for the newly created Byron wallet
       const { id: walletId } = legacyWallet;
-      const address: Address = await createByronWalletAddress(this.config, {
+      await createByronWalletAddress(this.config, {
         passphrase: spendingPassword,
         walletId,
       });
-      logger.debug('AdaApi::createByronWalletAddress success', {
-        address,
-      });
+      logger.debug('AdaApi::createByronWalletAddress success');
       const extraLegacyWalletProps = {
         address_pool_gap: 0,
         // Not needed for legacy wallets
@@ -926,7 +930,7 @@ export default class AdaApi {
       };
       const wallet: AdaWallet = { ...legacyWallet, ...extraLegacyWalletProps };
       logger.debug('AdaApi::createLegacyWallet success', {
-        wallet,
+        walletId: wallet.id,
       });
       return _createWalletFromServerData(wallet);
     } catch (error) {
@@ -943,21 +947,18 @@ export default class AdaApi {
 
     try {
       const { walletId, isLegacy } = request;
-      let response;
 
       if (isLegacy) {
-        response = await deleteLegacyWallet(this.config, {
+        await deleteLegacyWallet(this.config, {
           walletId,
         });
       } else {
-        response = await deleteWallet(this.config, {
+        await deleteWallet(this.config, {
           walletId,
         });
       }
 
-      logger.debug('AdaApi::deleteWallet success', {
-        response,
-      });
+      logger.debug('AdaApi::deleteWallet success');
       return true;
     } catch (error) {
       logger.error('AdaApi::deleteWallet error', {
@@ -1015,7 +1016,8 @@ export default class AdaApi {
       }
 
       logger.debug('AdaApi::createTransaction success', {
-        transaction: response,
+        transactionId: response.id,
+        status: response.status,
       });
       return _createTransactionFromServerData(response);
     } catch (error) {
@@ -1110,7 +1112,8 @@ export default class AdaApi {
         }
 
         logger.debug('AdaApi::createTransaction success', {
-          transaction: response,
+          transactionId: response.id,
+          status: response.status,
         });
         return _createTransactionFromServerData(response);
       } catch (error) {
@@ -1203,7 +1206,8 @@ export default class AdaApi {
       }
 
       logger.debug('AdaApi::calculateTransactionFee success', {
-        transactionFee: response,
+        fee: fee.toString(),
+        minimumAda: minimumAda.toString(),
       });
       return {
         fee,
@@ -1280,7 +1284,11 @@ export default class AdaApi {
       });
 
       logger.debug('AdaApi::selectCoins success', {
-        extendedResponse,
+        inputs: extendedResponse.inputs.length,
+        outputs: extendedResponse.outputs.length,
+        certificates: extendedResponse.certificates.length,
+        withdrawals: extendedResponse.withdrawals.length,
+        fee: extendedResponse.fee.toString(),
       });
       return extendedResponse;
     } catch (error) {
@@ -1317,7 +1325,10 @@ export default class AdaApi {
       };
 
       logger.debug('AdaApi::constructTransaction success', {
-        result,
+        inputs: result.coinSelection.inputs.length,
+        outputs: result.coinSelection.outputs.length,
+        certificates: result.coinSelection.certificates.length,
+        fee: result.fee.toString(),
       });
 
       return result;
@@ -1366,7 +1377,8 @@ export default class AdaApi {
         addressId,
       });
       logger.debug('AdaApi::inspectAddress success', {
-        response,
+        addressStyle: response.address_style,
+        stakeReference: response.stake_reference,
       });
       return response;
     } catch (error) {
@@ -1427,9 +1439,7 @@ export default class AdaApi {
       const response = await constructAddress(this.config, {
         data,
       });
-      logger.debug('AdaApi::constructAddress success', {
-        response,
-      });
+      logger.debug('AdaApi::constructAddress success');
       return response;
     } catch (error) {
       logger.error('AdaApi::constructAddress error', {
@@ -1453,9 +1463,7 @@ export default class AdaApi {
         walletId,
         addressIndex,
       });
-      logger.debug('AdaApi::createAddress success', {
-        address,
-      });
+      logger.debug('AdaApi::createAddress success');
       return _createAddressFromServerData(address);
     } catch (error) {
       logger.error('AdaApi::createAddress error', {
@@ -1477,21 +1485,19 @@ export default class AdaApi {
     const { walletId, transactionId, isLegacy } = request;
 
     try {
-      let response;
-
       if (isLegacy) {
-        response = await deleteLegacyTransaction(this.config, {
+        await deleteLegacyTransaction(this.config, {
           walletId,
           transactionId,
         });
       } else {
-        response = await deleteTransaction(this.config, {
+        await deleteTransaction(this.config, {
           walletId,
           transactionId,
         });
       }
 
-      logger.debug('AdaApi::deleteTransaction success', response);
+      logger.debug('AdaApi::deleteTransaction success');
     } catch (error) {
       logger.error('AdaApi::deleteTransaction error', {
         error: describeError(error),
@@ -1601,7 +1607,9 @@ export default class AdaApi {
       const wallet: AdaWallet = await restoreWallet(this.config, {
         walletInitData,
       });
-      logger.debug('AdaApi::restoreWallet success', filterLogData({ wallet }));
+      logger.debug('AdaApi::restoreWallet success', {
+        walletId: wallet.id,
+      });
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreWallet error', {
@@ -1639,10 +1647,9 @@ export default class AdaApi {
         }
       );
       const wallet = { ...hardwareWallet, isHardwareWallet: true };
-      logger.debug(
-        'AdaApi::createHardwareWallet success',
-        filterLogData({ wallet })
-      );
+      logger.debug('AdaApi::createHardwareWallet success', {
+        walletId: wallet.id,
+      });
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::createHardwareWallet error', {
@@ -1657,7 +1664,7 @@ export default class AdaApi {
       const response: GetCurrencyListResponse =
         currencyConfig.responses.list(apiResponse);
       logger.debug('AdaApi::getCurrencyList success', {
-        response,
+        currencies: response.length,
       });
       return response;
     } catch (error) {
@@ -1718,7 +1725,7 @@ export default class AdaApi {
       };
       const wallet = { ...legacyWallet, ...extraLegacyWalletProps };
       logger.debug('AdaApi::restoreLegacyWallet success', {
-        wallet,
+        walletId: wallet.id,
       });
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ address_pool_gap: number; dele... Remove this comment to see the full error message
       return _createWalletFromServerData(wallet);
@@ -1762,13 +1769,11 @@ export default class AdaApi {
       );
       // Generate address for the newly restored Byron wallet
       const { id: walletId } = legacyWallet;
-      const address: Address = await createByronWalletAddress(this.config, {
+      await createByronWalletAddress(this.config, {
         passphrase: spendingPassword,
         walletId,
       });
-      logger.debug('AdaApi::createAddress (Byron) success', {
-        address,
-      });
+      logger.debug('AdaApi::createAddress (Byron) success');
       const extraLegacyWalletProps = {
         address_pool_gap: 0,
         // Not needed for legacy wallets
@@ -1781,7 +1786,7 @@ export default class AdaApi {
       };
       const wallet = { ...legacyWallet, ...extraLegacyWalletProps };
       logger.debug('AdaApi::restoreByronRandomWallet success', {
-        wallet,
+        walletId: wallet.id,
       });
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ address_pool_gap: number; dele... Remove this comment to see the full error message
       return _createWalletFromServerData(wallet);
@@ -1835,7 +1840,7 @@ export default class AdaApi {
       };
       const wallet = { ...legacyWallet, ...extraLegacyWalletProps };
       logger.debug('AdaApi::restoreByronIcarusWallet success', {
-        wallet,
+        walletId: wallet.id,
       });
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ address_pool_gap: number; dele... Remove this comment to see the full error message
       return _createWalletFromServerData(wallet);
@@ -1889,7 +1894,7 @@ export default class AdaApi {
       };
       const wallet = { ...legacyWallet, ...extraLegacyWalletProps };
       logger.debug('AdaApi::restoreByronTrezorWallet success', {
-        wallet,
+        walletId: wallet.id,
       });
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ address_pool_gap: number; dele... Remove this comment to see the full error message
       return _createWalletFromServerData(wallet);
@@ -1943,7 +1948,7 @@ export default class AdaApi {
       };
       const wallet = { ...legacyWallet, ...extraLegacyWalletProps };
       logger.debug('AdaApi::restoreByronLedgerWallet success', {
-        wallet,
+        walletId: wallet.id,
       });
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ address_pool_gap: number; delegation... Remove this comment to see the full error message
       return _createWalletFromServerData(wallet);
@@ -1989,7 +1994,7 @@ export default class AdaApi {
       };
       const wallet = { ...legacyWallet, ...extraLegacyWalletProps };
       logger.debug('AdaApi::restoreExportedByronWallet success', {
-        wallet,
+        walletId: wallet.id,
       });
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ address_pool_gap: number; dele... Remove this comment to see the full error message
       return _createWalletFromServerData(wallet);
@@ -2014,7 +2019,7 @@ export default class AdaApi {
         spendingPassword: spendingPassword || '',
       });
       logger.debug('AdaApi::importWalletFromKey success', {
-        importedWallet,
+        walletId: importedWallet.id,
       });
       return _createWalletFromServerData(importedWallet);
     } catch (error) {
@@ -2044,7 +2049,7 @@ export default class AdaApi {
           })
         : await importWalletAsJSON(this.config, filePath);
       logger.debug('AdaApi::importWalletFromFile success', {
-        importedWallet,
+        walletId: importedWallet.id,
       });
       return _createWalletFromServerData(importedWallet);
     } catch (error) {
@@ -2089,7 +2094,9 @@ export default class AdaApi {
         });
       }
 
-      logger.debug('AdaApi::updateWallet success', filterLogData({ wallet }));
+      logger.debug('AdaApi::updateWallet success', {
+        walletId: wallet.id,
+      });
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::updateWallet error', {
@@ -2116,13 +2123,11 @@ export default class AdaApi {
 
         if (!oldPassword) {
           // Generate address for the Byron wallet for which password was set for the 1st time
-          const address: Address = await createByronWalletAddress(this.config, {
+          await createByronWalletAddress(this.config, {
             passphrase: newPassword,
             walletId,
           });
-          logger.debug('AdaApi::createAddress (Byron) success', {
-            address,
-          });
+          logger.debug('AdaApi::createAddress (Byron) success');
         }
       } else {
         await updateSpendingPassword(this.config, {
@@ -2159,7 +2164,8 @@ export default class AdaApi {
         passphrase,
       });
       logger.debug('AdaApi::quitStakePool success', {
-        result,
+        transactionId: result.id,
+        status: result.status,
       });
       return result;
     } catch (error) {
@@ -2338,7 +2344,7 @@ export default class AdaApi {
       const response = _createRedeemItnRewardsFromServerData(transaction);
 
       logger.debug('AdaApi::requestRedeemItnRewards success', {
-        response,
+        amount: response.toString(),
       });
       return response;
     } catch (error) {
@@ -2361,9 +2367,7 @@ export default class AdaApi {
         walletId,
         filePath,
       });
-      logger.debug('AdaApi::exportWalletToFile success', {
-        response,
-      });
+      logger.debug('AdaApi::exportWalletToFile success');
       return response;
     } catch (error) {
       logger.error('AdaApi::exportWalletToFile error', {
@@ -2393,8 +2397,11 @@ export default class AdaApi {
         });
       }
 
+      // The distribution is the diagnostic payload for fragmentation reports.
+      // The wallet total is not, so it stays out.
       logger.debug('AdaApi::getWalletUtxos success', {
-        response,
+        scale: response.scale,
+        distribution: response.distribution,
       });
       return response;
     } catch (error) {
@@ -2437,7 +2444,7 @@ export default class AdaApi {
     logger.debug('AdaApi::transferFunds called', {
       parameters: {
         sourceWalletId,
-        targetWalletAddresses,
+        targetAddresses: targetWalletAddresses?.length ?? 0,
       },
     });
 
@@ -2455,7 +2462,7 @@ export default class AdaApi {
         passphrase,
       });
       logger.debug('AdaApi::transferFunds success', {
-        response,
+        transactions: Array.isArray(response) ? response.length : 1,
       });
       return response;
     } catch (error) {
@@ -2528,7 +2535,6 @@ export default class AdaApi {
       logger.debug('AdaApi::getStakePools success', {
         stakePoolsTotal: response.length,
         stakePoolsWithMetadata: stakePools.length,
-        unfilteredStakePools: response,
       });
       return stakePools;
     } catch (error) {
@@ -2568,7 +2574,13 @@ export default class AdaApi {
         this.config
       );
       logger.debug('AdaApi::getNetworkInfo success', {
-        networkInfo,
+        syncStatus: get(networkInfo, 'sync_progress.status'),
+        nodeTipSlot: get(networkInfo, 'node_tip.absolute_slot_number', null),
+        networkTipSlot: get(
+          networkInfo,
+          'network_tip.absolute_slot_number',
+          null
+        ),
       });
       const {
         sync_progress: syncProgressRaw,
@@ -2778,7 +2790,8 @@ export default class AdaApi {
         passphrase,
       });
       logger.debug('AdaApi::joinStakePool success', {
-        stakePool: response,
+        transactionId: response.id,
+        status: response.status,
       });
       return response;
     } catch (error) {
@@ -2877,7 +2890,8 @@ export default class AdaApi {
     try {
       const response = await delegateVotes(this.config, params);
       logger.debug('AdaApi::delegateVotes success', {
-        response,
+        transactionId: response.id,
+        status: response.status,
       });
 
       return response;
@@ -2976,7 +2990,8 @@ export default class AdaApi {
         data: { ...data },
       });
       logger.debug('AdaApi::createVotingRegistrationTransaction success', {
-        transaction: response,
+        transactionId: response.id,
+        status: response.status,
       });
       return _createTransactionFromServerData(response);
     } catch (error) {
@@ -3017,7 +3032,8 @@ export default class AdaApi {
       const catalystFund = await getCatalystFund();
 
       logger.debug('AdaApi::getCatalystFund success', {
-        catalystFund,
+        fundId: catalystFund.id,
+        fundName: catalystFund.fund_name,
       });
 
       const fundNumber =
