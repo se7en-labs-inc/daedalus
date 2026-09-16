@@ -26,7 +26,7 @@ const token = (uniqueId: string) => ({
   quantity: new BigNumber('900000000'),
   decimals: 6,
   recommendedDecimals: 6,
-  recommendedDecimalsVerified: true,
+  recommendedDecimalsAttested: true,
   metadata: { name: 'Test Coin', ticker: 'TEST', description: '' },
 });
 

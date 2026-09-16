@@ -7,7 +7,7 @@ decimal places their issuers published, rather than as a fingerprint and a raw i
 
 The cache is a SQLite database in the Electron main process, keyed on the registry subject, and read
 by the renderer over one IPC channel. It has two sources with different jobs. Direct batch queries
-to the Cardano token registry supply tickers, names and decimal places that can be verified locally
+to the Cardano token registry supply tickers, names and decimal places that can be checked locally
 against the minting policy. A pointer service supplies the CIP-25 and CIP-68 records that name an
 NFT, against a pointer the user's own node confirms. Decimal places are applied to displayed and
 entered amounts only when the metadata is cryptographically bound to the token's own minting policy,
@@ -92,7 +92,7 @@ rather than to add a warning beside it.
   carries one, and its decoded asset name where those bytes are printable text.
 - Apply the registry's decimal places to displayed and entered amounts automatically when, and only
   when, the metadata is cryptographically bound to the token's minting policy.
-- Tell the user, in one place, when published decimal places exist but could not be verified.
+- Tell the user, in one place, when published decimal places exist that no issuer signature covers.
 - Stop polling `GET /wallets/{id}/assets`, and delete the code that only existed to serve it.
 - Keep the whole thing small enough that one person can hold it in their head.
 
@@ -113,7 +113,7 @@ rather than to add a warning beside it.
   arrive and are rendered nowhere.
 - **A mirror of the registry.** The cache holds what the user's own wallets hold and what their own
   transaction history renders. It never enumerates the corpus.
-- **Deciding which token is the one the user means.** `verified` proves that the policy which minted
+- **Deciding which token is the one the user means.** The policy binding proves that the policy which minted
   the token authored the metadata. It proves nothing about identity: 660 registry tickers collide
   across 4,256 subjects, 53 percent of the corpus, and many of those collisions are fully
   policy-bound, so two different policies can both pass verification while both claiming the same
@@ -178,14 +178,19 @@ and `:3384`, and at `AssetsStore.ts:67`. `utils/assets.ts:301-307` concatenates 
 asset name followed by policy id; it has no callers and is deleted rather than carried, so the new
 table inherits no ordering ambiguity.
 
-**3. `verified` is a boolean, and it collapses three classes into two.** The underlying data has
+**3. `attested` is a boolean, and it collapses three classes into two.** The underlying data has
 three classes: policy-bound, where the signing key is provably required by the minting policy;
-signed, where a signature exists, but the key is not bound to the policy; and unattested. The boolean
-maps the first to true and the other two to false. The collapse is deliberate, and it is the right
-default, because only the policy-bound case justifies changing a displayed balance without asking.
-A registry operator who can sign with an unbound key can assert any decimal places they like.
+signed, where a signature exists but the key is not bound to the policy; and unattested. The boolean
+maps the first two to true and the third to false.
 
-**4. `verified` is computed in the main process and never carried from the wire.** No field of the
+*Revised 2026-09-16, and it previously read the other way.* The column was `verified` and mapped
+only the policy-bound class to true, on the reasoning that a registry operator who can sign with an
+unbound key can assert any decimal places they like. What that reasoning did not weigh is how much
+of the registry it refuses. `policy` is OPTIONAL and about half the entries publishing a decimals
+value omit it; in a 120-entry sample, refusing them cost 51 signed values to catch 2 unsigned ones,
+neither of which was an attack. The measurement is under goal two.
+
+**4. `attested` is computed in the main process and never carried from the wire.** No field of the
 registry response sets it. It is the output of the verification chain, written at the same moment as
 the row. The renderer receives a boolean it cannot influence.
 
@@ -257,7 +262,8 @@ Cache and verification:
 - [ ] Resolve metadata for the subjects the user holds and for the subjects rendered in their
       transaction list, and for nothing else
 - [ ] Run the three-step verification chain in the main process before any row is written
-- [ ] Write `verified = 1` only when all steps pass; write the row with `verified = 0` otherwise
+- [ ] Write `attested = 1` when a published signature verifies over the `decimals` value at its
+      declared sequence number; write the row with `attested = 0` otherwise
 - [ ] Bound the image store by entry count and by total bytes, and evict least recently fetched
 - [ ] Answer from disk when the network is unavailable
 - [ ] Re-read a row older than seven days on the next demand for it, not on a timer, and rewrite it
@@ -266,7 +272,7 @@ Cache and verification:
 - [ ] Resolve the CIP-25 or CIP-68 record for a held asset the registry does not answer, in two
       calls, and confirm the pointer against the user's own node before writing the row
 - [ ] Write chain-sourced rows with `source = 'chain'`, the mint block's slot, `decimals` NULL and
-      `verified = 0`
+      `attested = 0`
 - [ ] Fetch a CIP-25 record once and never re-read it while its minting policy is closed
 
 Metadata source:
@@ -282,20 +288,20 @@ Metadata source:
 Decimal places:
 
 - [ ] Resolve the decimal places used for formatting and parsing in this order: an explicit user
-      setting, then a verified registry value, then none
-- [ ] Never format with an unverified registry value; keep offering it in the settings dialog as the
+      setting, then an attested registry value, then none
+- [ ] Never format with an unattested registry value; keep offering it in the settings dialog as the
       recommended value, which is what it is today
 - [ ] Label the send amount field with the unit it is accepting, because the interpretation of that
-      field flips for verified tokens at the moment of the migration
+      field flips for attested tokens at the moment of the migration
 - [ ] Show a one-time notice on first run after the update, leading with what changed about entering
       an amount
 - [ ] Extend `isNonRecommendedDecimalSettingUsed` so the disagreement it already renders can say
-      whether the value being disagreed with was verified
+      whether the value being disagreed with was attested
 
 Advisory:
 
-- [ ] State in the asset settings dialog, and only there, when published decimal places exist but
-      could not be verified against the minting policy
+- [ ] State in the asset settings dialog, and only there, when published decimal places exist that
+      no issuer signature covers
 
 Removal:
 
@@ -347,14 +353,14 @@ CREATE TABLE IF NOT EXISTS asset_metadata (
   ticker           TEXT,
   name             TEXT,
   decimals         INTEGER,
-  verified         INTEGER NOT NULL DEFAULT 0,
+  attested         INTEGER NOT NULL DEFAULT 0,
   metadata         TEXT,
   source           TEXT    NOT NULL,
   sequence_number  INTEGER,
   slot             INTEGER,
   updated_at       INTEGER NOT NULL,
   CHECK (subject = policy_id || asset_name),
-  CHECK (verified IN (0, 1)),
+  CHECK (attested IN (0, 1)),
   CHECK (decimals IS NULL OR (decimals >= 0 AND decimals <= 20)),
   CHECK (source IN ('registry', 'chain')),
   CHECK (source <> 'registry' OR slot IS NULL),
@@ -409,18 +415,23 @@ create a second copy of a derivable value that can disagree with the function th
 would tie the name shown for an NFT to a cache row that, for an NFT, the registry will almost never
 have. Decoding happens at render time, works with a cold cache, and works offline.
 
-**`verified` and the three classes.** Per locked decision 3. A row is `verified = 1` only when the
-policy field decodes to a native script whose blake2b-224 digest is the subject's policy id, that
-script **evaluates to true against the set of keys that signed the property**, and the ed25519
-signature over that property verifies. The middle class, a valid signature from a key set the policy
-does not satisfy, is written as `verified = 0` alongside the unattested class. The distinction is
-not recoverable from the row and is deliberately not stored: nothing in the design treats the two
-differently, and a column nothing reads is a column that goes stale.
+**`attested` and the three classes.** Per locked decision 3. A row is `attested = 1` when the
+ed25519 signature over the `decimals` property verifies against the payload built from the subject,
+the property name, the declared value and the declared sequence number. The policy binding, the
+first two of the three steps, is computed and is not what the column records; `attested = 0` means
+no published signature covers the number. The distinction between a policy-bound entry and a merely
+signed one is not recoverable from the row and is deliberately not stored: nothing in the design
+treats the two differently, and a column nothing reads is a column that goes stale.
+
+**The binding steps are still implemented, and still run.** They are what a later change would
+surface as a second column, and they are what makes `verifyRegistryProperty` able to say which of
+three things failed. The rules below are therefore live rather than historical, and the reason the
+binding is not the gate is under goal two.
 
 **Script evaluation is the registry's rule, and a key-hash lookup is not.** Looking for "the key
 hash the script requires" is undefined for `any` and `atLeast` scripts, where no single key is
-required and one signer does not satisfy the policy. Marking such an entry verified would
-reintroduce exactly the operator trust `verified` exists to remove. The reference implementation
+required and one signer does not satisfy the policy. Treating such an entry as policy-bound would
+reintroduce exactly the operator trust the binding exists to remove. The reference implementation
 evaluates the whole script against the attesting key set
 (`token-metadata-creator/src/Cardano/Metadata/Types.hs:253-287`, `evaluatePolicy`):
 
@@ -467,7 +478,7 @@ channel changes what is written and not the shape it is written into.
 row whichever channel answered it. The chain channel is consulted only for subjects the registry
 does not answer, and the two sets are close to disjoint in practice: the registry exists for
 fungible tokens, and CIP-25 and CIP-68 exist for NFTs. Where both could answer, the registry row
-stands, because it is the only one of the two that can carry verified decimal places. That is a
+stands, because it is the only one of the two that can carry attested decimal places. That is a
 precedence rule rather than a schema change, and the `CHECK` constraints already make a row claiming
 both a sequence number and a slot impossible to write.
 
@@ -596,7 +607,7 @@ export type AssetMetadataEntry = {
   ticker: string | null;
   name: string | null;
   decimals: number | null;
-  verified: boolean;
+  attested: boolean;
   source: 'registry' | 'chain';
   hasImage: boolean;
   metadata: Record<string, unknown> | null;
@@ -612,8 +623,8 @@ exactly that boundary. The response therefore carries `unresolved` alongside `en
 
 **`source` is on the entry because a node-confirmed chain row is not the same as an unattested
 one.** A chain row is written only after the pointed-at transaction has been read out of the user's
-own chain and checked to mint that asset under that policy, yet it carries `verified = 0` because
-the registry attestation chain never ran for it. Without `source`, the strongest local proof in the
+own chain and checked to mint that asset under that policy, yet it carries `attested = 0` because
+that column is the verdict on a registry signature and a chain row has none. Without `source`, the strongest local proof in the
 design is indistinguishable from the weakest, and any surface that marks absence of provenance would
 mark it for names Daedalus proved against the user's own immutable database.
 
@@ -799,7 +810,7 @@ and `@ethereumjs/*`, and declaring one in an application that drives hardware wa
 change.
 
 Malleability is not exploitable in this design; it lets an attacker restate a signature over the
-same value, not forge a different one. Strictness is still required, because `verified` is the whole
+same value, not forge a different one. Strictness is still required, because the signature is the whole
 basis on which decimal places are applied to amounts.
 
 **One dependency discrepancy to resolve during implementation.** `package.json:210` declares
@@ -978,10 +989,10 @@ says nothing about its current value. Confirming it locally means querying the l
 is a local-state-query against the node and a third mechanism this plan does not build. CIP-68
 values are therefore stored as Koios reports them. That is acceptable only because of what they are
 used for: a name, and nothing else. An unconfirmed name is the same class of risk locked decision 5
-already accepts for an unverified registry name, where the worst case is a confusing label.
+already accepts for an unattested registry name, where the worst case is a confusing label.
 
 **What is written.** A chain row carries `source = 'chain'`, the mint block's `absolute_slot` in
-`slot`, `sequence_number` NULL, `decimals` NULL and `verified = 0`. `verified` means the registry
+`slot`, `sequence_number` NULL, `decimals` NULL and `attested = 0`. `attested` means the registry
 verification chain of locked decision 3 passed, and a chain row never runs it, so it never claims
 it. Leaving `decimals` NULL is the mechanical form of locked decision 10: the decimals resolution
 order under goal two is untouched by this channel, and no amount anywhere is formatted by a number
@@ -1129,16 +1140,20 @@ predicate, which is the conservative choice while nothing renders them safely. N
 in CIP-25 or CIP-68 metadata wait for the chain channel. Fungible tokens whose only human-readable
 identifier is a registry ticker get nothing until the cache lands, which is the rest of this plan.
 
-#### Goal two: optimistic decimals when verified
+#### Goal two: optimistic decimals when the issuer signed them
 
 The value used to format and to parse an amount resolves in this order:
 
 1. An explicit user setting for that subject, from browser storage, unchanged from today.
-2. The cached registry value, if and only if `verified = 1`.
+2. The cached registry value, if and only if `attested = 1`.
 3. None. Amounts are shown and entered in the raw units the chain holds.
 
-An unverified registry value never formats anything. It stays available to the asset settings dialog
+An unattested registry value never formats anything. It stays available to the asset settings dialog
 as the recommended value, which is exactly what it is today.
+
+`attested` means one of the signatures the registry publishes for the `decimals` property verifies
+over the declared value at the declared sequence number. It does **not** include the policy binding,
+which is the subject of the correction below.
 
 **How often this fires, measured over the whole corpus.** Every mapping file in the registry at
 commit `363982b9`, 2026-09-14, 7,977 files, run through the attestation chain above: strip the era
@@ -1163,12 +1178,46 @@ will be gated against verifies cleanly under the chain this document specifies, 
 projected from a sample. The gate in the Non-Functional Requirements still applies to the
 implementation, which has to reproduce this result.
 
-The operative row is the fourth. **Only 10.7 percent of registry subjects have their displayed and
-entered amounts change.** Everything else is either already raw or unverifiable. Set against the
-11,177,037 distinct mainnet assets recorded in the research note (a planner-estimate count
-retrieved 2026-09-11), the registry's subjects are 0.07 percent of the asset universe, so the share
-of assets a typical user actually holds that gets verified decimals is smaller again and is not
-measured here.
+**The fourth row was read wrongly, and the rule changed because of it.** It was taken to mean that
+10.7 percent of registry subjects have their amounts change and that everything else is either
+already raw or unverifiable. The second half of that is false. Read down the column instead: 6,979
+of the 7,977 entries publish a decimals value, 3,632 of them verify, and the other 3,347 are refused
+because they carry no `policy` field. `policy` is OPTIONAL in the registry's own schema, and its
+absence says nothing about whether the issuer signed the number.
+
+A 120-entry random sample taken on 2026-09-16 separates the two reasons:
+
+| | count | share of the 120 |
+|---|--:|--:|
+| publish a `decimals` value | 106 | 88.3% |
+| of those, attested at the declared sequence number | 104 | 86.7% |
+| of those, also carrying `policy` | 53 | 44.2% |
+| attested but unbound | 51 | 42.5% |
+| not attested | 2 | 1.7% |
+
+The sample agrees with the corpus: 88.3 percent against 87.5 percent publishing a value, and 50.0
+percent against 52.0 percent of those verifying. What it adds is the split of the refusals, and the
+split is 51 to 2. Neither of the 2 is an attack. One carries no signatures at all. The other is
+MELD, `6ac8ef33b510ec004fe11585f7c5a9f0c07f0c23428ab4f29c1d7d104d454c44`, where all six properties
+declare `sequenceNumber` 1 and every signature verifies at 0: an issuer edited the entry and bumped
+the counter without re-signing it.
+
+So requiring the binding refused 51 signed values to catch 2 bookkeeping errors, and it was already
+inconsistent with the rest of the design. USDM,
+`c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad0014df105553444d`, publishes no `policy`
+field, and Daedalus renders its name, its ticker and its description from that entry without
+comment. Only the decimal places were withheld.
+
+**The rule is therefore attestation alone.** The claim it makes is that whoever holds the signing
+key the registry has on file for the subject signed this number at this sequence number. It does not
+claim that key can mint the token. What stands behind it is the registry's own review of a pull
+request against a curated repository, and the user's per-token override, which beats everything.
+
+Roughly half of the registry subjects that publish a decimals value now have their displayed and
+entered amounts drawn in those places. Set against the 11,177,037 distinct mainnet assets recorded
+in the research note (a planner-estimate count retrieved 2026-09-11), the registry's subjects are
+0.07 percent of the asset universe, so the share of assets a typical user actually holds that gets
+issuer decimal places is smaller again and is not measured here.
 
 The two most expensive tasks in the plan sit on this path, and the send-path safety rules exist
 entirely to serve it. The tokens that publish nonzero decimals are the ones where raw units are most
@@ -1176,7 +1225,7 @@ confusing, and the alternative is the status quo where the correct value is on s
 "recommended" and does nothing.
 
 **The risk in this migration is on the input path, not on the balance.** Because the ledger quantity
-is an integer and decimal places are presentation, applying a verified decimal count changes only how
+is an integer and decimal places are presentation, applying an attested decimal count changes only how
 an unchanged integer is drawn. No balance moves, and nothing is spent or received differently.
 
 What flips at the same moment is how the send field is interpreted. Before the migration a user sends
@@ -1189,7 +1238,7 @@ meant to send, and this is bounded only by what they hold.
 So the care goes on the input path during the transition. The amount field is labeled with the unit
 it is now accepting, and the one-time notice leads with what changed about entering an amount rather
 than with displayed balances. The notice is a dismissible banner on the token list, shown on first
-run after the update, once per user and not per asset, and it says two things: amounts for verified
+run after the update, once per user and not per asset, and it says two things: amounts for attested
 tokens are now entered and shown in the issuer's published units, and the per-token setting still
 overrides them. Dismissal is recorded in browser storage alongside the other per-profile flags. A
 user holding no tokens never sees it.
@@ -1204,21 +1253,25 @@ transaction.
 `components/wallet/tokens/wallet-token/helpers.ts:6-24` compares `decimals` against
 `recommendedDecimals` and is consumed at `WalletToken.tsx:52-55` and `AssetSettingsDialog.tsx:157`,
 with its behavior pinned by `helpers.spec.ts`. It gains a third argument, whether the recommended
-value was verified, because the two cases carry different copy. An explicit setting that contradicts
-a policy-bound issuer value gets the direct wording; one that contradicts an unattested value gets
-the weaker wording, since the existing copy at `assets.warning.notUsing` overstates that case. The
+value was attested, because the two cases carry different copy. An explicit setting that contradicts
+a signed issuer value gets the direct wording; one that contradicts an unattested value gets the
+weaker wording, since the existing copy at `assets.warning.notUsing` overstates that case. The
 argument object is extended rather than a second helper added, and `helpers.spec.ts` is extended in
 the same change.
 
-#### Goal three: the advisory when verification fails
+#### Goal three: the advisory when attestation fails
 
 One place, one sentence: the asset settings dialog
 (`components/assets/AssetSettingsDialog.tsx`), beside the decimal places field, saying that the
-issuer's published decimal places for this token could not be verified against its minting policy
-and are therefore not applied automatically. Nowhere else.
+issuer's signature does not cover the published decimal places for this token and that they are
+therefore not applied automatically. Nowhere else.
+
+Under the attestation rule this is a rare sentence rather than a common one: 2 entries in 120 rather
+than 53. That is the point of it. A sentence shown for half of a user's tokens is decoration; one
+shown for a token whose issuer published a number nothing signed is a warning.
 
 Not on the token row. The row already carries a warning icon at `Asset.tsx:215-228` for
-decimal-setting disagreement. A second per-row badge for unverified metadata
+decimal-setting disagreement. A second per-row badge for unattested metadata
 would appear on a large share of rows, because a large share of registry subjects carry no policy
 field at all, and a badge that appears on most rows is decoration rather than a warning. The signal
 the user already gets is the absence of formatting: the amount shows in raw units, which is the
@@ -1341,7 +1394,7 @@ case, and it recurs every time a user acquires a token the cache has not yet see
    are ambiguous once the denomination moves, and neither interpretation can be assumed. If the
    field is empty, the snapshot updates silently and nothing is shown.
 
-Both rules apply equally when `decimals` moves from unknown to known and when a cached verified
+Both rules apply equally when `decimals` moves from unknown to known and when a cached attested
 value changes on re-read. Both are covered by the negative cases in the Testing Strategy.
 
 ### Components Affected
@@ -1368,7 +1421,7 @@ value changes on re-read. Both are covered by the negative cases in the Testing 
 - `source/renderer/app/utils/assetFingerprint.ts`: new, CIP-14.
 - `source/renderer/app/components/assets/Asset.tsx`: name resolution and the printable-ASCII
   predicate.
-- `source/renderer/app/components/assets/AssetSettingsDialog.tsx`: the unverified advisory.
+- `source/renderer/app/components/assets/AssetSettingsDialog.tsx`: the unattested advisory.
 - `source/renderer/app/components/wallet/tokens/wallet-token/helpers.ts` and `helpers.spec.ts`: the
   third input.
 - The `isLoadingAssets` removal spans four computation sites and six consumers.
@@ -1458,7 +1511,7 @@ value changes on re-read. Both are covered by the negative cases in the Testing 
 - Attestation payload construction and ed25519 verification, including a tampered value, a tampered
   sequence number and a signature that is valid for a different property.
 - Decimals resolution across all combinations of user setting present or absent, cached value
-  present or absent, and verified true or false.
+  present or absent, and attested true or false.
 - `isNonRecommendedDecimalSettingUsed` with the third input, extending the existing
   `helpers.spec.ts`.
 - The merge helper with a cold lookup, asserting that a token with no cached row survives with its
@@ -1472,7 +1525,7 @@ value changes on re-read. Both are covered by the negative cases in the Testing 
 - Pointer resolution over a recorded `asset_info` and `tx_cbor` pair, and the three local checks
   against those bytes, with negative cases: tampered auxiliary data, a mint field naming a different
   policy, and a transaction hash that does not reproduce.
-- A chain row asserting `decimals` is NULL and `verified` is 0, so the decimals resolution order is
+- A chain row asserting `decimals` is NULL and `attested` is 0, so the decimals resolution order is
   provably untouched by that channel.
 
 **Corpus validation**, not a unit test and not in CI: verification is run over the full registry
@@ -1484,7 +1537,7 @@ are accepted. This is the gate in the Non-Functional Requirements.
 - First run with an empty database, a wallet holding several tokens, offline. Rows render with
   fingerprint and quantity, nothing spins, nothing errors.
 - The same wallet online. Tickers and formatted amounts appear without a reload.
-- A token with verified decimals, a token with unverified decimals, and a token the registry does
+- A token with attested decimals, a token with unattested decimals, and a token the registry does
   not know, side by side in the list and in the send form.
 - The send form for a token with unresolved decimals: the decimal separator cannot be typed, by
   keyboard or by paste.
@@ -1590,7 +1643,7 @@ image channel stay.
    `asset_metadata`, which has neither, because connector traffic writes attacker-chosen subjects
    into a table currently bounded only by what the user holds.
 
-4. **Does `verified` mean the row, or the `decimals` property?** It is defined per property and
+4. **Does the verdict column mean the row, or the `decimals` property?** It is defined per property and
    stored as one boolean per row. If a row's `ticker` verifies and its `decimals` carries no
    signature, does that row apply decimals automatically? No entry in the 600-subject sample mixes
    signed and unsigned properties, so this is theoretical today. It still needs one sentence in the
@@ -1726,7 +1779,7 @@ What phase 7 produced:
   absent on every refusal.
 - The local confirmation, which is what makes the index an index. Three checks
   over the bytes and one against the block in the user's own immutable database.
-- Chain rows, with `decimals` NULL and `verified` false on every one of them, and
+- Chain rows, with `decimals` NULL and `attested` false on every one of them, and
   a name resolution rung between the published name and the decoded one.
 - Per-channel freshness: a CIP-25 record under a policy that can never mint again
   is read once for the life of an installation.
@@ -1764,8 +1817,52 @@ Corrections to this document, recorded rather than edited in:
   answers the question being asked, which is whether the database holds that slot
   yet.
 
+### 2026-09-16: The decimals gate is attestation, not the policy binding
+
+`task-046`. The rule that decides whether a published decimal place count is
+applied moves from the full three-step chain to its third step alone, and the
+column that records it is renamed from `verified` to `attested` at every layer it
+crosses.
+
+**Why, in one number.** `policy` is OPTIONAL in the registry's schema and about
+half the entries that publish a decimals value omit it. In a 120-entry random
+sample of the 7,977 mappings, 106 publish a value, 104 are attested at their
+declared sequence number, and 53 also carry `policy`. So the rule as built
+refused 51 signed values to catch 2 unsigned ones, and neither of the 2 is an
+attack: one carries no signatures, and the other declares a sequence number one
+above the one its signatures cover. The whole-corpus table under goal two already
+contained this and was read only for the row it was taken to answer.
+
+It was also inconsistent with the rest of the design. USDM carries no `policy`
+field, and Daedalus renders its name, its ticker and its description from that
+entry without comment. Only its decimal places were withheld.
+
+**What the rename buys.** The word has to match what was measured. A column named
+`verified` holding the answer to "is it signed" overstates its own content, which
+is the same defect `task-041` and `task-045` corrected in two other places in this
+plan. `attested` also leaves room beside it for `bound`, which is what a later
+change would add if the binding verdict is ever made user-visible.
+
+**The database version goes to 2, and it has to.** The schema is applied with
+`CREATE TABLE IF NOT EXISTS`, which will not add a renamed column to a table that
+already exists, so a file kept rather than deleted would answer every read with
+`no such column: attested`. The existing recreate path is the whole migration: a
+version mismatch throws on open, the file and its WAL siblings are deleted, and
+the cache refills from the registry.
+
+**What is not in this pass.** No settings toggle: the owner deferred it to the
+tokens settings page that will carry the image controls. No positive marker for
+the policy binding, because that design is unsettled; the binding is still
+computed and still separable in `verifyRegistryProperty`, and it is simply not
+what the column records.
+
+**One vocabulary is left inconsistent on purpose.** Every user-visible string
+here says "issuer". The deferred toggle is specified as "use publisher's decimal
+values". Reconciling the two belongs in the task that puts both on screen at
+once, not here.
+
 ---
 
 **Status:** In Progress
-**Date:** 2026-09-10, updated 2026-09-11, revised 2026-09-14, phases 1 to 6 built 2026-09-15, phase 7 built 2026-09-16
+**Date:** 2026-09-10, updated 2026-09-11, revised 2026-09-14, phases 1 to 6 built 2026-09-15, phase 7 built 2026-09-16, decimals gate revised 2026-09-16
 **Author:** Se7en Labs

@@ -104,7 +104,7 @@ const seedMetadata = (subject = SUBJECT) => {
         ticker: 'BTED',
         name: null,
         decimals: null,
-        verified: false,
+        attested: false,
         metadata: null,
         source: 'registry',
         sequenceNumber: 0,

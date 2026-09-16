@@ -31,9 +31,9 @@ export type AssetResolutionState =
  * A registry row is published by an issuer and may or may not be bound to the
  * minting policy. A chain row is read out of the user's own immutable database
  * and confirmed to mint that asset under that policy, and it still carries
- * `verified: false`, because the registry attestation chain never ran for it.
- * Without this field the strongest local proof in the design is
- * indistinguishable from the weakest.
+ * `attested: false`, because that field is the verdict on a registry signature
+ * and a chain row has none. Without this field the strongest local proof in the
+ * design is indistinguishable from the weakest.
  */
 export type AssetMetadataSource = 'registry' | 'chain';
 
@@ -68,7 +68,8 @@ export type AssetMetadataEntry = {
   ticker: string | null;
   name: string | null;
   decimals: number | null;
-  verified: boolean;
+  /** Whether the issuer's signature covers `decimals` at its sequence number. */
+  attested: boolean;
   source: AssetMetadataSource;
   hasImage: boolean;
   metadata: Record<string, unknown> | null;

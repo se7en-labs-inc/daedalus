@@ -51,13 +51,13 @@ describe('AssetSettingsDialog', () => {
     expect(screen.queryByTestId('warning-icon')).toBeInTheDocument();
   });
 
-  describe('when the published decimal places were verified', () => {
+  describe('when the published decimal places were attested', () => {
     it('puts a setting that contradicts them plainly', async () => {
       await openDialogFor({
         ...withDecimalPlacesToken,
         decimals: 2,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: true,
+        recommendedDecimalsAttested: true,
       });
       expect(screen.getByTestId('warning-icon')).toHaveAttribute(
         'aria-label',
@@ -70,7 +70,7 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: 6,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: true,
+        recommendedDecimalsAttested: true,
       });
       expect(screen.queryByTestId('warning-icon')).not.toBeInTheDocument();
     });
@@ -83,7 +83,7 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       };
       await openDialogFor(asset, onRefresh);
 
@@ -93,13 +93,13 @@ describe('AssetSettingsDialog', () => {
       expect(onRefresh).toHaveBeenCalledWith(asset);
     });
 
-    it('is offered for a token whose published value verified too', async () => {
+    it('is offered for a token whose published value attested too', async () => {
       await openDialogFor(
         {
           ...withDecimalPlacesToken,
           decimals: 6,
           recommendedDecimals: 6,
-          recommendedDecimalsVerified: true,
+          recommendedDecimalsAttested: true,
         },
         jest.fn()
       );
@@ -115,7 +115,7 @@ describe('AssetSettingsDialog', () => {
           ...withDecimalPlacesToken,
           decimals: null,
           recommendedDecimals: 6,
-          recommendedDecimalsVerified: false,
+          recommendedDecimalsAttested: false,
         },
         onRefresh
       );
@@ -123,7 +123,7 @@ describe('AssetSettingsDialog', () => {
       fireEvent.click(screen.getByTestId('refresh-metadata'));
 
       expect(screen.getByText('Number of decimal places')).toBeInTheDocument();
-      expect(screen.getByTestId('unverified-decimals')).toBeInTheDocument();
+      expect(screen.getByTestId('unattested-decimals')).toBeInTheDocument();
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
@@ -132,7 +132,7 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
       expect(screen.queryByTestId('refresh-metadata')).not.toBeInTheDocument();
     });
@@ -140,29 +140,29 @@ describe('AssetSettingsDialog', () => {
 
   describe('the advisory beside the decimal places field', () => {
     const sentence =
-      'This token’s issuer publishes 6 decimal places. That figure could not be checked against the token’s minting policy, so Daedalus does not apply it on its own.';
+      'This token’s issuer publishes 6 decimal places. The issuer’s signature does not cover that figure, so Daedalus does not apply it on its own.';
 
-    it('appears for a published value that could not be verified', async () => {
+    it('appears for a published value no signature covers', async () => {
       await openDialogFor({
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
-      expect(screen.getByTestId('unverified-decimals')).toHaveTextContent(
+      expect(screen.getByTestId('unattested-decimals')).toHaveTextContent(
         sentence
       );
     });
 
-    it('does not appear for a published value that verified', async () => {
+    it('does not appear for a published value the issuer signed', async () => {
       await openDialogFor({
         ...withDecimalPlacesToken,
         decimals: 6,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: true,
+        recommendedDecimalsAttested: true,
       });
       expect(
-        screen.queryByTestId('unverified-decimals')
+        screen.queryByTestId('unattested-decimals')
       ).not.toBeInTheDocument();
     });
 
@@ -171,23 +171,23 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: null,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
       expect(
-        screen.queryByTestId('unverified-decimals')
+        screen.queryByTestId('unattested-decimals')
       ).not.toBeInTheDocument();
     });
 
-    it('appears for an unverified published zero', async () => {
+    it('appears for an unattested published zero', async () => {
       // The disagreement verdict is suppressed for this combination, which is
       // why the sentence has its own condition rather than reusing it.
       await openDialogFor({
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: 0,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
-      expect(screen.getByTestId('unverified-decimals')).toHaveTextContent(
+      expect(screen.getByTestId('unattested-decimals')).toHaveTextContent(
         'publishes 0 decimal places'
       );
     });
@@ -197,9 +197,9 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: 1,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
-      expect(screen.getByTestId('unverified-decimals')).toHaveTextContent(
+      expect(screen.getByTestId('unattested-decimals')).toHaveTextContent(
         'publishes 1 decimal place.'
       );
     });
@@ -209,25 +209,25 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: 2,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
-      expect(screen.getByTestId('unverified-decimals')).toHaveTextContent(
+      expect(screen.getByTestId('unattested-decimals')).toHaveTextContent(
         sentence
       );
     });
   });
 
-  describe('when the published decimal places could not be verified', () => {
+  describe('when the published decimal places were not attested', () => {
     it('puts a setting that contradicts them more weakly', async () => {
       await openDialogFor({
         ...withDecimalPlacesToken,
         decimals: 2,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
       expect(screen.getByTestId('warning-icon')).toHaveAttribute(
         'aria-label',
-        'Your setting differs from the 6 decimal places this token’s issuer publishes. That figure could not be checked against the token’s minting policy.'
+        'Your setting differs from the 6 decimal places this token’s issuer publishes. The issuer’s signature does not cover that figure.'
       );
     });
 
@@ -236,11 +236,11 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: 2,
         recommendedDecimals: 1,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
       expect(screen.getByTestId('warning-icon')).toHaveAttribute(
         'aria-label',
-        'Your setting differs from the 1 decimal place this token’s issuer publishes. That figure could not be checked against the token’s minting policy.'
+        'Your setting differs from the 1 decimal place this token’s issuer publishes. The issuer’s signature does not cover that figure.'
       );
     });
 
@@ -249,11 +249,11 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: 6,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
       expect(screen.getByTestId('warning-icon')).toHaveAttribute(
         'aria-label',
-        'This token’s issuer publishes 6 decimal places. That figure could not be checked against the token’s minting policy, so it is offered here rather than applied.'
+        'This token’s issuer publishes 6 decimal places. The issuer’s signature does not cover that figure, so it is offered here rather than applied.'
       );
     });
 
@@ -262,11 +262,11 @@ describe('AssetSettingsDialog', () => {
         ...withDecimalPlacesToken,
         decimals: null,
         recommendedDecimals: 1,
-        recommendedDecimalsVerified: false,
+        recommendedDecimalsAttested: false,
       });
       expect(screen.getByTestId('warning-icon')).toHaveAttribute(
         'aria-label',
-        'This token’s issuer publishes 1 decimal place. That figure could not be checked against the token’s minting policy, so it is offered here rather than applied.'
+        'This token’s issuer publishes 1 decimal place. The issuer’s signature does not cover that figure, so it is offered here rather than applied.'
       );
     });
   });

@@ -20,7 +20,7 @@ export default class Asset {
   @observable
   recommendedDecimals: number | null | undefined;
   @observable
-  recommendedDecimalsVerified: boolean | null | undefined;
+  recommendedDecimalsAttested: boolean | null | undefined;
   @observable
   hasImage: boolean | null | undefined;
   @observable
@@ -50,7 +50,7 @@ export default class Asset {
         'metadata',
         'decimals',
         'recommendedDecimals',
-        'recommendedDecimalsVerified',
+        'recommendedDecimalsAttested',
         'hasImage',
         'source',
       ]),

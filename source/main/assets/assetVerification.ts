@@ -266,8 +266,8 @@ export const nativeScriptPolicyId = (scriptBytes: Uint8Array): string => {
 
 /**
  * Steps one and two of the three the PRD specifies. The verdict this returns is
- * not `verified`: the attestation signature is step three, and `task-010` is
- * where the three are combined into the column.
+ * not the whole chain: the attestation signature is step three, and
+ * `verifyRegistryProperty` is where the three are combined.
  *
  * The digest is taken before the script is decoded, and that ordering is the
  * point. The decoder only ever runs on bytes that already hash to the subject's
@@ -456,9 +456,15 @@ export type PropertyVerificationResult = {
  * `attested: false` because nobody looked are different sentences and the
  * advisory shown to a user has to tell them apart.
  *
- * `verified` is the conjunction and is the only field to test for a verdict. It
- * is computed here from the bytes and is never read from a field of a registry
- * response.
+ * `verified` is the conjunction of all three. It is not what decides whether a
+ * decimals value is applied: that gate is `attested` alone, because `bound`
+ * requires an OPTIONAL registry field that about half of the entries publishing
+ * a decimals value omit, and the resolver records the reasoning. `verified`
+ * stays here because the three steps are separable in this module and nowhere
+ * else, and a caller that wants the full chain should not have to recompose it.
+ *
+ * Every field is computed here from the bytes. None is read from a field of a
+ * registry response.
  */
 export const verifyRegistryProperty = (
   subject: string,

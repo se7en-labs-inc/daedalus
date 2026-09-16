@@ -44,7 +44,7 @@ const ASSET_NAME = '42544544';
 const SUBJECT = `${POLICY_ID}${ASSET_NAME}`;
 
 const METADATA_COLUMNS =
-  'subject, policy_id, asset_name, ticker, name, decimals, verified, metadata, source, sequence_number, slot, updated_at';
+  'subject, policy_id, asset_name, ticker, name, decimals, attested, metadata, source, sequence_number, slot, updated_at';
 
 type RawMetadata = {
   subject?: string;
@@ -53,7 +53,7 @@ type RawMetadata = {
   ticker?: string | null;
   name?: string | null;
   decimals?: number | string | null;
-  verified?: number;
+  attested?: number;
   metadata?: string | null;
   source?: string;
   sequenceNumber?: number | null;
@@ -73,7 +73,7 @@ const metadataWrite = (
   ticker: 'BTED',
   name: 'BitEd Token',
   decimals: 0,
-  verified: true,
+  attested: true,
   metadata: null,
   source: 'registry',
   sequenceNumber: 0,
@@ -81,7 +81,7 @@ const metadataWrite = (
   ...overrides,
 });
 
-// The typed accessors cannot express a row that violates the schema: `verified`
+// The typed accessors cannot express a row that violates the schema: `attested`
 // is a boolean there and `decimals` a number. These probes go straight at the
 // engine, which is the only thing that can prove a CHECK is enforced rather
 // than merely written down.
@@ -98,7 +98,7 @@ const rawInsertMetadata = (raw: RawMetadata = {}): void => {
       raw.ticker ?? null,
       raw.name ?? null,
       raw.decimals === undefined ? 0 : raw.decimals,
-      raw.verified === undefined ? 1 : raw.verified,
+      raw.attested === undefined ? 1 : raw.attested,
       raw.metadata ?? null,
       raw.source ?? 'registry',
       raw.sequenceNumber === undefined ? 0 : raw.sequenceNumber,
@@ -177,16 +177,16 @@ describe('asset_metadata constraints', () => {
     ).not.toThrow();
   });
 
-  it('rejects a verified value outside 0 and 1', () => {
-    expect(() => rawInsertMetadata({ verified: 2 })).toThrow(
+  it('rejects an attested value outside 0 and 1', () => {
+    expect(() => rawInsertMetadata({ attested: 2 })).toThrow(
       /CHECK constraint failed/
     );
   });
 
-  it('accepts both verified values', () => {
-    expect(() => rawInsertMetadata({ verified: 0 })).not.toThrow();
+  it('accepts both attested values', () => {
+    expect(() => rawInsertMetadata({ attested: 0 })).not.toThrow();
     expect(() =>
-      rawInsertMetadata({ subject: POLICY_ID, assetName: '', verified: 1 })
+      rawInsertMetadata({ subject: POLICY_ID, assetName: '', attested: 1 })
     ).not.toThrow();
   });
 
@@ -336,6 +336,41 @@ describe('opening the database', () => {
     expect(rawUserVersion()).toBe(ASSET_METADATA_DB_VERSION);
   });
 
+  // The concrete migration this version exists for. Version 1 carried the same
+  // table with the verdict column named `verified`, and the schema is applied
+  // with CREATE TABLE IF NOT EXISTS, so a file kept rather than deleted would
+  // keep that column and answer every read with `no such column: attested`.
+  it('recreates a cache written under the previous schema', () => {
+    fs.mkdirSync(path.dirname(databaseFile), { recursive: true });
+    rawExec(`
+      CREATE TABLE asset_metadata (
+        subject          TEXT    NOT NULL PRIMARY KEY,
+        policy_id        TEXT    NOT NULL,
+        asset_name       TEXT    NOT NULL,
+        ticker           TEXT,
+        name             TEXT,
+        decimals         INTEGER,
+        verified         INTEGER NOT NULL DEFAULT 0,
+        metadata         TEXT,
+        source           TEXT    NOT NULL,
+        sequence_number  INTEGER,
+        slot             INTEGER,
+        updated_at       INTEGER NOT NULL
+      ) STRICT;
+      INSERT INTO asset_metadata VALUES
+        ('${SUBJECT}', '${POLICY_ID}', '${ASSET_NAME}', 'BTED', 'BitEd Token',
+         6, 0, NULL, 'registry', 0, NULL, 1700000000000);
+      PRAGMA user_version = 1;
+    `);
+
+    const db = openAssetMetadataDatabase(databaseFile);
+    expect(db.readMetadata([SUBJECT])).toEqual([]);
+    expect(db.writeMetadata([metadataWrite()])).toBe(1);
+    expect(db.readMetadata([SUBJECT])).toHaveLength(1);
+    db.close();
+    expect(rawUserVersion()).toBe(ASSET_METADATA_DB_VERSION);
+  });
+
   it('recreates a database stamped with any other version', () => {
     const first = openAssetMetadataDatabase(databaseFile);
     first.writeMetadata([metadataWrite()]);
@@ -428,7 +463,7 @@ describe('reading and writing', () => {
           ticker: null,
           name: null,
           decimals: null,
-          verified: false,
+          attested: false,
           metadata: '{"url":"https://bit-ed.org/"}',
         }),
       ],
@@ -441,7 +476,7 @@ describe('reading and writing', () => {
       ticker: null,
       name: null,
       decimals: null,
-      verified: false,
+      attested: false,
       metadata: '{"url":"https://bit-ed.org/"}',
       source: 'registry',
       sequenceNumber: 0,

@@ -20,11 +20,12 @@ export type Asset = {
   policyId: string;
   recommendedDecimals?: number | null;
   /**
-   * Whether `recommendedDecimals` was cryptographically bound to the token's
-   * minting policy. Only a verified value is applied automatically; an
-   * unverified one is offered in the settings dialog and formats nothing.
+   * Whether the issuer's signature covers `recommendedDecimals` at the sequence
+   * number the registry declares for it. Only an attested value is applied
+   * automatically; an unattested one is offered in the settings dialog and
+   * formats nothing.
    */
-  recommendedDecimalsVerified?: boolean;
+  recommendedDecimalsAttested?: boolean;
   /**
    * Whether the cache holds a logo for this subject. It is not the logo: the
    * bytes travel on their own channel, one subject at a time, so that a picture

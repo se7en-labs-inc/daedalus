@@ -2,33 +2,32 @@
  * How strongly a disagreement between the user's decimal-place setting and the
  * issuer's published value is worth putting.
  *
- * A published value that was cryptographically bound to the token's minting
- * policy is a claim by the issuer that can be checked, and a setting that
- * contradicts it is worth saying plainly. A published value with no such
- * binding is a number nobody can vouch for, and saying the user is "not using
- * the recommended configuration" overstates it.
+ * A published value the issuer signed is a claim that can be checked against
+ * the signature, and a setting that contradicts it is worth saying plainly. A
+ * published value no signature covers is a number nobody can vouch for, and
+ * saying the user is "not using the recommended configuration" overstates it.
  */
 export enum DecimalSettingDisagreement {
   None = 'none',
-  WithVerified = 'withVerified',
-  WithUnverified = 'withUnverified',
+  WithAttested = 'withAttested',
+  WithUnattested = 'withUnattested',
 }
 
 type DecimalSettingDisagreementArgs = {
   decimals: number | null | undefined;
   recommendedDecimals: number | null | undefined;
   /**
-   * The verdict for `recommendedDecimals`. Read with `===`, so an argument
-   * object built without it reports the weaker disagreement rather than the
-   * stronger one.
+   * The attestation verdict for `recommendedDecimals`. Read with `===`, so an
+   * argument object built without it reports the weaker disagreement rather
+   * than the stronger one.
    */
-  recommendedDecimalsVerified?: boolean | null;
+  recommendedDecimalsAttested?: boolean | null;
 };
 
 export const decimalSettingDisagreement = ({
   recommendedDecimals,
   decimals,
-  recommendedDecimalsVerified,
+  recommendedDecimalsAttested,
 }: DecimalSettingDisagreementArgs): DecimalSettingDisagreement => {
   const hasRecommendedDecimals = typeof recommendedDecimals === 'number';
   const hasConfiguredDecimals = typeof decimals === 'number';
@@ -38,9 +37,9 @@ export const decimalSettingDisagreement = ({
   }
 
   const disagreement =
-    recommendedDecimalsVerified === true
-      ? DecimalSettingDisagreement.WithVerified
-      : DecimalSettingDisagreement.WithUnverified;
+    recommendedDecimalsAttested === true
+      ? DecimalSettingDisagreement.WithAttested
+      : DecimalSettingDisagreement.WithUnattested;
 
   if (hasConfiguredDecimals) {
     return decimals !== recommendedDecimals

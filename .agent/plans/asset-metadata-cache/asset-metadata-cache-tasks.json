@@ -3,10 +3,10 @@
   "title": "Asset Metadata Cache Tasks",
   "created": "2026-09-10",
   "updated": "2026-09-16",
-  "version": "1.8.0",
-  "totalTasks": 45,
+  "version": "1.9.0",
+  "totalTasks": 46,
   "prdReference": ".agent/plans/asset-metadata-cache/asset-metadata-cache-prd.md",
-  "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the metadata is cryptographically bound to the minting policy, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
+  "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the issuer signed them, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
   "sourceFiles": [
    ".agent/plans/asset-metadata-cache/prompt.md",
    "source/renderer/app/stores/AssetsStore.ts",
@@ -1117,6 +1117,57 @@
       "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged"
      ],
      "notes": "Found in manual QA against a real mainnet wallet on this branch. task-021 was accepted on ten passing cases and a screenshot step nobody could run, and the two were never weighed against each other. A suite that cannot see a rendered pixel is not evidence that a pixel renders."
+    },
+    {
+     "id": "task-046",
+     "title": "Apply the registry's decimal places on attestation alone, and call the column attested",
+     "description": "resolveAssetDecimals applies a registry decimals value only when the verdict column is true, and that column is bound && satisfied && attested. bound needs the registry's OPTIONAL policy field, which about half the entries publishing a decimals value omit, so half of them are refused for a reason that is not about whether the issuer signed anything. The gate moves to attested alone, the column and every field carrying it are renamed from verified to attested, the database version goes to 2 so an existing cache is recreated, and the four user-visible strings written around the old meaning are rewritten.",
+     "status": "completed",
+     "priority": "high",
+     "estimatedHours": 4.0,
+     "dependencies": [
+      "task-010",
+      "task-019",
+      "task-020",
+      "task-022"
+     ],
+     "targetPaths": [
+      "source/main/assets/assetMetadataResolver.ts",
+      "source/main/assets/assetMetadataDb.ts",
+      "source/main/assets/registryEntry.fixture.ts",
+      "source/common/types/asset-metadata.types.ts",
+      "source/renderer/app/utils/assetDecimals.ts",
+      "source/renderer/app/components/assets/AssetSettingsDialog.tsx",
+      "source/renderer/app/components/wallet/tokens/wallet-token/helpers.ts"
+     ],
+     "implementationNotes": [
+      "Measured against the live registry on 2026-09-16, 120 mappings sampled at random from 7,977: 106 publish a decimals value, 104 of those are attested at the declared sequence number, 53 also carry policy and are therefore what the old rule applied, 51 are attested but unbound and were refused, and 2 are not attested. The sample agrees with the whole-corpus table in the PRD, where 6,979 of 7,977 publish a value and 3,632 of those verify.",
+      "Neither of the 2 refusals is an attack. One carries no signatures. The other is MELD, 6ac8ef33b510ec004fe11585f7c5a9f0c07f0c23428ab4f29c1d7d104d454c44, where all six properties declare sequenceNumber 1 and every signature verifies at 0: an issuer edited the entry and bumped the counter without re-signing it.",
+      "The old rule was already inconsistent with the rest of the design. USDM, c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad0014df105553444d, carries no policy field, and its name, ticker and description are rendered from that entry without comment. Only its decimal places were withheld.",
+      "The rename is not cosmetic. A column named verified holding the answer to 'is it signed' overstates its own content, which is the defect task-041 and task-045 corrected elsewhere in this plan, and attested leaves room beside it for bound if the binding verdict is ever surfaced.",
+      "The version bump is required for correctness, not freshness. The schema is applied with CREATE TABLE IF NOT EXISTS, which will not add a renamed column to an existing table, so a file kept rather than deleted would answer every read with 'no such column: attested'. openHandle throws on a version mismatch and the constructor deletes the file and its WAL siblings and reopens, which is the whole migration.",
+      "verifyRegistryProperty keeps all four of its fields including verified. It is the one module where the three steps are separable and the conjunction is still a true statement about a property; what was wrong there was the comment claiming verified is the only field to test for a verdict.",
+      "Three message ids move to *Unattested, so all three locale files were hand-edited. yarn i18n:manage adds keys it does not find and never rewrites one it does, so a changed default under an unchanged id would leave every check green and the old wording on screen. All four Japanese values were !!!-prefixed English placeholders before and after, so no translator output was dropped.",
+      "The rename reaches two names outside the brief's list: DecimalSettingDisagreement.WithVerified and WithUnverified, which decide which of two sentences the settings dialog shows. They became WithAttested and WithUnattested."
+     ],
+     "testCases": [
+      "registryEntryToRow over the real USDM entry produces decimals 6 and attested true from an entry with no policy field",
+      "registryEntryToRow over the real MELD entry produces decimals 6 and attested false",
+      "isPropertyAttested over every MELD property is false at the declared sequence number and true at the one its signatures cover, which distinguishes a stale registry edit from a wrong signature",
+      "The resolver attests an entry that publishes no policy at all, replacing the case that asserted the opposite",
+      "resolveAssetDecimals applies an attested value with no user setting, refuses an unattested one, refuses one with no verdict, and still lets a user setting of zero beat an attested six",
+      "A cache written under the previous schema at version 1 is deleted and recreated rather than read"
+     ],
+     "acceptance": [
+      "An attested decimals value is applied whether or not the entry carries a policy field",
+      "An unattested value is refused and the amount is drawn in raw units",
+      "A user's per-subject setting still wins over both, including zero against a nonzero attested value",
+      "No column, type field, IPC field, prop or enum member on the verdict's path is still called verified",
+      "ASSET_METADATA_DB_VERSION is 2 and a cache written at 1 is recreated",
+      "compile, lint, stylelint, i18n and jest green from nix build",
+      "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged"
+     ],
+     "notes": "The number that changed the design was already in this plan. The whole-corpus table has held the shares since 2026-09-14 and was read as '10.7 percent of subjects get formatted amounts' rather than as 'half the entries that publish a number are refused for lacking an optional field'. A table that answers the question asked of it stops being re-read."
     }
    ]
   },
@@ -1823,8 +1874,8 @@
  ],
  "summary": {
   "totalPhases": 7,
-  "totalTasks": 45,
-  "estimatedTotalHours": 207.0,
+  "totalTasks": 46,
+  "estimatedTotalHours": 211.0,
   "criticalPath": [
    "task-007",
    "task-008",
@@ -1851,7 +1902,8 @@
    "source/main/assets/koiosClient.ts",
    "source/main/assets/chainPointerVerification.ts",
    "source/renderer/app/config/assetsConfig.ts",
-   "source/renderer/app/components/settings/categories/AssetMetadataSettings.tsx"
+   "source/renderer/app/components/settings/categories/AssetMetadataSettings.tsx",
+   "source/main/assets/registryEntry.fixture.ts"
   ],
   "riskAreas": [
    "The registry attestation payload construction is not reproduced from first principles. A local sweep of 3,600 plausible constructions against a real mainnet subject did not match the published signature, so it is read from the registry's own implementation and confirmed by the corpus gate in task-009 rather than by inspection.",

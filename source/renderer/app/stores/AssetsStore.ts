@@ -376,13 +376,13 @@ export default class AssetsStore extends Store {
     if (fingerprint === null) return null;
     const metadata = entry ? metadataOf(entry) : null;
     const recommendedDecimals = entry ? entry.decimals : null;
-    const recommendedDecimalsVerified = entry ? entry.verified : false;
+    const recommendedDecimalsAttested = entry ? entry.attested : false;
     // The one place the user's setting and the registry's value meet. Every
     // surface reads the answer off `decimals` rather than deciding again.
     const { decimals } = resolveAssetDecimals({
       userDecimals: this._localDecimals.get(subject),
       registryDecimals: recommendedDecimals,
-      registryDecimalsVerified: recommendedDecimalsVerified,
+      registryDecimalsAttested: recommendedDecimalsAttested,
     });
     return new Asset({
       policyId,
@@ -392,7 +392,7 @@ export default class AssetsStore extends Store {
       metadata,
       decimals,
       recommendedDecimals,
-      recommendedDecimalsVerified,
+      recommendedDecimalsAttested,
       hasImage: entry ? entry.hasImage : false,
       source: entry ? entry.source : null,
     });
@@ -415,7 +415,7 @@ export default class AssetsStore extends Store {
       metadata: null,
       decimals: null,
       recommendedDecimals: null,
-      recommendedDecimalsVerified: false,
+      recommendedDecimalsAttested: false,
       // Not unknown: the cache holds no row for this subject, so it certainly
       // holds no logo for it. The value arrives with the row.
       hasImage: false,

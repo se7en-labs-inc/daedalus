@@ -917,9 +917,9 @@
         "id": "assets.settings.dialog.default"
       },
       {
-        "defaultMessage": "!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. That figure could not be checked against the token’s minting policy, so it is offered here rather than applied.",
-        "description": "Asset settings pop over content, for a published decimal place count that exists but could not be verified and is therefore not applied.",
-        "id": "assets.warning.availableUnverified"
+        "defaultMessage": "!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. The issuer’s signature does not cover that figure, so it is offered here rather than applied.",
+        "description": "Asset settings pop over content, for a published decimal place count that no issuer signature covers and that is therefore not applied.",
+        "id": "assets.warning.availableUnattested"
       },
       {
         "defaultMessage": "!!!Check the token registry again",
@@ -927,14 +927,14 @@
         "id": "assets.settings.dialog.refreshMetadata"
       },
       {
-        "defaultMessage": "!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. That figure could not be checked against the token’s minting policy, so Daedalus does not apply it on its own. Choosing it here applies it.",
-        "description": "Sentence beside the decimal places field in the Asset settings dialog, shown when the issuer published a decimal place count that could not be verified against the minting policy.",
-        "id": "assets.settings.dialog.unverifiedDecimals"
+        "defaultMessage": "!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. The issuer’s signature does not cover that figure, so Daedalus does not apply it on its own. Choosing it here applies it.",
+        "description": "Sentence beside the decimal places field in the Asset settings dialog, shown when the issuer published a decimal place count that none of the issuer’s signatures covers.",
+        "id": "assets.settings.dialog.unattestedDecimals"
       },
       {
-        "defaultMessage": "!!!Your setting differs from the {recommendedDecimals, plural, one {# decimal place} other {# decimal places}} this token’s issuer publishes. That figure could not be checked against the token’s minting policy.",
-        "description": "Asset settings pop over content, for a setting that differs from a published decimal place count that could not be verified.",
-        "id": "assets.warning.notUsingUnverified"
+        "defaultMessage": "!!!Your setting differs from the {recommendedDecimals, plural, one {# decimal place} other {# decimal places}} this token’s issuer publishes. The issuer’s signature does not cover that figure.",
+        "description": "Asset settings pop over content, for a setting that differs from a published decimal place count that no issuer signature covers.",
+        "id": "assets.warning.notUsingUnattested"
       }
     ],
     "path": "source/renderer/app/components/assets/AssetSettingsDialog.tsx"
@@ -7337,8 +7337,8 @@
         "id": "wallet.tokens.list.tokens.title"
       },
       {
-        "defaultMessage": "!!!For tokens whose decimal places an issuer has published and proved, amounts are now entered in those units rather than in the whole units the ledger holds: one and a half of a six-decimal token is now 1.5 and not 1500000. Balances for those tokens are shown the same way. A decimal place setting you have chosen yourself still overrides both.",
-        "description": "One-time notice on the token list, shown after the update that began applying verified decimal places, explaining that the amount field for those tokens now takes issuer units.",
+        "defaultMessage": "!!!For tokens whose decimal places an issuer has published and signed, amounts are now entered in those units rather than in the whole units the ledger holds: one and a half of a six-decimal token is now 1.5 and not 1500000. Balances for those tokens are shown the same way. A decimal place setting you have chosen yourself still overrides both.",
+        "description": "One-time notice on the token list, shown after the update that began applying issuer-signed decimal places, explaining that the amount field for those tokens now takes issuer units.",
         "id": "wallet.tokens.decimalPlacesNotice"
       },
       {

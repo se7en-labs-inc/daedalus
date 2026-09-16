@@ -30,9 +30,9 @@ const messages = defineMessages({
   decimalPlacesNotice: {
     id: 'wallet.tokens.decimalPlacesNotice',
     defaultMessage:
-      '!!!For tokens whose decimal places an issuer has published and proved, amounts are now entered in those units rather than in the whole units the ledger holds: one and a half of a six-decimal token is now 1.5 and not 1500000. Balances for those tokens are shown the same way. A decimal place setting you have chosen yourself still overrides both.',
+      '!!!For tokens whose decimal places an issuer has published and signed, amounts are now entered in those units rather than in the whole units the ledger holds: one and a half of a six-decimal token is now 1.5 and not 1500000. Balances for those tokens are shown the same way. A decimal place setting you have chosen yourself still overrides both.',
     description:
-      'One-time notice on the token list, shown after the update that began applying verified decimal places, explaining that the amount field for those tokens now takes issuer units.',
+      'One-time notice on the token list, shown after the update that began applying issuer-signed decimal places, explaining that the amount field for those tokens now takes issuer units.',
   },
   decimalPlacesNoticeDismiss: {
     id: 'wallet.tokens.decimalPlacesNotice.dismiss',
@@ -46,9 +46,9 @@ type Props = {
   currentLocale: string;
   intl: intlShape.isRequired;
   /**
-   * Whether this profile has already been told that verified decimal places are
-   * applied on their own. Held per profile in browser storage, so dismissing it
-   * survives a restart.
+   * Whether this profile has already been told that issuer-signed decimal places
+   * are applied on their own. Held per profile in browser storage, so dismissing
+   * it survives a restart.
    */
   isDecimalPlacesNoticeAcknowledged?: boolean;
   onAcknowledgeDecimalPlacesNotice?: () => void;

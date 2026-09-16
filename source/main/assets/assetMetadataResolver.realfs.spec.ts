@@ -16,6 +16,7 @@ import {
   AssetMetadataResolver,
   chainPointerToRow,
   openAssetMetadataResolver,
+  registryEntryToRow,
 } from './assetMetadataResolver';
 import type {
   RegistryTransport,
@@ -29,6 +30,11 @@ import {
 } from './immutableBlockReader';
 import { arraySpans, mapSpans, readHead } from './cborSpan';
 import { PREPROD_BLOCK, PREPROD_BLOCK_HEX } from './chainPointer.fixture';
+import {
+  MELD,
+  MELD_SIGNED_SEQUENCE_NUMBER,
+  USDM,
+} from './registryEntry.fixture';
 
 jest.mock('../config', () => ({
   launcherConfig: { metadataUrl: 'https://tokens.example' },
@@ -242,7 +248,7 @@ describe('the due rule', () => {
             ticker: 'OLD',
             name: null,
             decimals: null,
-            verified: false,
+            attested: false,
             metadata: null,
             source: 'registry',
             sequenceNumber: 0,
@@ -316,48 +322,56 @@ describe('the due rule', () => {
   });
 });
 
-describe('verification and the verified column', () => {
-  it('writes a verified decimals value', async () => {
+describe('verification and the attested column', () => {
+  it('writes an attested decimals value', async () => {
     const resolver = resolverWith(transportFor(() => [bted()]));
     await resolver.resolve([BTED.subject]);
     expect(storedRow()).toMatchObject({
       ticker: 'BTED',
       name: 'BitEd Token',
       decimals: 0,
-      verified: true,
+      attested: true,
       source: 'registry',
       slot: null,
     });
   });
 
-  it('keeps an unverified decimals value and marks the row unverified', async () => {
+  it('keeps an unattested decimals value and marks the row unattested', async () => {
     const resolver = resolverWith(
       transportFor(() => [bted({ decimalsSignature: 'ff'.repeat(64) })])
     );
     await resolver.resolve([BTED.subject]);
-    expect(storedRow()).toMatchObject({ decimals: 0, verified: false });
+    expect(storedRow()).toMatchObject({ decimals: 0, attested: false });
   });
 
-  it('stays verified when a ticker signature fails but decimals does not', async () => {
+  it('stays attested when a ticker signature fails but decimals does not', async () => {
     const resolver = resolverWith(
       transportFor(() => [bted({ tickerSignature: 'ff'.repeat(64) })])
     );
     await resolver.resolve([BTED.subject]);
-    expect(storedRow()).toMatchObject({ ticker: 'BTED', verified: true });
+    expect(storedRow()).toMatchObject({ ticker: 'BTED', attested: true });
   });
 
-  it('is unverified when there is no decimals property to verify', async () => {
+  it('is unattested when there is no decimals property to verify', async () => {
     const resolver = resolverWith(
       transportFor(() => [bted({ omitDecimals: true })])
     );
     await resolver.resolve([BTED.subject]);
-    expect(storedRow()).toMatchObject({ decimals: null, verified: false });
+    expect(storedRow()).toMatchObject({ decimals: null, attested: false });
   });
 
-  it('is unverified when the entry carries no policy', async () => {
+  // The rule this column exists to express. `policy` is OPTIONAL in the
+  // registry and about half the entries publishing a decimals value omit it, so
+  // gating on the policy binding refused a signed value for the absence of a
+  // second document. The signature is what is asked for, and it is present here.
+  it('attests an entry that publishes no policy at all', async () => {
     const resolver = resolverWith(transportFor(() => [bted({ policy: null })]));
     await resolver.resolve([BTED.subject]);
-    expect(storedRow()).toMatchObject({ verified: false, ticker: 'BTED' });
+    expect(storedRow()).toMatchObject({
+      attested: true,
+      decimals: 0,
+      ticker: 'BTED',
+    });
   });
 
   it('drops a decimals value the schema cannot hold and keeps the row', async () => {
@@ -368,7 +382,7 @@ describe('verification and the verified column', () => {
     expect(storedRow()).toMatchObject({
       decimals: null,
       ticker: 'BTED',
-      verified: false,
+      attested: false,
     });
   });
 
@@ -377,6 +391,60 @@ describe('verification and the verified column', () => {
     await resolver.resolve([BTED.subject]);
     expect(JSON.parse(storedRow().metadata)).toEqual({
       url: 'https://bit-ed.org/',
+    });
+  });
+});
+
+/**
+ * The same rule against two production entries rather than a constructed one.
+ * Every other case in this file drives a fixture built here, which proves the
+ * code agrees with itself; these prove it agrees with the registry as it is
+ * actually served.
+ */
+describe('registryEntryToRow over live registry entries', () => {
+  it('applies a decimals value the issuer signed but bound to no policy', () => {
+    expect(registryEntryToRow(USDM)).toMatchObject({
+      ticker: 'USDM',
+      name: 'USDM',
+      decimals: 6,
+      attested: true,
+      source: 'registry',
+    });
+  });
+
+  it('refuses a decimals value no signature covers', () => {
+    expect(registryEntryToRow(MELD)).toMatchObject({
+      ticker: 'MELD',
+      name: 'MELD',
+      // Kept, not dropped. The settings dialog still offers it as the issuer's
+      // recommendation; what it does not do is format anything with it.
+      decimals: 6,
+      attested: false,
+      source: 'registry',
+    });
+  });
+
+  it('refuses the stale entry for its sequence number and nothing else', () => {
+    // The distinction the bare `false` above cannot make. Roll the declared
+    // sequence number back to the one the signatures were taken over and the
+    // same bytes attest, so what failed is an issuer who edited the entry
+    // without re-signing it rather than a signature that is wrong.
+    const rolledBack = {
+      ...MELD,
+      properties: {
+        ...MELD.properties,
+        decimals: {
+          ...MELD.properties.decimals,
+          sequenceNumber: MELD_SIGNED_SEQUENCE_NUMBER,
+        },
+      },
+    };
+    expect(MELD.properties.decimals.sequenceNumber).not.toBe(
+      MELD_SIGNED_SEQUENCE_NUMBER
+    );
+    expect(registryEntryToRow(rolledBack)).toMatchObject({
+      decimals: 6,
+      attested: true,
     });
   });
 });
@@ -450,7 +518,7 @@ describe('refreshing', () => {
           ticker: row.ticker,
           name: row.name,
           decimals: row.decimals,
-          verified: row.verified,
+          attested: row.attested,
           metadata: row.metadata,
           source: row.source,
           sequenceNumber: row.sequenceNumber,
@@ -550,7 +618,7 @@ describe('refreshing', () => {
           ticker: 'OLD',
           name: null,
           decimals: null,
-          verified: false,
+          attested: false,
           metadata: null,
           source: 'registry',
           sequenceNumber: null,
@@ -575,7 +643,7 @@ describe('refreshing', () => {
           ticker: null,
           name: 'From the chain',
           decimals: null,
-          verified: false,
+          attested: false,
           metadata: null,
           source: 'chain',
           sequenceNumber: null,
@@ -654,7 +722,7 @@ describe('a forced refresh', () => {
           ticker: 'BTED',
           name: 'BitEd Token',
           decimals: 0,
-          verified: true,
+          attested: true,
           metadata: storedRow().metadata,
           source: 'registry',
           sequenceNumber: 0,
@@ -675,7 +743,7 @@ describe('a forced refresh', () => {
     expect(storedRow()).toMatchObject({
       ticker: 'BTED',
       decimals: 0,
-      verified: true,
+      attested: true,
       sequenceNumber: 0,
     });
     expect(storedRow().updatedAt).toBe(NOW);
@@ -683,7 +751,7 @@ describe('a forced refresh', () => {
 
   it('rewrites the row and runs verification again when the sequence number rises', async () => {
     await seedFresh();
-    expect(storedRow()).toMatchObject({ verified: true, decimals: 0 });
+    expect(storedRow()).toMatchObject({ attested: true, decimals: 0 });
 
     // The stored verdict is true. The new content carries a higher sequence
     // number, which the old signature does not cover, so the verdict has to move
@@ -695,7 +763,7 @@ describe('a forced refresh', () => {
     resolver.request([BTED.subject], { force: true });
     await resolver.pending();
 
-    expect(storedRow()).toMatchObject({ sequenceNumber: 1, verified: false });
+    expect(storedRow()).toMatchObject({ sequenceNumber: 1, attested: false });
   });
 
   it('leaves the cached row in place when the transport is unavailable', async () => {
@@ -707,7 +775,7 @@ describe('a forced refresh', () => {
     await resolver.pending();
 
     expect(broken.calls).toBeGreaterThan(0);
-    expect(storedRow()).toMatchObject({ ticker: 'BTED', verified: true });
+    expect(storedRow()).toMatchObject({ ticker: 'BTED', attested: true });
   });
 });
 
@@ -941,7 +1009,7 @@ describe('the chain channel', () => {
     expect(row.slot).toBe(PREPROD_BLOCK.slot);
     expect(row.sequenceNumber).toBeNull();
     expect(row.decimals).toBeNull();
-    expect(row.verified).toBe(false);
+    expect(row.attested).toBe(false);
     expect(row.ticker).toBeNull();
     expect(row.name).toBe('Northwind Demo');
     // Two requests for the whole batch, which is what the pointer client
@@ -1121,7 +1189,7 @@ describe('chainPointerToRow', () => {
   it('carries no decimals and claims no verification', () => {
     const row = chainPointerToRow(pointer(), PREPROD_BLOCK.slot, null, false);
     expect(row.decimals).toBeNull();
-    expect(row.verified).toBe(false);
+    expect(row.attested).toBe(false);
     expect(row.sequenceNumber).toBeNull();
     expect(row.ticker).toBeNull();
     expect(row.source).toBe('chain');
@@ -1141,7 +1209,7 @@ describe('freshness per channel', () => {
           ticker: null,
           name: 'Northwind Demo',
           decimals: null,
-          verified: false,
+          attested: false,
           metadata: JSON.stringify({
             record: options.record ?? { name: 'Northwind Demo' },
             closed: options.closed,
@@ -1208,7 +1276,7 @@ describe('freshness per channel', () => {
           ticker: null,
           name: 'Northwind Demo',
           decimals: null,
-          verified: false,
+          attested: false,
           metadata: JSON.stringify({ record: {}, closed: false }),
           source: 'chain',
           sequenceNumber: null,
@@ -1238,7 +1306,7 @@ describe('freshness per channel', () => {
           ticker: stored.ticker,
           name: stored.name,
           decimals: stored.decimals,
-          verified: stored.verified,
+          attested: stored.attested,
           metadata: stored.metadata,
           source: stored.source,
           sequenceNumber: stored.sequenceNumber,

@@ -24,6 +24,11 @@ import {
 } from './assetVerification';
 import type { NativeScript } from './assetVerification';
 import type { RegistryProperty } from './assetRegistryClient';
+import {
+  MELD,
+  MELD_SIGNED_SEQUENCE_NUMBER,
+  USDM,
+} from './registryEntry.fixture';
 
 // c76ef54…42544544, the worked example in the plan documents.
 const BTED = {
@@ -867,6 +872,57 @@ describe('verifyRegistryProperty', () => {
       satisfied: true,
       attested: false,
       verified: false,
+    });
+  });
+});
+
+/**
+ * The two live entries the attestation rule turns on, asserted at the layer
+ * that decides them.
+ */
+describe('the two live entries behind the attestation rule', () => {
+  it('attests every property USDM publishes, and binds none of them', () => {
+    Object.keys(USDM.properties).forEach((name) => {
+      expect([
+        name,
+        verifyRegistryProperty(
+          USDM.subject,
+          USDM.policy,
+          name,
+          USDM.properties[name]
+        ),
+      ]).toEqual([
+        name,
+        { bound: false, satisfied: false, attested: true, verified: false },
+      ]);
+    });
+  });
+
+  it('refuses every property MELD publishes at its declared sequence number', () => {
+    Object.keys(MELD.properties).forEach((name) => {
+      expect([
+        name,
+        isPropertyAttested(MELD.subject, name, MELD.properties[name]),
+      ]).toEqual([name, false]);
+    });
+  });
+
+  // What kind of failure it is. Every MELD property declares sequence number 1
+  // and every signature verifies at 0, which is an issuer who edited the entry
+  // and bumped the counter without re-signing it. A spec that stopped at the
+  // `false` above would pass just as well against a forged signature, and the
+  // two are not the same event.
+  it('attests the same MELD bytes at the sequence number they were signed at', () => {
+    Object.keys(MELD.properties).forEach((name) => {
+      const property = MELD.properties[name];
+      expect(property.sequenceNumber).not.toBe(MELD_SIGNED_SEQUENCE_NUMBER);
+      expect([
+        name,
+        isPropertyAttested(MELD.subject, name, {
+          ...property,
+          sequenceNumber: MELD_SIGNED_SEQUENCE_NUMBER,
+        }),
+      ]).toEqual([name, true]);
     });
   });
 });

@@ -71,12 +71,12 @@ const messages = defineMessages({
       '!!!You are not using the recommended decimal place configuration for this native token.',
     description: 'Asset settings recommended pop over content',
   },
-  warningPopOverAvailableUnverified: {
-    id: 'assets.warning.availableUnverified',
+  warningPopOverAvailableUnattested: {
+    id: 'assets.warning.availableUnattested',
     defaultMessage:
-      '!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. That figure could not be checked against the token’s minting policy, so it is offered here rather than applied.',
+      '!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. The issuer’s signature does not cover that figure, so it is offered here rather than applied.',
     description:
-      'Asset settings pop over content, for a published decimal place count that exists but could not be verified and is therefore not applied.',
+      'Asset settings pop over content, for a published decimal place count that no issuer signature covers and that is therefore not applied.',
   },
   refreshMetadata: {
     id: 'assets.settings.dialog.refreshMetadata',
@@ -84,19 +84,19 @@ const messages = defineMessages({
     description:
       'Label for the control in the Asset settings dialog that asks the metadata cache to read the token registry again for this one token.',
   },
-  unverifiedDecimals: {
-    id: 'assets.settings.dialog.unverifiedDecimals',
+  unattestedDecimals: {
+    id: 'assets.settings.dialog.unattestedDecimals',
     defaultMessage:
-      '!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. That figure could not be checked against the token’s minting policy, so Daedalus does not apply it on its own. Choosing it here applies it.',
+      '!!!This token’s issuer publishes {recommendedDecimals, plural, one {# decimal place} other {# decimal places}}. The issuer’s signature does not cover that figure, so Daedalus does not apply it on its own. Choosing it here applies it.',
     description:
-      'Sentence beside the decimal places field in the Asset settings dialog, shown when the issuer published a decimal place count that could not be verified against the minting policy.',
+      'Sentence beside the decimal places field in the Asset settings dialog, shown when the issuer published a decimal place count that none of the issuer’s signatures covers.',
   },
-  warningPopOverNotUsingUnverified: {
-    id: 'assets.warning.notUsingUnverified',
+  warningPopOverNotUsingUnattested: {
+    id: 'assets.warning.notUsingUnattested',
     defaultMessage:
-      '!!!Your setting differs from the {recommendedDecimals, plural, one {# decimal place} other {# decimal places}} this token’s issuer publishes. That figure could not be checked against the token’s minting policy.',
+      '!!!Your setting differs from the {recommendedDecimals, plural, one {# decimal place} other {# decimal places}} this token’s issuer publishes. The issuer’s signature does not cover that figure.',
     description:
-      'Asset settings pop over content, for a setting that differs from a published decimal place count that could not be verified.',
+      'Asset settings pop over content, for a setting that differs from a published decimal place count that no issuer signature covers.',
   },
 });
 type Props = {
@@ -173,7 +173,7 @@ class AssetSettingsDialog extends Component<Props, State> {
     const {
       decimals: savedDecimals,
       recommendedDecimals,
-      recommendedDecimalsVerified,
+      recommendedDecimalsAttested,
     } = asset;
     const { decimals } = this.state;
     const hasSavedDecimals = typeof savedDecimals === 'number';
@@ -196,32 +196,32 @@ class AssetSettingsDialog extends Component<Props, State> {
     ];
 
     // A different question from the disagreement below: that one is about two
-    // numbers differing, this one is about one number nobody could check, and it
+    // numbers differing, this one is about one number nobody signed for, and it
     // holds whether or not the user has chosen anything and whether or not the
     // published figure is zero.
-    const hasUnverifiedDecimals =
+    const hasUnattestedDecimals =
       typeof recommendedDecimals === 'number' &&
-      recommendedDecimalsVerified !== true;
+      recommendedDecimalsAttested !== true;
 
     const disagreement = decimalSettingDisagreement({
       recommendedDecimals,
       decimals: savedDecimals,
-      recommendedDecimalsVerified,
+      recommendedDecimalsAttested,
     });
     const hasWarning = disagreement !== DecimalSettingDisagreement.None;
     const isUnattested =
-      disagreement === DecimalSettingDisagreement.WithUnverified;
+      disagreement === DecimalSettingDisagreement.WithUnattested;
 
     let warningPopOverMessage;
 
     if (hasWarning) {
       if (hasSavedDecimals) {
         warningPopOverMessage = isUnattested
-          ? messages.warningPopOverNotUsingUnverified
+          ? messages.warningPopOverNotUsingUnattested
           : messages.warningPopOverNotUsing;
       } else {
         warningPopOverMessage = isUnattested
-          ? messages.warningPopOverAvailableUnverified
+          ? messages.warningPopOverAvailableUnattested
           : messages.warningPopOverAvailable;
       }
     }
@@ -297,12 +297,12 @@ class AssetSettingsDialog extends Component<Props, State> {
             selectionRenderer={this.selectionRenderer}
           />
           <div className={styles.decimalsFooter}>
-            {hasUnverifiedDecimals && (
+            {hasUnattestedDecimals && (
               <p
-                className={styles.unverifiedDecimals}
-                data-testid="unverified-decimals"
+                className={styles.unattestedDecimals}
+                data-testid="unattested-decimals"
               >
-                {intl.formatMessage(messages.unverifiedDecimals, {
+                {intl.formatMessage(messages.unattestedDecimals, {
                   recommendedDecimals,
                 })}
               </p>

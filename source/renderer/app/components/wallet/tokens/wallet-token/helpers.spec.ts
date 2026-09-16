@@ -51,7 +51,7 @@ describe('decimalSettingDisagreement', () => {
         decimals: undefined,
         recommendedDecimals: 3,
       })
-    ).toEqual(DecimalSettingDisagreement.WithUnverified);
+    ).toEqual(DecimalSettingDisagreement.WithUnattested);
   });
 
   it('reports a disagreement if user applied non-recommended decimal settings', async () => {
@@ -60,64 +60,64 @@ describe('decimalSettingDisagreement', () => {
         decimals: 3,
         recommendedDecimals: 0,
       })
-    ).toEqual(DecimalSettingDisagreement.WithUnverified);
+    ).toEqual(DecimalSettingDisagreement.WithUnattested);
 
     expect(
       decimalSettingDisagreement({
         decimals: 0,
         recommendedDecimals: 3,
       })
-    ).toEqual(DecimalSettingDisagreement.WithUnverified);
+    ).toEqual(DecimalSettingDisagreement.WithUnattested);
   });
 
-  describe('the verification verdict', () => {
-    it('says nothing when the setting agrees with a verified value', () => {
+  describe('the attestation verdict', () => {
+    it('says nothing when the setting agrees with an attested value', () => {
       expect(
         decimalSettingDisagreement({
           decimals: 6,
           recommendedDecimals: 6,
-          recommendedDecimalsVerified: true,
+          recommendedDecimalsAttested: true,
         })
       ).toEqual(DecimalSettingDisagreement.None);
     });
 
-    it('puts a disagreement with a verified value more strongly', () => {
+    it('puts a disagreement with an attested value more strongly', () => {
       expect(
         decimalSettingDisagreement({
           decimals: 2,
           recommendedDecimals: 6,
-          recommendedDecimalsVerified: true,
+          recommendedDecimalsAttested: true,
         })
-      ).toEqual(DecimalSettingDisagreement.WithVerified);
+      ).toEqual(DecimalSettingDisagreement.WithAttested);
     });
 
-    it('puts a disagreement with an unverified value more weakly', () => {
+    it('puts a disagreement with an unattested value more weakly', () => {
       expect(
         decimalSettingDisagreement({
           decimals: 2,
           recommendedDecimals: 6,
-          recommendedDecimalsVerified: false,
+          recommendedDecimalsAttested: false,
         })
-      ).toEqual(DecimalSettingDisagreement.WithUnverified);
+      ).toEqual(DecimalSettingDisagreement.WithUnattested);
     });
 
-    it('treats an absent verdict as unverified', () => {
+    it('treats an absent verdict as unattested', () => {
       // The weaker claim is the safe one: an argument object that has not been
-      // told the value was checked must not say it was.
+      // told the value was signed for must not say it was.
       expect(
         decimalSettingDisagreement({
           decimals: 2,
           recommendedDecimals: 6,
         })
-      ).toEqual(DecimalSettingDisagreement.WithUnverified);
+      ).toEqual(DecimalSettingDisagreement.WithUnattested);
 
       expect(
         decimalSettingDisagreement({
           decimals: 2,
           recommendedDecimals: 6,
-          recommendedDecimalsVerified: null,
+          recommendedDecimalsAttested: null,
         })
-      ).toEqual(DecimalSettingDisagreement.WithUnverified);
+      ).toEqual(DecimalSettingDisagreement.WithUnattested);
     });
 
     it('still says nothing when there is no published value to disagree with', () => {
@@ -125,7 +125,7 @@ describe('decimalSettingDisagreement', () => {
         decimalSettingDisagreement({
           decimals: 2,
           recommendedDecimals: null,
-          recommendedDecimalsVerified: true,
+          recommendedDecimalsAttested: true,
         })
       ).toEqual(DecimalSettingDisagreement.None);
     });

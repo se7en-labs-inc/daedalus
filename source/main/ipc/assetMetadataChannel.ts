@@ -109,7 +109,7 @@ const toEntry = (
   ticker: row.ticker,
   name: row.name,
   decimals: row.decimals,
-  verified: row.verified,
+  attested: row.attested,
   source: row.source,
   hasImage: withImage.has(row.subject),
   metadata: entryMetadata(row),

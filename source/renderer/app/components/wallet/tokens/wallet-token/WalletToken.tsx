@@ -58,7 +58,7 @@ const WalletToken = observer((props: Props) => {
     decimalSettingDisagreement({
       decimals: asset.decimals,
       recommendedDecimals: asset.recommendedDecimals,
-      recommendedDecimalsVerified: asset.recommendedDecimalsVerified,
+      recommendedDecimalsAttested: asset.recommendedDecimalsAttested,
     }) !== DecimalSettingDisagreement.None;
 
   const componentStyles = useMemo(

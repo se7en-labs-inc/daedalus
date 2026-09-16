@@ -16,7 +16,7 @@ const ASSET_METADATA_DATABASE_FILE_NAME = 'assets.sqlite';
  * other value is deleted rather than migrated: every row in it can be fetched
  * again, so a migration would be code written to preserve nothing.
  */
-export const ASSET_METADATA_DB_VERSION = 1;
+export const ASSET_METADATA_DB_VERSION = 2;
 
 /**
  * One bound parameter per subject, and `SQLITE_MAX_VARIABLE_NUMBER` is a
@@ -41,14 +41,14 @@ CREATE TABLE IF NOT EXISTS asset_metadata (
   ticker           TEXT,
   name             TEXT,
   decimals         INTEGER,
-  verified         INTEGER NOT NULL DEFAULT 0,
+  attested         INTEGER NOT NULL DEFAULT 0,
   metadata         TEXT,
   source           TEXT    NOT NULL,
   sequence_number  INTEGER,
   slot             INTEGER,
   updated_at       INTEGER NOT NULL,
   CHECK (subject = policy_id || asset_name),
-  CHECK (verified IN (0, 1)),
+  CHECK (attested IN (0, 1)),
   CHECK (decimals IS NULL OR (decimals >= 0 AND decimals <= 20)),
   CHECK (source IN ('registry', 'chain')),
   CHECK (source <> 'registry' OR slot IS NULL),
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS asset_resolution (
 `;
 
 const METADATA_COLUMNS =
-  'subject, policy_id, asset_name, ticker, name, decimals, verified, metadata, source, sequence_number, slot, updated_at';
+  'subject, policy_id, asset_name, ticker, name, decimals, attested, metadata, source, sequence_number, slot, updated_at';
 
 const METADATA_SELECT = `SELECT ${METADATA_COLUMNS} FROM asset_metadata WHERE subject IN`;
 
@@ -92,7 +92,7 @@ ON CONFLICT (subject) DO UPDATE SET
   ticker = excluded.ticker,
   name = excluded.name,
   decimals = excluded.decimals,
-  verified = excluded.verified,
+  attested = excluded.attested,
   metadata = excluded.metadata,
   source = excluded.source,
   sequence_number = excluded.sequence_number,
@@ -156,7 +156,7 @@ export type AssetMetadataWrite = {
   ticker: string | null;
   name: string | null;
   decimals: number | null;
-  verified: boolean;
+  attested: boolean;
   metadata: string | null;
   source: AssetMetadataSource;
   sequenceNumber: number | null;
@@ -211,7 +211,7 @@ const toMetadataRow = (row: Record<string, unknown>): AssetMetadataRow => ({
   ticker: asText(row.ticker),
   name: asText(row.name),
   decimals: asNumber(row.decimals),
-  verified: row.verified === 1,
+  attested: row.attested === 1,
   metadata: asText(row.metadata),
   source: String(row.source) as AssetMetadataSource,
   sequenceNumber: asNumber(row.sequence_number),
@@ -323,7 +323,7 @@ export class AssetMetadataDatabase {
       asText(row.ticker),
       asText(row.name),
       asInteger(row.decimals),
-      row.verified ? 1 : 0,
+      row.attested ? 1 : 0,
       asText(row.metadata),
       row.source,
       asInteger(row.sequenceNumber),

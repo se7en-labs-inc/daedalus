@@ -131,17 +131,35 @@ const maxSequenceNumber = (entry: RegistryEntry): number | null => {
 };
 
 /**
- * The schema carries one `verified` column and the PRD asks for per-property
- * verification, so the column is given one meaning: it is the verdict for the
- * `decimals` property of this row.
+ * The schema carries one verdict column and the PRD asks for per-property
+ * verification, so the column is given one meaning: it is the attestation
+ * verdict for the `decimals` property of this row. It is true when one of the
+ * signatures the registry publishes for that property verifies over the
+ * declared value at the declared sequence number.
  *
- * Every behaviour the PRD describes for the column is about decimal places. The
- * resolution order applies the cached value if and only if it is verified, the
- * corpus is binned by the decimals property's outcome, and the advisory says
- * that the published decimal places could not be verified. Names and tickers
- * are display-only and are written whether or not they verified.
+ * Every behaviour the PRD describes for the column is about decimal places.
+ * Names, tickers and descriptions are display-only and are written whether or
+ * not they attested.
+ *
+ * **The policy binding is not part of this verdict, and that is a change.**
+ * `verifyRegistryProperty` also reports whether the entry's OPTIONAL `policy`
+ * field hashes to the subject's minting policy id and whether the attesting
+ * keys satisfy the native script inside it. Requiring that as well refuses
+ * every entry that simply omits the field, which is about half of the entries
+ * that publish a decimals value at all: of 120 mappings sampled from 7,977, 106
+ * publish a value, 104 of those are attested, and only 53 also carry `policy`.
+ * The 51 that are attested but unbound carry a signature that verifies; what
+ * they lack is a second document proving the signing key can mint the token.
+ *
+ * Refusing those 51 caught 2 entries in that sample, and neither is an attack:
+ * one carries no signatures, and the other declares a sequence number one above
+ * the one its signatures cover, which is an issuer who edited an entry without
+ * re-signing it. The same entry's name and ticker are on screen already,
+ * because those were never gated. So the binding bought a stronger claim for
+ * half the corpus and the claim it bought is not the one the column is used
+ * for.
  */
-const verifiedDecimals = (entry: RegistryEntry): boolean => {
+const attestedDecimals = (entry: RegistryEntry): boolean => {
   const property = propertyValue(entry, 'decimals');
   if (!property) return false;
   return verifyRegistryProperty(
@@ -149,7 +167,7 @@ const verifiedDecimals = (entry: RegistryEntry): boolean => {
     entry.policy,
     'decimals',
     property
-  ).verified;
+  ).attested;
 };
 
 export const registryEntryToRow = (
@@ -162,7 +180,7 @@ export const registryEntryToRow = (
   name: stringProperty(entry, 'name'),
   decimals: decimalsValue(entry),
   // Computed here from the bytes. No field of a registry response sets it.
-  verified: verifiedDecimals(entry),
+  attested: attestedDecimals(entry),
   metadata: metadataJson(entry),
   source: 'registry',
   sequenceNumber: maxSequenceNumber(entry),
@@ -177,8 +195,8 @@ export const registryEntryToRow = (
  * instead of a sequence number. `sequence_number` is NULL, and the schema's
  * CHECK refuses a chain row that carries one. `decimals` is NULL, which is the
  * mechanical form of the rule that no amount is ever formatted by a number that
- * did not come from the registry. `verified` is false, because `verified` is the
- * verdict of the registry attestation chain and a chain row never runs it.
+ * did not come from the registry. `attested` is false, because it is the verdict
+ * of the registry's own attestation signature and a chain row never runs it.
  *
  * The name is the CIP-25 `name`, or the CIP-68 `name` when there is no CIP-25
  * record. Where an index answers with both, the CIP-68 datum is the live record
@@ -214,7 +232,7 @@ export const chainPointerToRow = (
     ticker: null,
     name: chainName(payload),
     decimals: null,
-    verified: false,
+    attested: false,
     metadata,
     source: 'chain',
     sequenceNumber: null,
@@ -251,7 +269,7 @@ const sameContent = (
   row.ticker === stored.ticker &&
   row.name === stored.name &&
   row.decimals === stored.decimals &&
-  row.verified === stored.verified &&
+  row.attested === stored.attested &&
   row.metadata === stored.metadata &&
   row.source === stored.source &&
   row.sequenceNumber === stored.sequenceNumber &&
@@ -281,7 +299,7 @@ const storedAsWrite = (stored: AssetMetadataRow): AssetMetadataWrite => ({
   ticker: stored.ticker,
   name: stored.name,
   decimals: stored.decimals,
-  verified: stored.verified,
+  attested: stored.attested,
   metadata: stored.metadata,
   source: stored.source,
   sequenceNumber: stored.sequenceNumber,

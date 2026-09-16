@@ -40,7 +40,7 @@ const entry = (overrides: Record<string, any> = {}) => ({
   ticker: 'BTED',
   name: 'Bit-ED',
   decimals: 6,
-  verified: true,
+  attested: true,
   source: 'registry',
   hasImage: false,
   metadata: { url: 'https://bit-ed.org/' },
@@ -316,35 +316,35 @@ describe('AssetsStore', () => {
   });
 
   describe('the decimal places a surface formats with', () => {
-    it('applies a verified registry value with no user setting', () => {
+    it('applies an attested registry value with no user setting', () => {
       const { store } = makeStore();
       (store as any)._onMetadataResolved({
-        entries: [entry({ decimals: 6, verified: true })],
+        entries: [entry({ decimals: 6, attested: true })],
       });
       const asset = store.getAsset(POLICY, ASSET_NAME);
       expect(asset.decimals).toBe(6);
       expect(asset.recommendedDecimals).toBe(6);
-      expect(asset.recommendedDecimalsVerified).toBe(true);
+      expect(asset.recommendedDecimalsAttested).toBe(true);
     });
 
-    it('never applies an unverified registry value', () => {
+    it('never applies an unattested registry value', () => {
       const { store } = makeStore();
       (store as any)._onMetadataResolved({
-        entries: [entry({ decimals: 6, verified: false })],
+        entries: [entry({ decimals: 6, attested: false })],
       });
       const asset = store.getAsset(POLICY, ASSET_NAME);
-      // Raw units: the honest rendering of a denomination nobody attested.
+      // Raw units: the honest rendering of a denomination nobody signed for.
       expect(asset.decimals).toBeNull();
       // Still offered to the settings dialog, which is where the user decides.
       expect(asset.recommendedDecimals).toBe(6);
-      expect(asset.recommendedDecimalsVerified).toBe(false);
+      expect(asset.recommendedDecimalsAttested).toBe(false);
     });
 
-    it('lets a user setting win over a verified registry value', async () => {
+    it('lets a user setting win over an attested registry value', async () => {
       const { store } = makeStore({ [SUBJECT]: { decimals: 2 } });
       await (store as any)._setUpLocalDecimals();
       (store as any)._onMetadataResolved({
-        entries: [entry({ decimals: 6, verified: true })],
+        entries: [entry({ decimals: 6, attested: true })],
       });
       const asset = store.getAsset(POLICY, ASSET_NAME);
       expect(asset.decimals).toBe(2);
@@ -356,13 +356,13 @@ describe('AssetsStore', () => {
       const asset = store.getAsset(OTHER_POLICY, 'beef');
       expect(asset.decimals).toBeNull();
       expect(asset.recommendedDecimals).toBeNull();
-      expect(asset.recommendedDecimalsVerified).toBe(false);
+      expect(asset.recommendedDecimalsAttested).toBe(false);
     });
 
     it('carries the verdict onto the merged row a component receives', () => {
       const { store } = makeStore();
       (store as any)._onMetadataResolved({
-        entries: [entry({ decimals: 6, verified: false })],
+        entries: [entry({ decimals: 6, attested: false })],
       });
       const row = getAssetTokenFromToken(
         tokenFor(SUBJECT) as any,
@@ -370,7 +370,7 @@ describe('AssetsStore', () => {
       );
       expect(row.decimals).toBeNull();
       expect(row.recommendedDecimals).toBe(6);
-      expect(row.recommendedDecimalsVerified).toBe(false);
+      expect(row.recommendedDecimalsAttested).toBe(false);
     });
   });
 
@@ -575,7 +575,7 @@ describe('AssetsStore for a chain row', () => {
     ticker: null,
     name: 'Northwind Demo',
     decimals: null,
-    verified: false,
+    attested: false,
     source: 'chain',
     metadata: { name: 'Northwind Demo' },
   });
@@ -599,7 +599,7 @@ describe('AssetsStore for a chain row', () => {
     const asset = store.getAsset(POLICY, ASSET_NAME);
     expect(asset.decimals).toBeNull();
     expect(asset.recommendedDecimals).toBeNull();
-    expect(asset.recommendedDecimalsVerified).toBe(false);
+    expect(asset.recommendedDecimalsAttested).toBe(false);
   });
 
   it('still applies a setting of the user own over a chain row', () => {
