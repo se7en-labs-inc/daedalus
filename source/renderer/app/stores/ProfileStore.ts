@@ -16,6 +16,7 @@ import LocalizableError from '../i18n/LocalizableError';
 import { WalletSupportRequestLogsCompressError } from '../i18n/errors';
 import { generateFileNameWithTimestamp } from '../../../common/utils/files';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 import { setStateSnapshotLogChannel } from '../ipc/setStateSnapshotLogChannel';
 import { getDesktopDirectoryPathChannel } from '../ipc/getDesktopDirectoryPathChannel';
 import { getSystemLocaleChannel } from '../ipc/getSystemLocaleChannel';
@@ -736,7 +737,7 @@ export default class ProfileStore extends Store {
     } catch (error) {
       // @ts-ignore ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
       logger.error('ProfileStore: State snapshot log file creation failed', {
-        error,
+        error: describeError(error),
       });
     }
   };

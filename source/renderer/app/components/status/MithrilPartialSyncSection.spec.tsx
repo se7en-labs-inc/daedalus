@@ -178,7 +178,11 @@ describe('MithrilPartialSyncSection', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         'MithrilPartialSyncSection: Mithril partial sync start rejected after confirmation',
         {
-          error: expect.any(Error),
+          error: {
+            name: 'Error',
+            message:
+              'Mithril partial sync is disabled by launcher configuration.',
+          },
         }
       );
     });

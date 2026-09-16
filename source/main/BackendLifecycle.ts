@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { BrowserWindow } from 'electron';
 import { logger } from './utils/logging';
+import { describeError } from '../common/utils/logging';
 import WatchdogManager from './WatchdogManager';
 import type {
   WatchdogConfig,
@@ -138,7 +139,7 @@ class BackendLifecycle {
             );
           } catch (e) {
             logger.error('BackendLifecycle: failed to read TLS certs', {
-              error: e,
+              error: describeError(e),
             });
           }
         }
@@ -146,7 +147,7 @@ class BackendLifecycle {
       })
       .catch((reason) => {
         logger.error('BackendLifecycle: startup failed, scheduling restart', {
-          reason,
+          reason: describeError(reason),
         });
         setTimeout(() => {
           this.start(exePath, config);

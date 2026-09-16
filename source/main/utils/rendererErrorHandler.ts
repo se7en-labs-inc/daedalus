@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron';
 import { logger } from './logging';
+import { describeError } from '../../common/utils/logging';
 
 export default class RendererErrorHandler {
   count = 0;
@@ -16,7 +17,7 @@ export default class RendererErrorHandler {
 
   onError(errorType: string, error: any) {
     logger.error(`RendererError::${errorType}`, {
-      error,
+      error: describeError(error),
     });
 
     if (this.count < this.maxReloads) {

@@ -3,6 +3,7 @@ import { defineMessages, intlShape } from 'react-intl';
 
 import globalMessages from '../../i18n/global-messages';
 import { logger } from '../../utils/logging';
+import { describeError } from '../../../../common/utils/logging';
 import { getMithrilStartErrorMessage } from '../../utils/mithrilErrorMessage';
 import MithrilPartialSyncConfirmation from './MithrilPartialSyncConfirmation';
 import MithrilPartialSyncRecommendation from './MithrilPartialSyncRecommendation';
@@ -94,7 +95,7 @@ export default class MithrilPartialSyncSection extends Component<Props, State> {
     } catch (error) {
       logger.warn(
         'MithrilPartialSyncSection: Mithril partial sync start rejected after confirmation',
-        { error }
+        { error: describeError(error) }
       );
       if (!this._isMounted) {
         return;

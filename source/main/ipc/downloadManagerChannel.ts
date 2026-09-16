@@ -4,6 +4,7 @@ import { forEach, omit } from 'lodash';
 import type { BrowserWindow } from 'electron';
 import { MainIpcChannel } from './lib/MainIpcChannel';
 import { logger } from '../utils/logging';
+import { describeError } from '../../common/utils/logging';
 import {
   getOriginalFilename,
   getPathFromDirectoryName,
@@ -296,7 +297,7 @@ export const pauseActiveDownloads = () => {
       logger.error(
         `DownloadManager:PauseDownloads download "${downloadId}" could not be paused`,
         {
-          error,
+          error: describeError(error),
         }
       );
     }

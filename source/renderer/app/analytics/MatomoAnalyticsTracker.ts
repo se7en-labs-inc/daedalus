@@ -6,6 +6,7 @@ import { MatomoClient } from './MatomoClient';
 import { NoopAnalyticsClient } from './noopAnalyticsClient';
 import AdaApi from '../api/api';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 
 export class MatomoAnalyticsTracker implements AnalyticsTracker {
   #analyticsClient: AnalyticsClient;
@@ -36,7 +37,7 @@ export class MatomoAnalyticsTracker implements AnalyticsTracker {
       .sendPageNavigationEvent(pageTitle)
       .catch((error) => {
         logger.warn('MatomoAnalyticsTracker: page navigation event failed', {
-          error,
+          error: describeError(error),
           pageTitle,
         });
       });
@@ -47,7 +48,7 @@ export class MatomoAnalyticsTracker implements AnalyticsTracker {
       .sendEvent(category, name, action, value)
       .catch((error) => {
         logger.warn('MatomoAnalyticsTracker: analytics event failed', {
-          error,
+          error: describeError(error),
           category,
           name,
           action,

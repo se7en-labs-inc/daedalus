@@ -9,6 +9,7 @@
  */
 import { get, values } from 'lodash';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 import type { Currency, CurrencyApiConfig } from '../types/currencyTypes';
 import type {
   GetCurrencyListResponse,
@@ -39,12 +40,12 @@ const responses = {
     try {
       const list = values(currenciesList);
       logger.debug('Currency::Nomics::List success', {
-        list,
+        currencies: list.length,
       });
       return list;
     } catch (error) {
       logger.error('Currency::Nomics::List error', {
-        error,
+        error: describeError(error),
       });
       throw new Error(error);
     }
@@ -58,7 +59,7 @@ const responses = {
       return rate;
     } catch (error) {
       logger.error('Currency::Nomics::Rate error', {
-        error,
+        error: describeError(error),
       });
       throw new Error(error);
     }

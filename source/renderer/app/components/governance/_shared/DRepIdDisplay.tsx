@@ -3,6 +3,7 @@ import { defineMessages, injectIntl, intlShape } from 'react-intl';
 import { Tooltip } from 'react-polymorph/lib/components/Tooltip';
 import { TooltipSkin } from 'react-polymorph/lib/skins/simple/TooltipSkin';
 import { logger } from '../../../utils/logging';
+import { describeError } from '../../../../../common/utils/logging';
 import { normalizeDRepIdentity } from '../../../utils/governance/normalizeDRepIdentity';
 import DRepCopyButton from './DRepCopyButton';
 import styles from './DRepIdDisplay.scss';
@@ -97,7 +98,7 @@ function DRepIdDisplay({
       .then(() => setCopied(true))
       .catch((error) => {
         logger.warn('DRepIdDisplay: failed to copy DRep ID', {
-          error,
+          error: describeError(error),
           drepIdLength: value.length,
         });
       });

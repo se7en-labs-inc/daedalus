@@ -4,6 +4,7 @@ import { Button } from 'react-polymorph/lib/components/Button';
 import { ButtonSkin } from 'react-polymorph/lib/skins/simple/ButtonSkin';
 
 import { logger } from '../../../utils/logging';
+import { describeError } from '../../../../../common/utils/logging';
 import { getMithrilStartErrorMessage } from '../../../utils/mithrilErrorMessage';
 // Shared summary sentence, imported so the confirm view and the diagnostics modal stay identical; do not redeclare the id locally.
 import mithrilSyncProcessSummaryMessages from '../../status/MithrilSyncProcessSummary.messages';
@@ -132,7 +133,7 @@ export default class SyncingConnectingMithrilPrompt extends Component<
     } catch (error) {
       logger.warn(
         'SyncingConnectingMithrilPrompt: Mithril sync start rejected after confirmation',
-        { error }
+        { error: describeError(error) }
       );
       if (!this._isMounted) {
         return;

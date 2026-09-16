@@ -5,6 +5,7 @@ import Store from './lib/Store';
 import Request from './lib/LocalizedRequest';
 import NewsDomains from '../domains/News';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 import {
   requestDownloadChannel,
   requestResumeDownloadChannel,
@@ -346,7 +347,7 @@ export default class AppUpdateStore extends Store {
         logger.error(
           'AppUpdateStore:_setAppAutomaticUpdateFailed: Received an error event from the main process',
           {
-            error,
+            error: describeError(error),
           }
         );
 
@@ -434,7 +435,7 @@ export default class AppUpdateStore extends Store {
 
     if (status === statuses.ERROR) {
       logger.error(message || '', {
-        error,
+        error: describeError(error),
       });
       runInAction(() => {
         this.isWaitingToQuitDaedalus = false;

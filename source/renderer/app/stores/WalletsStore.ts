@@ -14,6 +14,7 @@ import { addressPDFGenerator } from '../utils/addressPDFGenerator';
 import { downloadCsv } from '../utils/csvGenerator';
 import { buildRoute, matchRoute } from '../utils/routing';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 import { ROUTES } from '../routes-config';
 import { formattedWalletAmount } from '../utils/formatters';
 import { ellipsis } from '../utils/strings';
@@ -1130,7 +1131,9 @@ export default class WalletsStore extends Store {
       await this.refreshWalletsData();
       return true;
     } catch (error) {
-      logger.warn('WalletsStore: poll refresh failed', { error });
+      logger.warn('WalletsStore: poll refresh failed', {
+        error: describeError(error),
+      });
       return false;
     }
   };
@@ -1215,8 +1218,9 @@ export default class WalletsStore extends Store {
           expectedNetworkTag === response.introspection.network_tag)
       );
     } catch (error) {
-      // @ts-ignore ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
-      logger.error(error);
+      logger.error('WalletsStore: address validation failed', {
+        error: describeError(error),
+      });
     }
   };
   isValidCertificateMnemonic = (mnemonic: string) =>
@@ -1233,7 +1237,7 @@ export default class WalletsStore extends Store {
         result = await this.walletsRequest.execute().promise;
       } catch (error) {
         logger.warn('WalletsStore: refreshWalletsData failed during refresh', {
-          error,
+          error: describeError(error),
         });
         return;
       }

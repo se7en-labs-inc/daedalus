@@ -10,6 +10,7 @@ import {
 import { getShortCpuDescription } from '../utils/getShortCpuDescription';
 import { formattedBytesToSize } from '../utils/formatters';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 import AdaApi from '../api/api';
 
 const booleanToText = (flag: boolean) => (flag ? 'yes' : 'no');
@@ -25,7 +26,7 @@ export const getCustomDimensions = async (
   } catch (error) {
     logger.warn(
       'getCustomDimensions: unable to load wallets while collecting analytics dimensions',
-      { error }
+      { error: describeError(error) }
     );
   }
 

@@ -3,6 +3,7 @@ import { createInterface } from 'readline';
 import { writeFileSync } from 'fs';
 import path from 'path';
 import { logger } from './utils/logging';
+import { describeError } from '../common/utils/logging';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -381,7 +382,9 @@ class WatchdogManager {
       try {
         handler(event);
       } catch (e) {
-        logger.error('WatchdogManager: event handler threw', { error: e });
+        logger.error('WatchdogManager: event handler threw', {
+          error: describeError(e),
+        });
       }
     }
   }

@@ -5,6 +5,7 @@ import checkDiskSpace from 'check-disk-space';
 import prettysize from 'prettysize';
 import { getDiskSpaceStatusChannel } from '../ipc/get-disk-space-status';
 import { logger } from './logging';
+import { describeError } from '../../common/utils/logging';
 import {
   DISK_SPACE_CHECK_DONT_BOTHER_ME_INTERVAL,
   DISK_SPACE_CHECK_LONG_INTERVAL,
@@ -61,7 +62,7 @@ const getDiskCheckReport = async (
       })
       .catch((error) => {
         logger.error('[DISK-SPACE-DEBUG] Error getting diskCheckReport', {
-          error,
+          error: describeError(error),
         });
         resolve({ ...initialReport, isError: true });
       });
@@ -271,7 +272,7 @@ export const handleDiskSpace = (mainWindow: BrowserWindow) => {
         })
         .catch((error) => {
           logger.error('[DISK-SPACE] Background disk-space poll failed', {
-            error,
+            error: describeError(error),
           });
         });
     }, interval);

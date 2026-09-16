@@ -4,6 +4,7 @@ import BigNumber from 'bignumber.js';
 import AdaApi from '../api';
 import { getNetworkInfo } from '../network/requests/getNetworkInfo';
 import { logger } from '../../utils/logging';
+import { describeError } from '../../../../common/utils/logging';
 import packageJson from '../../../../../package.json';
 import ApiError from '../../domains/ApiError';
 // domains
@@ -27,7 +28,7 @@ export default (api: AdaApi) => {
     try {
       const networkInfo: NetworkInfoResponse = await getNetworkInfo(api.config);
       logger.debug('AdaApi::getNetworkInfo (PATCHED) success', {
-        networkInfo,
+        syncStatus: get(networkInfo, 'sync_progress.status'),
       });
       const {
         sync_progress,
@@ -65,7 +66,7 @@ export default (api: AdaApi) => {
       };
     } catch (error) {
       logger.error('AdaApi::getNetworkInfo (PATCHED) error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError();
     }

@@ -1,5 +1,6 @@
 import Store from 'electron-store';
 import { logger } from './logging';
+import { describeError } from '../../common/utils/logging';
 
 const store = new Store();
 
@@ -13,11 +14,9 @@ export const getRtsFlagsSettings = (network: string): string[] | null => {
     // @ts-ignore ts-migrate(2740) FIXME: Type '{}' is missing the following properties from... Remove this comment to see the full error message
     return flags;
   } catch (error) {
-    // @ts-ignore ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
-    logger.error(
-      `[RTS-FLAGS] Failed to read ${network} flags from config`,
-      error
-    );
+    logger.error(`[RTS-FLAGS] Failed to read ${network} flags from config`, {
+      error: describeError(error),
+    });
   }
 
   return null;

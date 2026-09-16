@@ -1,6 +1,7 @@
 import mkdirp from 'mkdirp';
 import fs from 'fs';
 import { logger } from './logging';
+import { describeError } from '../../common/utils/logging';
 
 export default (filepath: string) => {
   let stats;
@@ -17,7 +18,7 @@ export default (filepath: string) => {
     } catch (error) {
       logger.error('ensureDirectoryExists: could not create directory', {
         filepath,
-        error,
+        error: describeError(error),
       });
       process.exit(1);
     }

@@ -9,6 +9,7 @@
  */
 import { get } from 'lodash';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 import type {
   LocalizedCurrency,
   CurrencyApiConfig,
@@ -64,12 +65,12 @@ const responses = {
         )
         .filter((item) => !!item);
       logger.debug('Currency::CoingGecko::List success', {
-        list,
+        currencies: list.length,
       });
       return list;
     } catch (error) {
       logger.error('Currency::CoingGecko::List error', {
-        error,
+        error: describeError(error),
       });
       throw new Error(error);
     }
@@ -83,7 +84,7 @@ const responses = {
       return rate;
     } catch (error) {
       logger.error('Currency::CoingGecko::Rate error', {
-        error,
+        error: describeError(error),
       });
       throw new Error(error);
     }

@@ -200,7 +200,7 @@ describe('SyncingConnectingMithrilPrompt', () => {
     await waitFor(() => {
       expect(logger.warn).toHaveBeenCalledWith(
         'SyncingConnectingMithrilPrompt: Mithril sync start rejected after confirmation',
-        { error: expect.any(Error) }
+        { error: { name: 'Error', message: 'PARTIAL_SYNC_DISABLED' } }
       );
     });
 

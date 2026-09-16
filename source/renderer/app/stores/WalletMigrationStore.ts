@@ -8,6 +8,7 @@ import { exportWalletsChannel } from '../ipc/exportWalletsChannel';
 import { showOpenDialogChannel } from '../ipc/show-file-dialog-channels';
 import { generateWalletMigrationReportChannel } from '../ipc/generateWalletMigrationReportChannel';
 import { logger } from '../utils/logging';
+import { describeError } from '../../../common/utils/logging';
 import { getRawWalletId } from '../api/utils';
 import WalletImportFileDialog from '../components/wallet/wallet-import/WalletImportFileDialog';
 import type { ExportWalletsMainResponse } from '../../../common/ipc/api';
@@ -400,7 +401,7 @@ export default class WalletMigrationStore extends Store {
       logger.error(
         'WalletMigrationStore: Wallet migration report generation failed',
         {
-          error,
+          error: describeError(error),
         }
       );
     }

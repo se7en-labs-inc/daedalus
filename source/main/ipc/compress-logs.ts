@@ -4,6 +4,7 @@ import path from 'path';
 import { get } from 'lodash';
 import { appLogsFolderPath, pubLogsFolderPath } from '../config';
 import { logger } from '../utils/logging';
+import { describeError } from '../../common/utils/logging';
 import { MainIpcChannel } from './lib/MainIpcChannel';
 import { COMPRESS_LOGS_CHANNEL } from '../../common/ipc/api';
 import type {
@@ -34,7 +35,7 @@ export default () => {
         });
         archive.on('error', (error) => {
           logger.error('COMPRESS_LOGS.ERROR', {
-            error,
+            error: describeError(error),
           });
           reject(error);
         });
@@ -55,7 +56,7 @@ export default () => {
         archive.finalize((error) => {
           if (error) {
             logger.error('COMPRESS_LOGS.ERROR', {
-              error,
+              error: describeError(error),
             });
             reject(error);
           }
