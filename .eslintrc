@@ -10,7 +10,8 @@
     "plugin:@typescript-eslint/recommended",
     "plugin:react/recommended",
     "prettier",
-    "plugin:jest/recommended"
+    "plugin:jest/recommended",
+    "plugin:storybook/recommended"
   ],
   "env": {
     "browser": true,
@@ -175,9 +176,28 @@
       // A CSF story is an exported arrow function returning JSX. That is the
       // form Storybook documents, the form its codemods emit, and the form the
       // rule reports as a component defined the wrong way.
+      //
+      // eslint-plugin-storybook's recommended config turns the same rule off
+      // for the same glob, so this override is now redundant for stories and is
+      // kept because it also covers **/*.story.* , which that config matches
+      // with a different extension list.
       "files": ["**/*.stories.ts", "**/*.stories.tsx", "**/*.story.ts", "**/*.story.tsx"],
       "rules": {
-          "react/function-component-definition": "off"
+          "react/function-component-definition": "off",
+          // Not in any of the plugin's shipped configs, because it was written
+          // for the Storybook 7 migration and they assume it is behind you.
+          // This corpus has just finished that migration, so the rule is what
+          // stops it coming back: storiesOf() is an error, not a review catch.
+          "storybook/no-stories-of": "error"
+      }
+    },
+    {
+      // The plugin's recommended config scopes this rule to `.storybook/main.*`,
+      // which is the default location. This project's configuration is at
+      // `storybook/main.ts`, so the rule would never fire without this.
+      "files": ["storybook/main.ts"],
+      "rules": {
+          "storybook/no-uninstalled-addons": "error"
       }
     }
   ]

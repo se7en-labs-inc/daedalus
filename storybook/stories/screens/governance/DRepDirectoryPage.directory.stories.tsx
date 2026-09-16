@@ -57,7 +57,6 @@ export const Loading = {
     ),
   ],
   render: () => <DRepDirectoryPage />,
-  name: 'Loading',
 };
 
 export const Failed = {

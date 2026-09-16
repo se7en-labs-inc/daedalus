@@ -133,6 +133,7 @@
     "eslint-plugin-promise": "6.0.0",
     "eslint-plugin-react": "7.29.4",
     "eslint-plugin-react-hooks": "4.4.0",
+    "eslint-plugin-storybook": "9.1.20",
     "esm": "3.2.25",
     "gulp": "4.0.2",
     "gulp-shell": "0.8.0",

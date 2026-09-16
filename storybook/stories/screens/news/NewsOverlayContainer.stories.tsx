@@ -22,7 +22,6 @@ export default {
 
 export const Incident = {
   render: () => <NewsOverlayContainer />,
-  name: 'Incident',
 };
 
 export const Alerts = {

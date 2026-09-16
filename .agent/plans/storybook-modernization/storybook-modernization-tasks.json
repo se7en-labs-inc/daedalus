@@ -2201,7 +2201,7 @@
           "id": "task-059",
           "title": "Add eslint-plugin-storybook",
           "description": "Locked decision 10. The plugin is in neither package.json nor .eslintrc, so nothing flags a deprecated API or a malformed story today. Adding it after the corpus is clean makes a story authored against the old APIs a lint failure rather than a review catch.",
-          "status": "pending",
+          "status": "completed",
           "priority": "medium",
           "estimatedHours": 4.0,
           "dependencies": [
