@@ -66,10 +66,24 @@ Fetching and storing the script type now would add a request per batch and a
 column to populate a surface that does not exist. That is the shape this plan
 declined elsewhere.
 
+## The surface already exists
+
+An earlier revision of this finding deferred on the grounds that a token details
+screen would have to exist first. That was wrong. Expanding a token row renders a
+parameter list built by `components/assets/Asset.tsx`, which defines six rows:
+fingerprint, policy id, asset name, name, ticker and description. It is not an NFT
+viewer and does not need to be. It is where a holder already goes to find out what
+a token is.
+
+So the work is rows in an existing list rather than a new screen, which is a much
+smaller thing than this finding first claimed. The PRD's non-goal excluding "any
+NFT display surface" does not cover it either: that excludes a viewer, not an
+additional parameter.
+
 ## What would make it worth having
 
-A token details screen, where the facts compose into something a holder can
-reason about rather than a warning they cannot act on:
+The facts compose there into something a holder can reason about rather than a
+warning they cannot act on:
 
 - minted under a native script or a contract
 - whether the policy is closed, so whether supply and on-chain metadata are final
@@ -95,9 +109,16 @@ Whether the script type is fetched for every subject or only for those with no
 `policy` field. Only the second is needed to tell the two cases apart, and it is
 the smaller request.
 
-Whether a details screen is in scope at all. The asset metadata cache plan
-excludes new display surfaces by its non-goals, so this belongs to whatever
-takes that up.
+Which rows earn their place. The parameter list is read by someone asking what a
+token is, not by someone auditing it, and six rows is already a wall of text.
+Policy type and whether the policy is closed are facts a holder can act on.
+Per-property verification may be one row naming which fields carry a valid issuer
+signature rather than four rows of yes and no.
+
+What the `url` row waits for. The registry publishes a `url` for many subjects and
+nothing renders it, which is the same shape of gap as the provenance facts. It is
+held not by scope but by the absence of a warning before an issuer-controlled link
+opens from inside a wallet. The row is trivial; the warning is the work.
 
 ## Relevant files
 
