@@ -102,7 +102,7 @@ import {
   generateAccountMnemonics,
   generateAdditionalMnemonics,
 } from './utils/mnemonics';
-import { filterLogData } from '../../../common/utils/logging';
+import { describeError, filterLogData } from '../../../common/utils/logging';
 import { normalizeDRepIdentity } from '../utils/governance/normalizeDRepIdentity';
 import { derivationPathToAddressPath } from '../utils/hardwareWalletUtils';
 // Config constants
@@ -422,7 +422,7 @@ export default class AdaApi {
       const log = isOpaqueShutdownError ? logger.warn : logger.error;
 
       log('AdaApi::getWallets error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -464,7 +464,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::getWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -489,7 +489,7 @@ export default class AdaApi {
       return walletPublicKey;
     } catch (error) {
       logger.error('AdaApi::getWalletPublicKey error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -515,7 +515,7 @@ export default class AdaApi {
       return accountPublicKey;
     } catch (error) {
       logger.error('AdaApi::getAccountPublicKey error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -552,7 +552,7 @@ export default class AdaApi {
       return response.map(_createAddressFromServerData);
     } catch (error) {
       logger.error('AdaApi::getAddresses error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -577,7 +577,7 @@ export default class AdaApi {
       return _createTransactionFromServerData(response);
     } catch (error) {
       logger.error('AdaApi::getTransaction error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -628,7 +628,7 @@ export default class AdaApi {
       });
     } catch (error) {
       logger.error('AdaApi::getTransactions error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     } // @API TODO - Filter / Search fine tuning "pending" for V2
@@ -813,7 +813,7 @@ export default class AdaApi {
       );
     } catch (error) {
       logger.error('AdaApi::getAssets error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -849,7 +849,7 @@ export default class AdaApi {
       };
     } catch (error) {
       logger.error('AdaApi::getWithdrawals error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -874,7 +874,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::createWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -931,7 +931,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::createLegacyWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -961,7 +961,7 @@ export default class AdaApi {
       return true;
     } catch (error) {
       logger.error('AdaApi::deleteWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1020,19 +1020,7 @@ export default class AdaApi {
       return _createTransactionFromServerData(response);
     } catch (error) {
       logger.error('AdaApi::createTransaction error', {
-        error:
-          error instanceof Error
-            ? {
-                message: error.message,
-                stack: error.stack,
-                // @ts-ignore
-                statusCode: error.statusCode,
-                // @ts-ignore
-                responseBody: error.responseBody,
-                // @ts-ignore
-                code: error.code,
-              }
-            : error,
+        error: describeError(error),
       });
 
       const rawError =
@@ -1127,19 +1115,7 @@ export default class AdaApi {
         return _createTransactionFromServerData(response);
       } catch (error) {
         logger.error('AdaApi::createTransaction error', {
-          error:
-            error instanceof Error
-              ? {
-                  message: error.message,
-                  stack: error.stack,
-                  // @ts-ignore
-                  statusCode: error.statusCode,
-                  // @ts-ignore
-                  responseBody: error.responseBody,
-                  // @ts-ignore
-                  code: error.code,
-                }
-              : error,
+          error: describeError(error),
         });
         const rawError =
           error instanceof Error
@@ -1309,7 +1285,7 @@ export default class AdaApi {
       return extendedResponse;
     } catch (error) {
       logger.error('AdaApi::selectCoins error', {
-        error,
+        error: describeError(error),
       });
 
       handleNotEnoughMoneyError(error, {
@@ -1347,7 +1323,7 @@ export default class AdaApi {
       return result;
     } catch (error) {
       logger.debug('AdaApi::constructTransaction error', {
-        error,
+        error: describeError(error),
       });
 
       throw new ApiError(error).result();
@@ -1366,7 +1342,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::createExternalTransaction error', {
-        error,
+        error: describeError(error),
       });
 
       const apiError = new ApiError(error)
@@ -1395,7 +1371,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::inspectAddress error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1418,7 +1394,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getPublicKey error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1437,7 +1413,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getICOPublicKey error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -1459,7 +1435,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::constructAddress error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1485,7 +1461,7 @@ export default class AdaApi {
       return _createAddressFromServerData(address);
     } catch (error) {
       logger.error('AdaApi::createAddress error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -1520,7 +1496,7 @@ export default class AdaApi {
       logger.debug('AdaApi::deleteTransaction success', response);
     } catch (error) {
       logger.error('AdaApi::deleteTransaction error', {
-        error,
+        error: describeError(error),
       }); // In this particular call we don't need to handle the error in the UI
       // The only reason transaction canceling would fail is if the transaction
       // is no longer pending - in which case there is nothing we can do.
@@ -1540,7 +1516,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getWalletRecoveryPhrase error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1557,7 +1533,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getWalletCertificateAdditionalMnemonics error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1582,7 +1558,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getWalletCertificateRecoveryPhrase error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1603,7 +1579,7 @@ export default class AdaApi {
       return Promise.resolve(response);
     } catch (error) {
       logger.error('AdaApi::getWalletRecoveryPhraseFromCertificate error', {
-        error,
+        error: describeError(error),
       });
       const errorRejection = new ApiError(error)
         .set('invalidMnemonic', true)
@@ -1631,7 +1607,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('forbiddenMnemonic')
@@ -1672,7 +1648,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::createHardwareWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1688,7 +1664,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getCurrencyList error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1706,7 +1682,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getCurrencyRate error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -1750,7 +1726,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreLegacyWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('forbiddenMnemonic')
@@ -1813,7 +1789,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreByronRandomWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('forbiddenMnemonic')
@@ -1867,7 +1843,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreByronIcarusWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('forbiddenMnemonic')
@@ -1921,7 +1897,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreByronTrezorWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('forbiddenMnemonic')
@@ -1975,7 +1951,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreByronLedgerWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('forbiddenMnemonic')
@@ -2021,7 +1997,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::restoreExportedByronWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2045,7 +2021,7 @@ export default class AdaApi {
       return _createWalletFromServerData(importedWallet);
     } catch (error) {
       logger.error('AdaApi::importWalletFromKey error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('walletAlreadyImported', true)
@@ -2075,7 +2051,7 @@ export default class AdaApi {
       return _createWalletFromServerData(importedWallet);
     } catch (error) {
       logger.error('AdaApi::importWalletFromFile error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('walletAlreadyImported', true)
@@ -2119,7 +2095,7 @@ export default class AdaApi {
       return _createWalletFromServerData(wallet);
     } catch (error) {
       logger.error('AdaApi::updateWallet error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2162,7 +2138,7 @@ export default class AdaApi {
       return true;
     } catch (error) {
       logger.error('AdaApi::updateSpendingPassword error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -2190,7 +2166,7 @@ export default class AdaApi {
       return result;
     } catch (error) {
       logger.error('AdaApi::quitStakePool error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -2211,7 +2187,7 @@ export default class AdaApi {
       return poolMetadataSource;
     } catch (error) {
       logger.error('AdaApi::getSmashSettings error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2237,7 +2213,7 @@ export default class AdaApi {
       return isValid;
     } catch (error) {
       logger.error('AdaApi::checkSmashServerIsValid error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2281,7 +2257,7 @@ export default class AdaApi {
       }
 
       logger.error('AdaApi::updateSmashSettings error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2326,7 +2302,7 @@ export default class AdaApi {
       return fee;
     } catch (error) {
       logger.error('AdaApi::getRedeemItnRewardsFee error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2369,7 +2345,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::requestRedeemItnRewards error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2393,7 +2369,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::exportWalletToFile error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2425,7 +2401,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::getWalletUtxos error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2451,7 +2427,7 @@ export default class AdaApi {
       return _createMigrationFeeFromServerData(response);
     } catch (error) {
       logger.error('AdaApi::transferFundsCalculateFee error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2486,7 +2462,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::transferFunds error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -2502,7 +2478,7 @@ export default class AdaApi {
       logger.debug('AdaApi::listDReps success', { count: dreps.length });
       return dreps;
     } catch (error) {
-      logger.error('AdaApi::listDReps error', { error });
+      logger.error('AdaApi::listDReps error', { error: describeError(error) });
       throw error;
     }
   };
@@ -2513,7 +2489,7 @@ export default class AdaApi {
       logger.debug('AdaApi::getDRep success');
       return drep;
     } catch (error) {
-      logger.error('AdaApi::getDRep error', { error });
+      logger.error('AdaApi::getDRep error', { error: describeError(error) });
       throw error;
     }
   };
@@ -2525,7 +2501,9 @@ export default class AdaApi {
       logger.debug('AdaApi::getDRepSummary success');
       return summary;
     } catch (error) {
-      logger.error('AdaApi::getDRepSummary error', { error });
+      logger.error('AdaApi::getDRepSummary error', {
+        error: describeError(error),
+      });
       throw error;
     }
   };
@@ -2557,7 +2535,7 @@ export default class AdaApi {
       return stakePools;
     } catch (error) {
       logger.error('AdaApi::getStakePools error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2579,7 +2557,7 @@ export default class AdaApi {
       logger.debug('AdaApi::testReset success');
     } catch (error) {
       logger.error('AdaApi::testReset error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2631,7 +2609,7 @@ export default class AdaApi {
       };
     } catch (error) {
       logger.error('AdaApi::getNetworkInfo error', {
-        error,
+        error: describeError(error),
       });
 
       // Special Error case
@@ -2668,7 +2646,7 @@ export default class AdaApi {
       };
     } catch (error) {
       logger.error('AdaApi::getNetworkClock error', {
-        error,
+        error: describeError(error),
         isForceCheck,
       });
       throw new ApiError(error);
@@ -2713,7 +2691,7 @@ export default class AdaApi {
       };
     } catch (error) {
       logger.error('AdaApi::getNetworkParameters error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2782,7 +2760,7 @@ export default class AdaApi {
       return _createDelegationFeeFromServerData(response);
     } catch (error) {
       logger.error('AdaApi::calculateDelegationFee error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2807,7 +2785,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::joinStakePool error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -2887,7 +2865,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::createWalletSignature error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error);
     }
@@ -2907,7 +2885,7 @@ export default class AdaApi {
       return response;
     } catch (error) {
       logger.error('AdaApi::delegateVotes error', {
-        error,
+        error: describeError(error),
       });
 
       throw new ApiError(error).result();
@@ -3005,7 +2983,7 @@ export default class AdaApi {
       return _createTransactionFromServerData(response);
     } catch (error) {
       logger.error('AdaApi::createVotingRegistrationTransaction error', {
-        error,
+        error: describeError(error),
       });
       throw new ApiError(error)
         .set('wrongEncryptionPassphrase')
@@ -3070,7 +3048,7 @@ export default class AdaApi {
       };
     } catch (error) {
       logger.error('AdaApi::getCatalystFund error', {
-        error,
+        error: describeError(error),
       });
     }
   };
