@@ -1195,8 +1195,52 @@ Story registrations stand at 272 across the 84 story files, 267 of them under `s
 A raw grep returns more: three `moment().add()` chains and two `Set.add()` calls in the support
 module `governance/_utils/drepPopulation.ts` are not story registrations.
 
+### 2026-09-16 — Implementation complete
+
+All 63 tasks across the eight phases are `completed`. Every required check passes as a Nix
+derivation: `compile`, `lint`, `stylelint`, `i18n`, `jest`, `cucumber-unit`, `storybook`, `docs`,
+`shellcheck`, `treefmt`, `prettier-version-parity`, `crypto-vectors` and `bundle-integrity`.
+
+What the corpus is now. 387 story label pairs, of which 258 are the component baseline, unchanged
+pair for pair since phase 3 and read from `index.json` of a real build at every task boundary since.
+The other 129 are screen stories, one file per reachable screen, 49 of them. Zero knob call sites
+against a starting corpus of 396. Zero renders that read their first argument without declaring
+`args`.
+
+Deviations from the plan, each recorded in the task entry that made it:
+
+- **Storybook 9.1.20, not 10.6.** Five gates were measured rather than inferred: TypeScript 5 `const`
+  type parameters in 10's own declaration files, a missing `oxc-resolver` native binary under Nix,
+  the React 16 peer, published advisory counts compared like for like across candidates, and 102
+  `TS1479` errors under `moduleResolution: node16`. The reasoning is in the phase 5 closing notes and
+  the 10 upgrade is now downstream of a TypeScript upgrade rather than a thing to retry.
+- **`task-035` was reverted.** The module resolution change it made is not needed at 9.1.20 and cost
+  the `@faker-js/faker` type entry. The finding it produced is kept at
+  `.agent/findings/07-a-lost-type-entry-is-silent.md`.
+- **`jest.config.js` gained `storybook` as a root.** Not in the plan. It is what turns every screen
+  tranche into a test, and it was justified by finding a shipped defect on the first tranche rather
+  than by argument.
+- **Five test-environment gaps were closed**, none of which is a property of the code under test: a
+  canvas stub, `TextEncoder` and `TextDecoder`, three ESM-only packages added to
+  `transformIgnorePatterns`, and an image and markdown module stub. Without them three screens could
+  not be imported in a spec at all.
+- **`task-049` did not produce a per-screen rate in hours.** It cannot be measured from this record,
+  and a number invented there would have been multiplied by the twenty screens that followed. What was
+  measured is recorded in its place.
+- **`storybook/csf-component` is not enabled** despite being available in the plugin added at
+  `task-059`. It reports 117 times on a clean corpus, which describes a convention this corpus does
+  not hold rather than enforcing one it does.
+
+Four defects were found by rendering screens rather than by building them, and none is fixed here:
+`.agent/findings/06`, `08`, `09` and `10`. Finding 09 has seven story assertions attached to it that
+fail when it is fixed.
+
+Work deliberately left out is recorded at
+`.agent/plans/storybook-modernization/task-plans/follow-ons.md`.
+
 ---
 
-**Status:** Draft
-**Date:** 2026-09-10, revised 2026-09-14
+**Status:** Complete
+
+**Date:** 2026-09-10, revised 2026-09-14, completed 2026-09-16
 **Author:** Se7en Labs

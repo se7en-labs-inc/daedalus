@@ -2229,7 +2229,7 @@
           "id": "task-060",
           "title": "Rewrite the Storybook skill and workflow documents",
           "description": ".agent/skills/storybook-creation/SKILL.md and .agent/workflows/storybook.md both teach storiesOf(). The workflow document additionally describes a storybook/.storybook/ directory that does not exist and a title separator the skill file already contradicts.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 8.0,
           "dependencies": [
@@ -2263,7 +2263,7 @@
           "id": "task-061",
           "title": "Close out and record the follow-ons",
           "description": "Final verification across the whole set, and a written record of the work that was deliberately left out so it is findable rather than remembered.",
-          "status": "pending",
+          "status": "completed",
           "priority": "medium",
           "estimatedHours": 3.0,
           "dependencies": [
