@@ -12,10 +12,21 @@ import {
   DiscreetModeFeatureProvider,
   BrowserLocalStorageBridge,
 } from '../../../source/renderer/app/features';
-import { DiscreetModeToggleKnob } from './DiscreetModeToggleKnob';
+import { DiscreetModeSync } from './DiscreetModeSync';
+import {
+  withStoreOverrides,
+  type StoreOverrides,
+} from './harness/storeDefaults';
+import { activeWallet } from './harness/fixtures/wallets';
 
 type Props = {
   children: Node;
+  /*
+   * A screen story names the stores it reads and the fields it reads on them.
+   * Merged over the full 24-key default map, so an override is two or three
+   * lines rather than a second fixture. See harness/storeDefaults.ts.
+   */
+  storeOverrides?: StoreOverrides;
 };
 export const WALLETS = [
   {
@@ -217,8 +228,13 @@ class StoryProvider extends Component<Props> {
     };
   }
 
+  /*
+   * The fixtures this provider has always supplied. They carry shapes the
+   * component-level stories depend on, so they sit between the harness defaults
+   * and whatever a screen story asks for.
+   */
   @computed
-  get stores(): {} {
+  get providerFixtures(): StoreOverrides {
     return {
       assets: {
         getAsset: () => {
@@ -246,7 +262,21 @@ class StoryProvider extends Component<Props> {
         },
       },
       wallets: {
-        active: WALLETS[parseInt(this.activeWalletId, 10)],
+        /*
+         * A real `Wallet` instance rather than the literal from the list below.
+         *
+         * The domain class carries eleven computed getters and the wallet
+         * screens branch on most of them: `isRandom` against `isSequential` on
+         * the receive screen, `isRestoring` on the shell, `hasAssets` on the
+         * summary. A literal supplies the observables and none of the getters,
+         * so each one reads `undefined` and every branch testing it takes its
+         * false arm, producing a screen the application cannot actually be in.
+         *
+         * `WALLETS` below is unchanged and still feeds `storiesProps`, which is
+         * what the component corpus's own layout reads. Nothing outside the
+         * screen corpus reads `stores.wallets.active`.
+         */
+        active: activeWallet(),
         sendMoney: () => {},
         sendMoneyRequest: {
           isExecuting: false,
@@ -257,10 +287,43 @@ class StoryProvider extends Component<Props> {
         _resetTransaction: () => {},
         sendMoneyRequest: () => {},
         isTransactionPending: false,
-        checkIsTrezorByWalletId: () => {},
+        checkIsTrezorByWalletId: () => false,
         initiateTransaction: null,
+        /*
+         * The device state the wallet screens read while no device is attached,
+         * which is every story here. `connecting` is what the store initialises
+         * to and what a screen shows before anything is plugged in.
+         */
+        hwDeviceStatus: 'connecting',
+        transportDevice: null,
+        isAddressDerived: false,
+        isAddressChecked: false,
+        isAddressVerificationEnabled: false,
+        setAddressVerificationCheckStatus: () => {},
+        initiateWalletPairing: () => {},
       },
     };
+  }
+
+  @computed
+  get stores(): {} {
+    /*
+     * Three layers, each merged one key deep rather than replaced: the harness
+     * defaults, then this provider's fixtures, then the story's own overrides.
+     *
+     * Merging rather than spreading at the same level matters. Spread, a screen
+     * story naming `wallets` to set one flag would silently take away the active
+     * wallet this provider supplies, and the screen would render the state it
+     * shows with no wallet selected while claiming to be on one. Measured: that
+     * is exactly what the top bar story did.
+     */
+    const overrides = this.props.storeOverrides || {};
+    const fixtures = this.providerFixtures;
+    const merged: StoreOverrides = { ...fixtures };
+    Object.keys(overrides).forEach((key) => {
+      merged[key] = { ...(fixtures[key] || {}), ...overrides[key] };
+    });
+    return withStoreOverrides(merged);
   }
 
   setActiveWalletId = (walletId: string) =>
@@ -279,7 +342,7 @@ class StoryProvider extends Component<Props> {
           <DiscreetModeFeatureProvider>
             <>
               {this.props.children}
-              <DiscreetModeToggleKnob />
+              <DiscreetModeSync />
             </>
           </DiscreetModeFeatureProvider>
         </BrowserLocalStorageBridge>

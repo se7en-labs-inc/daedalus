@@ -1,16 +1,14 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { withKnobs, boolean, text } from '@storybook/addon-knobs';
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
+import { useArgs } from 'storybook/preview-api';
 import BigNumber from 'bignumber.js';
-import { withState } from '@dump247/storybook-state';
 // Helpers and config
 import {
   generateAssetToken,
   generateWallet,
   generateHash,
 } from '../../_support/utils';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 // Screens
 import WalletTokens from '../../../../source/renderer/app/components/wallet/tokens/wallet-tokens/WalletTokens';
 
@@ -136,35 +134,44 @@ const walletTokens = {
     },
   ],
 };
-storiesOf('Wallets / Tokens', module)
-  .addDecorator(WalletsWrapper)
-  .addDecorator(withKnobs) // ====== Stories ======
-  .add(
-    'WalletTokens',
-    withState(
-      {
-        favorites: {},
-      },
-      (store) => (
-        <WalletTokens
-          assets={boolean('Has Tokens', true) ? assets : []}
-          assetSettingsDialogWasOpened
-          currentLocale="en-US"
-          isLoadingAssets={boolean('isLoadingAssets', false)}
-          onAssetSettings={action('onAssetSettings')}
-          onCopyAssetParam={action('onCopyAssetParam')}
-          onOpenAssetSend={action('onOpenAssetSend')}
-          searchValue={text('searchValue', '')}
-          wallet={generateWallet('Wallet name', '45119903750165', walletTokens)}
-          onToggleFavorite={({ uniqueId }: { uniqueId: string }) => {
-            const { favorites } = store.state;
-            const newState = { ...favorites, [uniqueId]: !favorites[uniqueId] };
-            store.set({
-              favorites: newState,
-            });
-          }}
-          tokenFavorites={store.state.favorites}
-        />
-      )
-    )
-  );
+
+export default {
+  title: 'Wallets / Tokens',
+  args: walletsLayoutArgs,
+  decorators: [WalletsWrapper],
+};
+
+export const _WalletTokens = {
+  args: {
+    hasTokens: true,
+    isLoadingAssets: false,
+    searchValue: '',
+    favorites: {},
+  },
+
+  render: () => {
+    const [{ hasTokens, isLoadingAssets, searchValue, favorites }, updateArgs] =
+      useArgs();
+    return (
+      <WalletTokens
+        assets={hasTokens ? assets : []}
+        assetSettingsDialogWasOpened
+        currentLocale="en-US"
+        isLoadingAssets={isLoadingAssets}
+        onAssetSettings={action('onAssetSettings')}
+        onCopyAssetParam={action('onCopyAssetParam')}
+        onOpenAssetSend={action('onOpenAssetSend')}
+        searchValue={searchValue}
+        wallet={generateWallet('Wallet name', '45119903750165', walletTokens)}
+        onToggleFavorite={({ uniqueId }: { uniqueId: string }) => {
+          updateArgs({
+            favorites: { ...favorites, [uniqueId]: !favorites[uniqueId] },
+          });
+        }}
+        tokenFavorites={favorites}
+      />
+    );
+  },
+
+  name: 'WalletTokens',
+};

@@ -1,19 +1,13 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
 import { observable, action as mobxAction } from 'mobx';
-import { action } from '@storybook/addon-actions';
-import { withState } from '@dump247/storybook-state';
-import {
-  withKnobs,
-  text,
-  boolean,
-  number,
-  select,
-} from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
+import { useArgs } from 'storybook/preview-api';
 import { find, get } from 'lodash';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import StoryLayout from '../_support/StoryLayout';
+import { currentThemeOf } from '../_support/globals';
+import { labelOptionsFrom } from '../_support/argTypes';
 import ItemsDropdown from '../../../source/renderer/app/components/widgets/forms/ItemsDropdown';
 import WalletsDropdown from '../../../source/renderer/app/components/widgets/forms/WalletsDropdown';
 import WalletsDropdownLabel from '../../../source/renderer/app/components/widgets/forms/WalletsDropdownLabel';
@@ -79,143 +73,206 @@ const stakePoolsOptions = stakePoolsList.reduce((obj, pool) => {
   obj[`[${ticker}] ${name} - (${ranking})`] = pool;
   return obj;
 }, {});
-storiesOf('Common / ItemsDropdown', module)
-  .addDecorator((story: any, context: any) => {
-    if (context.name === 'CountdownWidget') {
-      return story();
-    }
+// The knob selected between stake pool objects and defaulted to STAKE_POOLS[0].
+// An arg holds the label and `mapping` turns it back into the pool, so the
+// default is that pool's label rather than the pool. stakePoolsList opens with
+// STAKE_POOLS[0] and the reduce above preserves that order.
+const [firstStakePoolLabel] = Object.keys(stakePoolsOptions);
 
-    const onChangeAction = action('onChange');
-    const state = observable({
-      checked: false,
-      onChange: mobxAction((value, event) => {
-        state.checked = value;
-        onChangeAction(value, event);
-      }),
+export default {
+  title: 'Common / ItemsDropdown',
+
+  decorators: [
+    (story: any, context: any) => {
+      if (context.name === 'CountdownWidget') {
+        return story();
+      }
+
+      const onChangeAction = action('onChange');
+      const state = observable({
+        checked: false,
+        onChange: mobxAction((value, event) => {
+          state.checked = value;
+          onChangeAction(value, event);
+        }),
+      });
+      return (
+        <StoryDecorator propsForChildren={state}>
+          <StoryProvider>
+            <StoryLayout
+              activeSidebarCategory={null}
+              {...context}
+              currentTheme={currentThemeOf(context)}
+            >
+              <div
+                style={{
+                  margin: 50,
+                }}
+              >
+                {story()}
+              </div>
+            </StoryLayout>
+          </StoryProvider>
+        </StoryDecorator>
+      );
+    },
+  ],
+};
+
+export const Generic = {
+  args: {
+    value: 'usd',
+    hasError: false,
+  },
+
+  render: () => {
+    const [{ value, hasError }, updateArgs] = useArgs();
+    const options = Object.values(currenciesList).map((currency, index) => {
+      const label = get(currency, 'name.en-US');
+      const code = get(currency, 'code');
+      const decimalDigits = get(currency, 'decimalDigits');
+      const detail = `Code: ${code} - Decimal digits: ${decimalDigits}`;
+      const isSyncing = index === 1;
+      return {
+        label,
+        detail,
+        value: code,
+        isSyncing,
+      };
     });
     return (
-      <StoryDecorator propsForChildren={state}>
-        <StoryProvider>
-          <StoryLayout activeSidebarCategory={null} {...context}>
-            <div
-              style={{
-                margin: 50,
-              }}
-            >
-              {story()}
-            </div>
-          </StoryLayout>
-        </StoryProvider>
-      </StoryDecorator>
+      <ItemsDropdown
+        options={options}
+        // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+        value={value}
+        handleChange={(newValue) =>
+          updateArgs({
+            value: newValue,
+          })
+        }
+        // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+        hasSearch
+        error={hasError ? 'Error message' : ''}
+      />
     );
-  })
-  .addDecorator(withKnobs) // ====== Stories ======
-  .add(
-    'Generic',
-    withState(
+  },
+};
+
+export const Wallets = {
+  args: {
+    walletId: firstWalletId,
+    name: 'First Wallet',
+    amount: 1000000000,
+    stakePool: firstStakePoolLabel,
+    isSyncing: false,
+    isHardwareWallet: true,
+    hasStakePools: true,
+    label: 'Wallets',
+    placeholder: undefined,
+    syncingLabel: 'syncing',
+    hasSearch: false,
+  },
+
+  // The five knobs the first wallet is built from carried a `First wallet`
+  // group id, which is a table category here.
+  argTypes: {
+    name: { table: { category: 'First wallet' } },
+    amount: { table: { category: 'First wallet' } },
+    stakePool: {
+      ...labelOptionsFrom(stakePoolsOptions),
+      table: { category: 'First wallet' },
+    },
+    isSyncing: { table: { category: 'First wallet' } },
+    isHardwareWallet: { table: { category: 'First wallet' } },
+    hasStakePools: { table: { category: 'First wallet' } },
+    placeholder: { control: 'text' },
+  },
+
+  render: () => {
+    const [
       {
-        value: 'usd',
+        walletId,
+        name,
+        amount,
+        stakePool,
+        isSyncing,
+        isHardwareWallet,
+        hasStakePools,
+        label,
+        placeholder,
+        syncingLabel,
+        hasSearch,
       },
-      (store) => {
-        const options = Object.values(currenciesList).map((currency, index) => {
-          const label = get(currency, 'name.en-US');
-          const code = get(currency, 'code');
-          const decimalDigits = get(currency, 'decimalDigits');
-          const detail = `Code: ${code} - Decimal digits: ${decimalDigits}`;
-          const value = code;
-          const isSyncing = index === 1;
-          return {
-            label,
-            detail,
-            value,
-            isSyncing,
-          };
-        });
-        return (
-          <ItemsDropdown
-            options={options}
-            // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-            value={store.state.value}
-            handleChange={(value) =>
-              store.set({
-                value,
-              })
-            }
-            // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-            hasSearch
-            error={boolean('Has error', false) ? 'Error message' : ''}
-          />
-        );
-      }
-    )
-  )
-  .add(
-    'Wallets',
-    withState(
-      {
-        walletId: firstWalletId,
-      },
-      (store) => {
-        const firstWallet = generateWallet(
-          text('Name', 'First Wallet', 'First wallet'),
-          `${number('Amount', 1000000000, {}, 'First wallet')}`,
-          undefined,
-          undefined,
-          // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'SelectTypeKnobValue' is not assi... Remove this comment to see the full error message
-          select(
-            'Stake pool',
-            stakePoolsOptions,
-            // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ relativeStake: number; cost: s... Remove this comment to see the full error message
-            STAKE_POOLS[0],
-            'First wallet'
-          ),
-          true,
-          boolean('isSyncing', false, 'First wallet')
-            ? WalletSyncStateStatuses.SYNCING
-            : WalletSyncStateStatuses.READY,
-          boolean('Wallet - isHardwareWallet', true, 'First wallet'),
-          firstWalletId
-        );
-        const wallets = [firstWallet, ...WALLETS];
-        return (
-          <WalletsDropdown
-            getStakePoolById={(poolId) =>
-              find(STAKE_POOLS, (stakePool) => stakePool.id === poolId)
-            }
-            // @ts-ignore ts-migrate(2322) FIXME: Type '{ getStakePoolById: (poolId: any) => { relat... Remove this comment to see the full error message
-            label={text('label', 'Wallets')}
-            numberOfStakePools={
-              boolean('Has stake pools', true, 'First wallet')
-                ? STAKE_POOLS.length
-                : 0
-            }
-            onChange={(walletId) =>
-              store.set({
-                walletId,
-              })
-            }
-            // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-            placeholder={text('placeholder')}
-            syncingLabel={text('syncingLabel', 'syncing')}
-            value={store.state.walletId}
-            wallets={wallets}
-            hasSearch={boolean('hasSearch', false)}
-          />
-        );
-      }
-    )
-  )
-  .add('Wallets - Label only', () => {
+      updateArgs,
+    ] = useArgs();
+    const firstWallet = generateWallet(
+      name,
+      `${amount}`,
+      undefined,
+      undefined,
+      stakePoolsOptions[stakePool],
+      true,
+      isSyncing
+        ? WalletSyncStateStatuses.SYNCING
+        : WalletSyncStateStatuses.READY,
+      isHardwareWallet,
+      firstWalletId
+    );
+    const wallets = [firstWallet, ...WALLETS];
+    return (
+      <WalletsDropdown
+        getStakePoolById={(poolId) =>
+          find(STAKE_POOLS, (pool) => pool.id === poolId)
+        }
+        // @ts-ignore ts-migrate(2322) FIXME: Type '{ getStakePoolById: (poolId: any) => { relat... Remove this comment to see the full error message
+        label={label}
+        numberOfStakePools={hasStakePools ? STAKE_POOLS.length : 0}
+        onChange={(newWalletId) =>
+          updateArgs({
+            walletId: newWalletId,
+          })
+        }
+        placeholder={placeholder}
+        syncingLabel={syncingLabel}
+        value={walletId}
+        wallets={wallets}
+        hasSearch={hasSearch}
+      />
+    );
+  },
+};
+
+export const WalletsLabelOnly = {
+  args: {
+    walletName: 'Wallet name',
+    walletStakePool: firstStakePoolLabel,
+    isHardwareWallet: true,
+    isSyncing: false,
+    hasStakePools: true,
+    syncingLabel: 'syncing',
+  },
+
+  argTypes: {
+    walletStakePool: labelOptionsFrom(stakePoolsOptions),
+  },
+
+  render: ({
+    walletName,
+    walletStakePool,
+    isHardwareWallet,
+    isSyncing,
+    hasStakePools,
+    syncingLabel,
+  }) => {
     const wallet = generateWallet(
-      text('Wallet - Name', 'Wallet name'),
+      walletName,
       '1000000000',
       undefined,
       undefined,
-      // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'SelectTypeKnobValue' is not assi... Remove this comment to see the full error message
-      select('Wallet - Stake pool', stakePoolsOptions, STAKE_POOLS[0]),
+      stakePoolsOptions[walletStakePool],
       true,
       undefined,
-      boolean('Wallet - isHardwareWallet', true)
+      isHardwareWallet
     );
     return (
       <div
@@ -232,35 +289,36 @@ storiesOf('Common / ItemsDropdown', module)
             find(STAKE_POOLS, (stakePool) => stakePool.id === poolId)
           }
           // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-          isSyncing={boolean('isSyncing', false)}
-          numberOfStakePools={
-            boolean('Has stake pools', true) ? STAKE_POOLS.length : 0
-          }
-          syncingLabel={text('syncingLabel', 'syncing')}
+          isSyncing={isSyncing}
+          numberOfStakePools={hasStakePools ? STAKE_POOLS.length : 0}
+          syncingLabel={syncingLabel}
           wallet={wallet}
         />
       </div>
     );
-  })
-  .add(
-    'Assets',
-    withState(
-      {
-        assetId: assets[0].fingerprint,
-      },
-      (store) => {
-        return (
-          <AssetsDropdown
-            assets={assets}
-            // @ts-ignore ts-migrate(2322) FIXME: Type '{ assets: AssetToken[]; value: string; onCha... Remove this comment to see the full error message
-            value={store.state.assetId}
-            onChange={(assetId) =>
-              store.set({
-                assetId,
-              })
-            }
-          />
-        );
-      }
-    )
-  );
+  },
+
+  name: 'Wallets - Label only',
+};
+
+export const Assets = {
+  args: {
+    assetId: assets[0].fingerprint,
+  },
+
+  render: () => {
+    const [{ assetId }, updateArgs] = useArgs();
+    return (
+      <AssetsDropdown
+        assets={assets}
+        // @ts-ignore ts-migrate(2322) FIXME: Type '{ assets: AssetToken[]; value: string; onCha... Remove this comment to see the full error message
+        value={assetId}
+        onChange={(newAssetId) =>
+          updateArgs({
+            assetId: newAssetId,
+          })
+        }
+      />
+    );
+  },
+};

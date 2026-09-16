@@ -1,21 +1,29 @@
 import React from 'react';
-import { action } from '@storybook/addon-actions';
-import { boolean } from '@storybook/addon-knobs';
-import { storiesOf } from '@storybook/react';
+import { action } from 'storybook/actions';
 // Helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 // Screens
 import WalletRestoreDialog from '../../../../source/renderer/app/components/wallet/WalletRestoreDialog';
 
-storiesOf('Wallets / Add Wallet', module)
-  .addDecorator(WalletsWrapper)
-  .add('Restore - Old', () => (
+export default {
+  title: 'Wallets / Add Wallet',
+  args: walletsLayoutArgs,
+  decorators: [WalletsWrapper],
+};
+
+export const RestoreOld = {
+  args: { isSubmitting: false },
+
+  render: ({ isSubmitting }) => (
     <WalletRestoreDialog
       onSubmit={action('onSubmit')}
       onCancel={action('onCancel')}
-      isSubmitting={boolean('isSubmitting', false)}
+      isSubmitting={isSubmitting}
       mnemonicValidator={action('mnemonicValidator')}
       suggestedMnemonics={[]}
       onChoiceChange={action('onChoiceChange')}
     />
-  ));
+  ),
+
+  name: 'Restore - Old',
+};

@@ -5,11 +5,19 @@ import type { NewsItem } from '../../../../source/renderer/app/api/news/types';
 
 export const version = currentVersion;
 export const availableAppVersion = inc(version, 'minor');
+/*
+ * Both spellings of the platform field, for the reason set out in
+ * fakeDataNewsFeed.ts: the declared type requires the singular one and the code
+ * reads the plural one.
+ */
+const updateTarget = {
+  daedalusVersion: version,
+  platform: 'darwin',
+  platforms: ['win32', 'linux', 'darwin'],
+};
+
 const commonUpdateData = {
-  target: {
-    daedalusVersion: version,
-    platforms: ['win32', 'linux', 'darwin'],
-  },
+  target: updateTarget,
   date: 1594043606135,
   softwareUpdate: {
     darwin: {
@@ -66,10 +74,7 @@ export const getNewsUpdateItem = (
     id: date,
     title: update[locale].title,
     content: update[locale].content,
-    target: {
-      daedalusVersion: version,
-      platform: 'darwin',
-    },
+    target: updateTarget,
     action: {
       label: 'Visit daedalus.io',
       url: 'https://daedalus.io',
@@ -88,10 +93,7 @@ export const newsFeedApiItemUpdate: NewsItem = {
     'en-US': updateEN.content,
     'ja-JP': updateJP.content,
   },
-  target: {
-    daedalusVersion: version,
-    platform: 'linux',
-  },
+  target: updateTarget,
   action: {
     label: {
       'en-US': updateEN.action.label,

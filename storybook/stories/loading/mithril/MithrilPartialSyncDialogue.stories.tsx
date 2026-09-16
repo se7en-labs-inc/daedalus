@@ -1,16 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { action } from '@storybook/addon-actions';
-import { withKnobs } from '@storybook/addon-knobs';
-import { storiesOf } from '@storybook/react';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../../_support/StoryDecorator';
 import { applyEnvironmentOs } from '../../_support/environment';
+import { osNameOf } from '../../_support/globals';
 import SyncingConnectingMithrilPrompt from '../../../../source/renderer/app/components/loading/syncing-connecting/SyncingConnectingMithrilPrompt';
 import styles from '../../../../source/renderer/app/components/loading/syncing-connecting/SyncingConnectingMithrilPrompt.scss';
 import { computeBehindByEpochs } from '../../../../source/renderer/app/utils/mithrilBehindness';
-import {
-  loadingBooleanKnob,
-  loadingNumberKnob,
-} from '../_support/loadingKnobs';
+import { inCategory } from '../../_support/argTypes';
 
 // onStart must return a Promise so the confirm-view "Start now" await resolves
 // like the real store call; a rejection surfaces the inline confirm-view error.
@@ -18,22 +14,25 @@ const makePromptProps = (startFails: boolean) => ({
   onStart: async () => {
     action('onStart')();
     if (startFails) {
-      throw new Error('Simulated start rejection from the startFails knob');
+      throw new Error('Simulated start rejection from the startFails control');
     }
   },
   onDismiss: action('onDismiss'),
 });
 
-const behindByEpochsKnob = () => loadingNumberKnob('behindByEpochs', 120);
-const startFailsKnob = () => loadingBooleanKnob('startFails', false);
+// startFails was one knob reached from every story through a shared factory, so
+// it is one arg on the meta. behindByEpochs was not: two stories deliberately
+// leave it unset, and an arg on the meta would give them a control that the
+// component reads as a value it is meant not to have.
+const metaArgs = { startFails: false };
+const behindByEpochsArgs = { behindByEpochs: 120 };
 
-// StoryWrapper injects the DaedalusMenu OS selection onto the story *context*
-// (the second render arg) — not the args object — so read it from there and
-// mirror it onto global.environment. This is what lets the prompt's
-// platform-aware shortcut note ("Cmd + D" on macOS, "Ctrl + D" elsewhere)
-// track the toolbar OS switch.
+// The OS selection reaches a story on the context, the second render argument,
+// and this mirrors it onto global.environment so the prompt's platform-aware
+// shortcut note ("Cmd + D" on macOS, "Ctrl + D" elsewhere) tracks the toolbar
+// switch.
 const applyStoryOs = (context: unknown) =>
-  applyEnvironmentOs((context as { osName?: string }).osName ?? '');
+  applyEnvironmentOs(osNameOf(context));
 
 // Only the epoch is read by the behind-ness derivation.
 const makeTip = (epoch: number) => ({
@@ -74,61 +73,95 @@ function ConfirmViewPrompt({
   );
 }
 
-storiesOf('Loading / Mithril / Mithril Partial Sync Dialogue', module)
-  .addDecorator((story, context) => (
-    <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-  ))
-  .add('Known Epochs Behind', (_args, context) => {
+export default {
+  title: 'Loading / Mithril / Mithril Partial Sync Dialogue',
+
+  args: metaArgs,
+  argTypes: inCategory('Loading', metaArgs),
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
+};
+
+export const KnownEpochsBehind = {
+  args: behindByEpochsArgs,
+  argTypes: inCategory('Loading', behindByEpochsArgs),
+
+  render: ({ startFails, behindByEpochs }, context) => {
     applyStoryOs(context);
     return (
       <SyncingConnectingMithrilPrompt
-        {...makePromptProps(startFailsKnob())}
-        behindByEpochs={behindByEpochsKnob()}
+        {...makePromptProps(startFails)}
+        behindByEpochs={behindByEpochs}
       />
     );
-  })
-  .add('Known Epochs Behind / Confirm View', (_args, context) => {
+  },
+};
+
+export const KnownEpochsBehindConfirmView = {
+  args: behindByEpochsArgs,
+  argTypes: inCategory('Loading', behindByEpochsArgs),
+
+  render: ({ startFails, behindByEpochs }, context) => {
     applyStoryOs(context);
     return (
       <ConfirmViewPrompt
-        behindByEpochs={behindByEpochsKnob()}
-        startFails={startFailsKnob()}
+        behindByEpochs={behindByEpochs}
+        startFails={startFails}
       />
     );
-  })
-  // Drives the container's real behind-ness derivation instead of a canned
-  // figure: computeBehindByEpochs anchors on the network tip when known and
-  // otherwise falls back to the Mithril certified snapshot epoch. With the
-  // defaults the snapshot is later than the local tip while no network tip has
-  // resolved yet (early sync / ledger replay), so the epochs figure comes from
-  // the snapshot; raise localTipEpoch to or past mithrilSnapshotEpoch and the
-  // prompt degrades to the "behind the blockchain tip" line (gap <= 0 never
-  // renders as a number).
-  .add('Snapshot Ahead Of Local Tip (Derived)', (_args, context) => {
-    applyStoryOs(context);
-    const localTipEpoch = loadingNumberKnob('localTipEpoch', 412);
-    const mithrilSnapshotEpoch = loadingNumberKnob('mithrilSnapshotEpoch', 512);
-    const isNetworkTipKnown = loadingBooleanKnob('networkTipKnown', false);
-    const networkTipEpoch = loadingNumberKnob('networkTipEpoch', 513);
+  },
 
+  name: 'Known Epochs Behind / Confirm View',
+};
+
+const derivedArgs = {
+  localTipEpoch: 412,
+  mithrilSnapshotEpoch: 512,
+  networkTipKnown: false,
+  networkTipEpoch: 513,
+};
+
+export const SnapshotAheadOfLocalTipDerived = {
+  args: derivedArgs,
+  argTypes: inCategory('Loading', derivedArgs),
+
+  render: (
+    {
+      startFails,
+      localTipEpoch,
+      mithrilSnapshotEpoch,
+      networkTipKnown,
+      networkTipEpoch,
+    },
+    context
+  ) => {
+    applyStoryOs(context);
     return (
       <SyncingConnectingMithrilPrompt
-        {...makePromptProps(startFailsKnob())}
+        {...makePromptProps(startFails)}
         behindByEpochs={computeBehindByEpochs(
           makeTip(localTipEpoch),
-          isNetworkTipKnown ? makeTip(networkTipEpoch) : null,
+          networkTipKnown ? makeTip(networkTipEpoch) : null,
           mithrilSnapshotEpoch
         )}
       />
     );
-  })
-  .add('Unknown Behind', (_args, context) => {
+  },
+
+  name: 'Snapshot Ahead Of Local Tip (Derived)',
+};
+
+export const UnknownBehind = {
+  render: ({ startFails }, context) => {
     applyStoryOs(context);
-    return (
-      <SyncingConnectingMithrilPrompt {...makePromptProps(startFailsKnob())} />
-    );
-  })
-  .add('Unknown Behind / Confirm View', (_args, context) => {
+    return <SyncingConnectingMithrilPrompt {...makePromptProps(startFails)} />;
+  },
+};
+
+export const UnknownBehindConfirmView = {
+  render: ({ startFails }, context) => {
     applyStoryOs(context);
-    return <ConfirmViewPrompt startFails={startFailsKnob()} />;
-  });
+    return <ConfirmViewPrompt startFails={startFails} />;
+  },
+
+  name: 'Unknown Behind / Confirm View',
+};

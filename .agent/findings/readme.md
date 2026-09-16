@@ -40,3 +40,10 @@ looking for.
 | Finding | Scope | Status |
 |---------|-------|--------|
 | [retired-drep-visibility.md](./retired-drep-visibility.md) | Governance, with an upstream fix: a retired DRep leaves the wallet loading forever | Open, not scheduled |
+| [undeclared-transitive-dependencies.md](./undeclared-transitive-dependencies.md) | Dependency management, repository-wide: source and build config import packages nothing declares | Open, not scheduled |
+| [05-one-knob-label-is-one-control.md](./05-one-knob-label-is-one-control.md) | Storybook stories, three files: two controls sharing a label were one control, so three screens show a value their source does not state | Open, not scheduled |
+| [06-alonzo-celebration-is-unreachable.md](./06-alonzo-celebration-is-unreachable.md) | Top bar: a config flag makes the Alonzo celebration icon unrenderable, and its prop is still threaded through three components | Open, not scheduled |
+| [07-a-lost-type-entry-is-silent.md](./07-a-lost-type-entry-is-silent.md) | TypeScript config, repository-wide: skipLibCheck plus noImplicitAny off means a package whose types stop resolving reports nothing | Open, not scheduled |
+| [08-general-settings-crashes-on-error.md](./08-general-settings-crashes-on-error.md) | Settings: ProfileSettingsForm renders a LocalizableError as a React child, so a failed locale write blanks the screen | Open, not scheduled |
+| [09-launch-screen-depends-on-a-generated-class-name.md](./09-launch-screen-depends-on-a-generated-class-name.md) | Loading: LogosDisplay dereferences an unguarded querySelector on a css-loader-generated class name, and the renderer has no error boundary | Open, not scheduled |
+| [10-the-newsfeed-target-type-names-the-wrong-field.md](./10-the-newsfeed-target-type-names-the-wrong-field.md) | Newsfeed: NewsTarget declares `platform`, the filter and all five live feeds use `platforms`, so an item built from the type is silently discarded | Open, not scheduled, no user impact |

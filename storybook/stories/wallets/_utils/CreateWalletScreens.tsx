@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
-import { action } from '@storybook/addon-actions';
-import { boolean } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import { CREATE_WALLET_STEPS } from '../../../../source/renderer/app/config/walletsConfig';
 // Screens
 import InstructionsDialog from '../../../../source/renderer/app/components/wallet/wallet-create/InstructionsDialog';
@@ -10,10 +9,21 @@ import ValidateDialog from '../../../../source/renderer/app/components/wallet/wa
 import HashDialog from '../../../../source/renderer/app/components/wallet/wallet-create/HashDialog';
 import ConfigDialog from '../../../../source/renderer/app/components/wallet/wallet-create/ConfigDialog';
 
+type Props = {
+  isVideoWatched: boolean;
+};
 type State = {
   currentStep: number;
 };
-export default class CreateWalletScreens extends Component<any, State> {
+
+// The knob this replaced sat in a getter on this class, which is module scope:
+// there is no story body to hoist it to, so it arrives as a prop and the story
+// that renders this declares the arg.
+export const createWalletScreensArgs = {
+  isVideoWatched: false,
+};
+
+export default class CreateWalletScreens extends Component<Props, State> {
   state = {
     currentStep: 0,
   };
@@ -32,7 +42,7 @@ export default class CreateWalletScreens extends Component<any, State> {
   get dialogProps() {
     return {
       instructions: {
-        isVideoWatched: boolean('isVideoWatched', false),
+        isVideoWatched: this.props.isVideoWatched,
       },
       template: {},
       mnemonics: {},

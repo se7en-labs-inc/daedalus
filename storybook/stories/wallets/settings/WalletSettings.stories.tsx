@@ -1,17 +1,24 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
 // Helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 // Screens
-import WalletSettingsScreen from './WalletSettingsScreen.stories';
-import './WalletDelete.stories';
-import './WalletUnpair.stories';
-import './WalletRecoveryPhraseVerification.stories';
-import './WalletPublicKey.stories';
-import './PublicKeyQRCode.stories';
+import WalletSettingsScreen, {
+  walletSettingsScreenArgs,
+  walletSettingsScreenArgTypes,
+} from './_support/WalletSettingsScreen';
+import { localeOf } from '../../_support/globals';
 
-/* eslint-disable consistent-return */
-storiesOf('Wallets / Settings', module)
-  .addDecorator(WalletsWrapper)
-  // @ts-ignore ts-migrate(2741) FIXME: Property 'locale' is missing in type '{ id: string... Remove this comment to see the full error message
-  .add('Wallet Settings', (_, props) => <WalletSettingsScreen {...props} />);
+export default {
+  title: 'Wallets / Settings',
+  args: walletsLayoutArgs,
+  decorators: [WalletsWrapper],
+};
+
+export const WalletSettings = {
+  args: walletSettingsScreenArgs,
+  argTypes: walletSettingsScreenArgTypes,
+
+  render: (args, context) => (
+    <WalletSettingsScreen {...args} locale={localeOf(context)} />
+  ),
+};

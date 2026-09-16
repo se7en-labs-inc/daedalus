@@ -1,16 +1,20 @@
 import React from 'react';
 import BigNumber from 'bignumber.js';
-import { storiesOf } from '@storybook/react';
-import { boolean, number, select, text } from '@storybook/addon-knobs';
 // Assets and helpers
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import {
   generateAssetToken,
   generateHash,
   generateRewardForWallet,
   generateWallet,
 } from '../../_support/utils';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
+import { localeOf } from '../../_support/globals';
+import {
+  inCategory,
+  labelOptionsFrom,
+  optionsFrom,
+} from '../../_support/argTypes';
 import currenciesList from '../../../../source/renderer/app/config/currenciesList.json';
 // Screens
 import WalletSummary from '../../../../source/renderer/app/components/wallet/summary/WalletSummary';
@@ -150,21 +154,62 @@ const walletAssets = assets.total.map((assetTotal) => {
   };
 });
 
-/* eslint-disable consistent-return */
-storiesOf('Wallets / Summary', module)
-  .addDecorator(WalletsWrapper)
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '({ locale }: { locale: string; }... Remove this comment to see the full error message
-  .add('Wallet Summary', ({ locale }: { locale: string }) => {
-    const currencyState = select(
-      'Currency state',
-      {
+export default {
+  title: 'Wallets / Summary',
+  args: walletsLayoutArgs,
+  decorators: [WalletsWrapper],
+};
+
+const currencyArgs = {
+  currencyState: 'fetched',
+  currencySelected: 'usd',
+};
+
+const headerArgs = {
+  numberOfTransactions: 100,
+  numberOfRecentTransactions: 100,
+  numberOfPendingTransactions: 0,
+  isLoadingTransactions: false,
+};
+
+const firstAssetArgs = {
+  quantity: 100,
+  decimals: 0,
+  recommendedDecimals: 0,
+  metadataName: 'FIRST',
+  metadataTicker: '',
+  metadataDescription: '',
+};
+
+export const _WalletSummary = {
+  args: {
+    ...currencyArgs,
+    ...headerArgs,
+    ...firstAssetArgs,
+    isLoadingAssets: false,
+    hasAssetsEnabled: true,
+    assetSettingsDialogWasOpened: true,
+  },
+
+  argTypes: {
+    ...inCategory('Currency', currencyArgs, {
+      currencyState: optionsFrom({
         Fetched: 'fetched',
         'Fetching rate': 'loading',
         'Disabled or unavailable': 'off',
-      },
-      'fetched',
-      'Currency'
-    );
+      }),
+      // The options were the currency records themselves. An argType's options
+      // have to be primitives, so the arg holds the code and the story looks
+      // the record up.
+      currencySelected: labelOptionsFrom(currenciesList),
+    }),
+    ...inCategory('Header', headerArgs),
+    ...inCategory('First Asset', firstAssetArgs),
+  },
+
+  render: (args, context) => {
+    const locale = localeOf(context);
+    const { currencyState } = args;
     let currencyIsFetchingRate = false;
     let currencyIsActive = true;
     let currencyLastFetched = new Date();
@@ -176,12 +221,7 @@ storiesOf('Wallets / Summary', module)
       currencyIsActive = false;
     }
 
-    const currencySelected = select(
-      'currencySelected',
-      currenciesList,
-      currenciesList.usd,
-      'Currency'
-    );
+    const currencySelected = currenciesList[args.currencySelected];
     const wallet = generateWallet('Wallet name', '45119903750165', assets);
     const reward = generateRewardForWallet(wallet, '0');
     const [firstAsset] = walletAssets;
@@ -189,29 +229,10 @@ storiesOf('Wallets / Summary', module)
       <WalletSummary
         wallet={wallet}
         reward={reward}
-        numberOfTransactions={number(
-          'Number of transactions',
-          100,
-          {},
-          'Header'
-        )}
-        numberOfRecentTransactions={number(
-          'Number of Recent transactions',
-          100,
-          {},
-          'Header'
-        )}
-        numberOfPendingTransactions={number(
-          'Number of pending transactions',
-          0,
-          // @ts-ignore ts-migrate(2559) FIXME: Type '"Header"' has no properties in common with t... Remove this comment to see the full error message
-          'Header'
-        )}
-        isLoadingTransactions={boolean(
-          'isLoadingTransactions',
-          false,
-          'Header'
-        )}
+        numberOfTransactions={args.numberOfTransactions}
+        numberOfRecentTransactions={args.numberOfRecentTransactions}
+        numberOfPendingTransactions={args.numberOfPendingTransactions}
+        isLoadingTransactions={args.isLoadingTransactions}
         currentLocale={locale}
         currencyIsFetchingRate={currencyIsFetchingRate}
         currencyIsActive={currencyIsActive}
@@ -225,34 +246,27 @@ storiesOf('Wallets / Summary', module)
         assets={[
           {
             ...firstAsset,
-            quantity: new BigNumber(number('quantity', 100, {}, 'First Asset')),
-            decimals: number('decimals', 0, {}, 'First Asset'),
-            recommendedDecimals: number(
-              'recommendedDecimals',
-              0,
-              {},
-              'First Asset'
-            ),
+            quantity: new BigNumber(args.quantity),
+            decimals: args.decimals,
+            recommendedDecimals: args.recommendedDecimals,
             metadata: {
-              name: text('Metadata - name', 'FIRST', 'First Asset'),
-              ticker: text('Metadata - ticker', '', 'First Asset'),
-              description: text('Metadata - description', '', 'First Asset'),
+              name: args.metadataName,
+              ticker: args.metadataTicker,
+              description: args.metadataDescription,
             },
           },
           ...walletAssets.slice(1),
         ]}
-        isLoadingAssets={boolean('isLoadingAssets', false)}
+        isLoadingAssets={args.isLoadingAssets}
         onOpenAssetSend={action('onOpenAssetSend')}
         onCopyAssetParam={action('onCopyAsset')}
         onAssetSettings={action('onAssetSettings')}
         // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-        hasAssetsEnabled={boolean('hasAssetsEnabled', true)}
-        assetSettingsDialogWasOpened={boolean(
-          'assetSettingsDialogWasOpened',
-          true
-        )}
+        hasAssetsEnabled={args.hasAssetsEnabled}
+        assetSettingsDialogWasOpened={args.assetSettingsDialogWasOpened}
         onExternalLinkClick={action('onExternalLinkClick')}
         onViewAllButtonClick={action('onViewAllButtonClick')}
       />
     );
-  });
+  },
+};

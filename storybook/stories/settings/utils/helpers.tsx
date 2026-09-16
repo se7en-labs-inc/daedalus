@@ -1,4 +1,3 @@
-import { Store } from '@dump247/storybook-state';
 import {
   DATE_ENGLISH_OPTIONS,
   LANGUAGE_OPTIONS,
@@ -20,8 +19,10 @@ export const mockedLocaleState = {
   currentLocale: LANGUAGE_OPTIONS[0].value,
 };
 
+// One change produces one patch. The store this replaced was written to twice
+// for a locale change, and two arg updates for one change repaint twice.
 export const onLocaleValueChange = (
-  store: Store<LocaleStoryStore>,
+  updateArgs: (patch: Partial<LocaleStoryStore>) => void,
   id: string,
   value: string
 ): void => {
@@ -31,18 +32,16 @@ export const onLocaleValueChange = (
     timeFormat: 'currentTimeFormat',
     locale: 'currentLocale',
   };
-
-  store.set({
+  const patch: Partial<LocaleStoryStore> = {
     [fieldIdToStoreKeyMap[id]]: value,
-  });
+  };
 
   if (id === 'locale') {
-    const currentDateFormat =
+    patch.currentDateFormat =
       value === mockedLocaleState.currentLocale
         ? mockedLocaleState.currentDateFormat
         : 'YYYY年MM月DD日';
-    store.set({
-      currentDateFormat,
-    });
   }
+
+  updateArgs(patch);
 };

@@ -1,17 +1,31 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const webpack = require('webpack');
+// Take webpack from the builder rather than from the top of node_modules. Yarn
+// resolves @storybook/builder-webpack5's own webpack range separately from this
+// package's pinned one and nests the result, so the two are different copies of
+// webpack with different class objects in them. A plugin built from one and
+// registered on a compiler from the other constructs dependencies the compiler
+// does not recognise: ProvidePlugin writes `loc` on a Dependency that is not the
+// Dependency class the parser produced, the write throws inside the parse, and
+// every module the plugin touches reports "Module parse failed" with no file
+// named.
+const webpack = require(
+  require.resolve('webpack', {
+    paths: [require.resolve('@storybook/builder-webpack5')],
+  })
+);
 
 module.exports = {
-  core: {
-    builder: 'webpack5',
+  framework: {
+    name: '@storybook/react-webpack5',
+    options: {},
   },
-  stories: ['../storybook/stories/index.ts'],
-  addons: [
-    '@storybook/addon-knobs',
-    '@storybook/addon-actions',
-    '@storybook/addon-links',
-    require.resolve('./addons/DaedalusMenu/register.tsx'),
+  stories: [
+    '../storybook/stories/**/*.stories.@(ts|tsx)',
+    '../source/renderer/app/**/*.@(stories|story).@(ts|tsx)',
   ],
+  // Controls and actions are part of core from 9 onwards, so the list is down to
+  // the one addon still published separately.
+  addons: ['@storybook/addon-links'],
   // Make whatever fine-grained changes you need
   webpackFinal: async (config, { configType }) => {
     // `configType` has a value of 'DEVELOPMENT' or 'PRODUCTION'
@@ -39,9 +53,24 @@ module.exports = {
     config.experiments = {
       syncWebAssembly: true,
     };
+    // Merge into config.resolve rather than assigning over it. Storybook puts
+    // things there that the preview cannot run without: @storybook/react-dom-shim
+    // aliases itself to its react-16 build whenever react-dom is below 18, and
+    // discarding that alias makes the preview resolve react-dom/client, which
+    // React 16 does not have.
     config.resolve = {
-      extensions: ['.ts', '.tsx', '.js', '.json'],
+      ...config.resolve,
+      extensions: [
+        ...new Set([
+          ...(config.resolve.extensions || []),
+          '.ts',
+          '.tsx',
+          '.js',
+          '.json',
+        ]),
+      ],
       fallback: {
+        ...config.resolve.fallback,
         process: require.resolve('process/browser'),
         path: require.resolve('path-browserify'),
         crypto: require.resolve('crypto-browserify'),

@@ -1,15 +1,18 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { withKnobs } from '@storybook/addon-knobs';
 import StoryDecorator from '../../_support/StoryDecorator';
 import AboutDialog from '../../../../source/renderer/app/containers/static/AboutDialog';
 import { aboutDialogProps } from '../_utils/props';
+import { osNameOf } from '../../_support/globals';
 
-storiesOf('Nodes / About', module)
-  .addDecorator((story, context) => (
-    <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-  ))
-  .add('About Dialog', (props) => {
-    aboutDialogProps.stores.app.environment.os = props.osName;
+export default {
+  title: 'Nodes / About',
+
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
+};
+
+export const _AboutDialog = {
+  render: (_args, context) => {
+    aboutDialogProps.stores.app.environment.os = osNameOf(context);
     return <AboutDialog {...aboutDialogProps} />;
-  });
+  },
+};

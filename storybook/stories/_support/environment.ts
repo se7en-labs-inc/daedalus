@@ -1,3 +1,4 @@
+import { version as packageVersion } from '../../../package.json';
 import type { Environment } from '../../../source/common/types/environment.types';
 
 const environment: Environment = {
@@ -36,7 +37,14 @@ const environment: Environment = {
   ram: 16 * 1024 * 1024 * 1024,
   hasMetHardwareRequirements: true,
   installerVersion: 'storybook',
-  version: 'storybook',
+  /*
+   * A real semver, not a label. The application's own version is read from
+   * package.json, and the newsfeed filters items by matching a target range
+   * against it with semver.satisfies (domains/News.ts:104). A placeholder here
+   * parses as nothing, so every news item carrying a version target was silently
+   * dropped and the news stories rendered an empty feed.
+   */
+  version: packageVersion,
   isWindows: false,
   isMacOS: true,
   isLinux: false,
@@ -48,8 +56,8 @@ const environment: Environment = {
   votingVisibleOverride: false,
 };
 
-// The DaedalusMenu OS switch only reaches stories as their `osName` prop while
-// this fixture stays static. Stories whose components read the OS from
+// The toolbar OS switch only reaches stories as their `osName` prop while this
+// fixture stays static. Stories whose components read the OS from
 // global.environment call this to keep both in step.
 export const applyEnvironmentOs = (osName: string) => {
   environment.isWindows = osName === 'Windows';
@@ -58,3 +66,11 @@ export const applyEnvironmentOs = (osName: string) => {
 };
 
 global.environment = environment;
+
+/*
+ * The same object the module installs on `global.environment`, exported so the
+ * store harness can hand it to a screen rather than reaching for the ambient
+ * global. A screen printing a version string then prints the same one in the
+ * workbench and in a spec.
+ */
+export default environment;

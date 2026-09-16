@@ -1,8 +1,6 @@
 import React from 'react';
 import { defineMessages, IntlProvider } from 'react-intl';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { select, withKnobs } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import enMessages from '../../../source/renderer/app/i18n/locales/en-US.json';
 import jpMessages from '../../../source/renderer/app/i18n/locales/ja-JP.json';
@@ -13,6 +11,9 @@ import {
 } from '../../../source/renderer/app/config/profileConfig';
 import AlertsOverlay from '../../../source/renderer/app/components/news/AlertsOverlay';
 import RTSFlagsRecommendationOverlay from '../../../source/renderer/app/components/knownIssues/RTSFlagsRecommendationOverlay/RTSFlagsRecommendationOverlay';
+import { localeOf } from '../_support/globals';
+import { optionsFrom } from '../_support/argTypes';
+import { dateOptions } from '../_support/profileSettings';
 
 const { intl: enIntl } = new IntlProvider({
   locale: 'en-US',
@@ -87,32 +88,46 @@ const getAlerts = (locale: string) => [
   }),
 ];
 
-storiesOf('News / Overlays', module)
-  .addDecorator((story, context) => (
-    <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    locale: string;}) =... Remove this comment to see the full error message
-  .add('Alerts', (_, props: { locale: string }) => (
-    <AlertsOverlay
-      allAlertsCount={getAlerts(props.locale).length}
-      alerts={getAlerts(props.locale)}
-      onCloseOpenAlert={() => null}
-      onMarkNewsAsRead={action('onMarkNewsAsRead')}
-      onOpenExternalLink={action('onOpenExternalLink')}
-      onProceedNewsAction={action('onProceedNewsAction')}
-      currentDateFormat={select(
-        'currentDateFormat',
-        dateOptionsIntl[props.locale].reduce((obj, { label, value }) => {
-          obj[label] = value;
-          return obj;
-        }, {}),
-        dateOptionsIntl[props.locale][0].value
-      )}
-    />
-  ))
-  .add('RTS Recommendation', () => (
+export default {
+  title: 'News / Overlays',
+
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
+};
+
+export const Alerts = {
+  // The options this control offers used to be the current locale's date
+  // formats. An arg is declared once, outside the body, so it cannot depend on
+  // a global: it offers both locales' formats instead. Left undefined, the
+  // default still follows the locale, which is what the knob did.
+  args: { currentDateFormat: undefined },
+  argTypes: { currentDateFormat: optionsFrom(dateOptions) },
+
+  render: ({ currentDateFormat }, context) => {
+    const locale = localeOf(context);
+    const alerts = getAlerts(locale);
+    return (
+      <AlertsOverlay
+        allAlertsCount={alerts.length}
+        alerts={alerts}
+        onCloseOpenAlert={() => null}
+        onMarkNewsAsRead={action('onMarkNewsAsRead')}
+        onOpenExternalLink={action('onOpenExternalLink')}
+        onProceedNewsAction={action('onProceedNewsAction')}
+        currentDateFormat={
+          currentDateFormat ?? dateOptionsIntl[locale][0].value
+        }
+      />
+    );
+  },
+};
+
+export const RtsRecommendation = {
+  render: () => (
     <RTSFlagsRecommendationOverlay
       onConfirm={action('onConfirm')}
       onClose={action('onClose')}
     />
-  ));
+  ),
+
+  name: 'RTS Recommendation',
+};

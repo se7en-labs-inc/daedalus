@@ -1,6 +1,4 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { boolean, withKnobs } from '@storybook/addon-knobs';
 import BigNumber from 'bignumber.js';
 // Screens
 import SetWalletPassword from '../../../../source/renderer/app/components/wallet/settings/SetWalletPassword';
@@ -60,11 +58,17 @@ const WALLETS = [
 ];
 const activeWallet: Wallet = WALLETS[0];
 let walletPasswordIsOpen = false;
-storiesOf('Wallets / Set Password', module)
-  .addDecorator((story, context) => (
-    <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-  ))
-  .add('Set Wallet Password', () => (
+
+export default {
+  title: 'Wallets / Set Password',
+
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
+};
+
+export const _SetWalletPassword = {
+  args: { isSetWalletPasswordDialogOpen: false },
+
+  render: ({ isSetWalletPasswordDialogOpen }) => (
     <>
       <SetWalletPassword
         isSetWalletPasswordDialogOpen={false}
@@ -72,7 +76,7 @@ storiesOf('Wallets / Set Password', module)
           walletPasswordIsOpen = !walletPasswordIsOpen;
         }}
       />
-      {boolean('isSetWalletPasswordDialogOpen', false) && (
+      {isSetWalletPasswordDialogOpen && (
         <ChangeSpendingPasswordDialog
           isSpendingPasswordSet={false}
           currentPasswordValue={''}
@@ -88,19 +92,21 @@ storiesOf('Wallets / Set Password', module)
         />
       )}
     </>
-  ))
-  .add('Change Wallet Password', () => (
-    <ChangeSpendingPasswordDialog
-      isSpendingPasswordSet
-      currentPasswordValue={''}
-      newPasswordValue={''}
-      repeatedPasswordValue={''}
-      onSave={() => {}}
-      onCancel={() => {}}
-      onDataChange={() => {}}
-      isSubmitting={false}
-      error={undefined}
-      walletName={activeWallet.name}
-      currentLocale={'en-US'}
-    />
-  ));
+  ),
+};
+
+export const ChangeWalletPassword = () => (
+  <ChangeSpendingPasswordDialog
+    isSpendingPasswordSet
+    currentPasswordValue={''}
+    newPasswordValue={''}
+    repeatedPasswordValue={''}
+    onSave={() => {}}
+    onCancel={() => {}}
+    onDataChange={() => {}}
+    isSubmitting={false}
+    error={undefined}
+    walletName={activeWallet.name}
+    currentLocale={'en-US'}
+  />
+);

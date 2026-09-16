@@ -5,20 +5,18 @@ import { observable, runInAction } from 'mobx';
 import BigNumber from 'bignumber.js';
 import { observer, inject } from 'mobx-react';
 import { get } from 'lodash';
-import { action } from '@storybook/addon-actions';
-import { select, boolean } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import classNames from 'classnames';
 import { isShelleyTestnetTheme } from './utils';
 // Assets and helpers
 import { CATEGORIES_BY_NAME } from '../../../source/renderer/app/config/sidebarConfig';
 import {
-  DEFAULT_NUMBER_FORMAT,
-  NUMBER_FORMATS,
-} from '../../../source/common/types/number.types';
-import { NUMBER_OPTIONS } from '../../../source/renderer/app/config/profileConfig';
+  StoryGlobalsContext,
+  numberFormatFor,
+  type StoryGlobals,
+} from './storyGlobals';
 import { formattedWalletAmount } from '../../../source/renderer/app/utils/formatters';
 import NodeSyncStatusIcon from '../../../source/renderer/app/components/widgets/NodeSyncStatusIcon';
-import TadaButton from '../../../source/renderer/app/components/widgets/TadaButton';
 import { DiscreetToggleTopBar } from '../../../source/renderer/app/features';
 import Wallet, {
   WalletSyncStateStatuses,
@@ -52,6 +50,15 @@ type Props = {
   story?: string;
   children?: any | Node;
   stores?: {} | null | undefined;
+  /*
+   * The precondition for the top bar's transfer-funds offer, which is a domain
+   * flag rather than a display mode: TopBar reads it as
+   * `(hasRewardsWallets && onTransferFunds) || onWalletAdd`. Only the wallets
+   * wrapper reaches a story that can show that notification, so only it passes
+   * this, and it passes the story's own arg. Everything else takes the default,
+   * which is the value the knob defaulted to.
+   */
+  hasRewardsWallets?: boolean;
 };
 const CATEGORIES_COUNTDOWN = [
   CATEGORIES_BY_NAME.WALLETS,
@@ -70,7 +77,14 @@ class StoryLayout extends Component<Props> {
   static defaultProps = {
     stores: null,
     storiesProps: null,
+    hasRewardsWallets: true,
   };
+
+  // StoryLayout is neither a story nor a decorator, so it has no story context
+  // to read the number format from. StoryWrapper publishes it above every story.
+  static contextType = StoryGlobalsContext;
+
+  context!: StoryGlobals;
 
   render() {
     const {
@@ -89,22 +103,8 @@ class StoryLayout extends Component<Props> {
       activeWalletId,
       setActiveWalletId
     );
-    const currentNumberFormat = select(
-      'currentNumberFormat',
-      NUMBER_OPTIONS.reduce((obj, option) => {
-        obj[option.label] = option.value;
-        return obj;
-      }, {}),
-      // @ts-ignore ts-migrate(2345) FIXME: Argument of type '{ value: string; label: string; ... Remove this comment to see the full error message
-      NUMBER_OPTIONS[0]
-    );
-    const FORMAT = {
-      ...DEFAULT_NUMBER_FORMAT,
-      // @ts-ignore ts-migrate(2538) FIXME: Type 'PropertyKey[]' cannot be used as an index ty... Remove this comment to see the full error message
-      ...NUMBER_FORMATS[currentNumberFormat],
-    };
     BigNumber.config({
-      FORMAT,
+      FORMAT: numberFormatFor(this.context.numberFormat),
     });
     return (
       <div
@@ -233,9 +233,8 @@ class StoryLayout extends Component<Props> {
       leftIcon={this.isShowingSubMenus ? menuIconOpened : menuIconClosed}
       onTransferFunds={action('onTransferFunds')}
       onWalletAdd={action('onWalletAdd')}
-      hasRewardsWallets={boolean('hasRewardsWallets', true)}
+      hasRewardsWallets={this.props.hasRewardsWallets}
       isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-      isAlonzoActivated={boolean('isAlonzoActivated', false)}
     >
       <NodeSyncStatusIcon
         isSynced
@@ -243,25 +242,9 @@ class StoryLayout extends Component<Props> {
         // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
         isProduction
         isMainnet
-        {...(boolean('hasTadaIcon', true)
-          ? {
-              hasTadaIcon: true,
-            }
-          : {})}
       />
-      <span
-        className={classNames(
-          topBarStyles.rectangle,
-          // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-          boolean('hasTadaIcon') && topBarStyles.hasTadaIcon
-        )}
-      />
-      {/* @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1. */}
-      <DiscreetToggleTopBar hasTadaIcon={boolean('hasTadaIcon')} />
-      {/* @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1. */}
-      {boolean('hasTadaIcon') && (
-        <TadaButton onClick={action('onClickTadaButton')} shouldAnimate />
-      )}
+      <span className={classNames(topBarStyles.rectangle)} />
+      <DiscreetToggleTopBar />
       <NewsFeedIcon
         onNewsFeedIconClick={action('onNewsFeedIconClick')}
         hasNotification={false}

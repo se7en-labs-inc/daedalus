@@ -1,7 +1,5 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { withKnobs } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import { isShelleyTestnetTheme } from '../_support/utils';
@@ -10,6 +8,7 @@ import {
   WalletSortOrder,
 } from '../../../source/renderer/app/types/sidebarTypes';
 import SidebarWalletsMenu from '../../../source/renderer/app/components/sidebar/wallets/SidebarWalletsMenu';
+import { currentThemeOf } from '../_support/globals';
 
 const wallets = [
   {
@@ -65,38 +64,46 @@ const wallets = [
     hasNotification: false,
   },
 ];
-storiesOf('Navigation / Wallets Menu', module)
-  .addDecorator(withKnobs)
-  .addDecorator((story) => (
-    <StoryDecorator>
-      <StoryProvider>
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
-        >
-          {story()}
-        </div>
-      </StoryProvider>
-    </StoryDecorator>
-  )) // // ====== Stories ======
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Empty', (props: { currentTheme: string }) => (
+
+export default {
+  title: 'Navigation / Wallets Menu',
+
+  decorators: [
+    (story) => (
+      <StoryDecorator>
+        <StoryProvider>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            {story()}
+          </div>
+        </StoryProvider>
+      </StoryDecorator>
+    ),
+  ],
+};
+
+export const Empty = {
+  render: (_args, context) => (
     <SidebarWalletsMenu
       wallets={[]}
       onAddWallet={action('addWallet')}
       onWalletItemClick={() => {}}
       isActiveWallet={() => false}
       isAddWalletButtonActive={false}
-      isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+      isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
       visible={false}
       sortBy={WalletSortBy.Date}
       sortOrder={WalletSortOrder.Desc}
     />
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('With Wallets', (props: { currentTheme: string }) => (
+  ),
+};
+
+export const WithWallets = {
+  render: (_args, context) => (
     <div
       style={{
         display: 'flex',
@@ -117,7 +124,7 @@ storiesOf('Navigation / Wallets Menu', module)
           onWalletItemClick={action('walletItemClick')}
           onAddWallet={action('addWallet')}
           isAddWalletButtonActive={false}
-          isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+          isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
           visible
           sortBy={'DATE'}
           sortOrder={WalletSortOrder.Asc}
@@ -137,7 +144,7 @@ storiesOf('Navigation / Wallets Menu', module)
           onWalletItemClick={action('walletItemClick')}
           onAddWallet={action('addWallet')}
           isAddWalletButtonActive={false}
-          isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+          isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
           visible
           sortBy={'DATE'}
           sortOrder={WalletSortOrder.Asc}
@@ -145,4 +152,5 @@ storiesOf('Navigation / Wallets Menu', module)
         />
       </div>
     </div>
-  ));
+  ),
+};

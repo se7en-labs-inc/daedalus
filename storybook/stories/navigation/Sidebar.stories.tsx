@@ -1,8 +1,6 @@
 import React from 'react';
 import { observable, runInAction } from 'mobx';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { withKnobs, select } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
 import {
   DEVELOPMENT,
@@ -13,6 +11,8 @@ import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import { isShelleyTestnetTheme } from '../_support/utils';
 import Sidebar from '../../../source/renderer/app/components/sidebar/Sidebar';
+import { currentThemeOf } from '../_support/globals';
+import { optionsFrom } from '../_support/argTypes';
 import {
   CATEGORIES_WITH_DELEGATION_COUNTDOWN,
   CATEGORIES_WITHOUT_DELEGATION_COUNTDOWN,
@@ -105,15 +105,27 @@ const sidebarMenusHardware = observable({
   },
 });
 let emptyMenus;
-storiesOf('Navigation / Sidebar', module)
-  .addDecorator((story) => (
-    <StoryProvider>
-      <StoryDecorator>{story()}</StoryDecorator>
-    </StoryProvider>
-  ))
-  .addDecorator(withKnobs) // ====== Stories ======
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('No Category', (_, props: { currentTheme: string }) => (
+
+const networkOptions = {
+  Development: DEVELOPMENT,
+  Test: TESTNET,
+  Staging: STAGING,
+};
+
+export default {
+  title: 'Navigation / Sidebar',
+
+  decorators: [
+    (story) => (
+      <StoryProvider>
+        <StoryDecorator>{story()}</StoryDecorator>
+      </StoryProvider>
+    ),
+  ],
+};
+
+export const NoCategory = {
+  render: (_args, context) => (
     <Sidebar
       menus={emptyMenus}
       categories={CATEGORIES_WITH_DELEGATION_COUNTDOWN}
@@ -125,13 +137,15 @@ storiesOf('Navigation / Sidebar', module)
       onOpenDialog={action('openDialog')}
       onSubmitSupportRequest={() => {}}
       pathname="/"
-      currentTheme={props.currentTheme}
+      currentTheme={currentThemeOf(context)}
       network="testnet"
-      isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+      isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
     />
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Wallets Category', (_, props: { currentTheme: string }) => (
+  ),
+};
+
+export const WalletsCategory = {
+  render: (_args, context) => (
     <Sidebar
       menus={emptyMenus}
       categories={CATEGORIES_WITH_DELEGATION_COUNTDOWN}
@@ -143,13 +157,15 @@ storiesOf('Navigation / Sidebar', module)
       onOpenDialog={action('openDialog')}
       onSubmitSupportRequest={() => {}}
       pathname="/"
-      currentTheme={props.currentTheme}
+      currentTheme={currentThemeOf(context)}
       network="testnet"
-      isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+      isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
     />
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Wallet Selected', (_, props: { currentTheme: string }) => (
+  ),
+};
+
+export const WalletSelected = {
+  render: (_args, context) => (
     <Sidebar
       categories={CATEGORIES_WITH_DELEGATION_COUNTDOWN}
       activeSidebarCategory={CATEGORIES_WITH_DELEGATION_COUNTDOWN[0].route}
@@ -163,13 +179,15 @@ storiesOf('Navigation / Sidebar', module)
       onOpenDialog={action('openDialog')}
       onSubmitSupportRequest={() => {}}
       pathname="/"
-      currentTheme={props.currentTheme}
+      currentTheme={currentThemeOf(context)}
       network="testnet"
-      isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+      isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
     />
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Hardware Wallet Selected', (_, props: { currentTheme: string }) => (
+  ),
+};
+
+export const HardwareWalletSelected = {
+  render: (_args, context) => (
     <Sidebar
       categories={CATEGORIES_WITH_DELEGATION_COUNTDOWN}
       activeSidebarCategory={CATEGORIES_WITH_DELEGATION_COUNTDOWN[1].route}
@@ -182,13 +200,15 @@ storiesOf('Navigation / Sidebar', module)
       onOpenDialog={action('openDialog')}
       onSubmitSupportRequest={() => {}}
       pathname="/"
-      currentTheme={props.currentTheme}
+      currentTheme={currentThemeOf(context)}
       network="testnet"
-      isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+      isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
     />
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Delegation Category', (_, props: { currentTheme: string }) => (
+  ),
+};
+
+export const DelegationCategory = {
+  render: (_args, context) => (
     <Sidebar
       menus={emptyMenus}
       categories={CATEGORIES_WITH_DELEGATION_COUNTDOWN}
@@ -200,15 +220,16 @@ storiesOf('Navigation / Sidebar', module)
       onOpenDialog={action('openDialog')}
       onSubmitSupportRequest={() => {}}
       pathname="/"
-      currentTheme={props.currentTheme}
+      currentTheme={currentThemeOf(context)}
       network="testnet"
-      isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+      isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
     />
-  ))
-  .add(
-    'Decentralization Progress Category',
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-    (_, props: { currentTheme: string }) => (
+  ),
+};
+
+export const // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
+  DecentralizationProgressCategory = {
+    render: (_args, context) => (
       <Sidebar
         menus={emptyMenus}
         categories={CATEGORIES_WITHOUT_DELEGATION_COUNTDOWN}
@@ -220,14 +241,18 @@ storiesOf('Navigation / Sidebar', module)
         onOpenDialog={action('openDialog')}
         onSubmitSupportRequest={() => {}}
         pathname="/"
-        currentTheme={props.currentTheme}
+        currentTheme={currentThemeOf(context)}
         network="testnet"
-        isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+        isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
       />
-    )
-  )
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Network label', (_, props: { currentTheme: string }) => (
+    ),
+  };
+
+export const NetworkLabel = {
+  args: { network: TESTNET },
+  argTypes: { network: optionsFrom(networkOptions) },
+
+  render: ({ network }, context) => (
     <Sidebar
       menus={emptyMenus}
       categories={CATEGORIES_WITH_DELEGATION_COUNTDOWN}
@@ -239,16 +264,11 @@ storiesOf('Navigation / Sidebar', module)
       onOpenDialog={action('openDialog')}
       onSubmitSupportRequest={() => {}}
       pathname="/"
-      currentTheme={props.currentTheme}
-      network={select(
-        'Netork badge',
-        {
-          Development: DEVELOPMENT,
-          Test: TESTNET,
-          Staging: STAGING,
-        },
-        TESTNET
-      )}
-      isShelleyActivated={isShelleyTestnetTheme(props.currentTheme)}
+      currentTheme={currentThemeOf(context)}
+      network={network}
+      isShelleyActivated={isShelleyTestnetTheme(currentThemeOf(context))}
     />
-  ));
+  ),
+
+  name: 'Network label',
+};

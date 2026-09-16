@@ -1,19 +1,41 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { withKnobs } from '@storybook/addon-knobs';
 // Assets and helpers
 import StoryDecorator from '../../_support/StoryDecorator';
+import { rangeFrom } from '../../_support/argTypes';
 // Stories
 import {
   DefaultSyncingConnectingStory,
   LoadingWalletDataSyncingConnectingStory,
   ConnectivityIssuesSyncingConnectingStory,
-} from './SyncingConnecting.stories';
+  blockSyncProgressArgs,
+  connectivityIssuesArgs,
+  defaultSyncingConnectingArgs,
+  percentRange,
+} from './_support/SyncingConnecting';
 
-storiesOf('Nodes / Connecting and Loading', module)
-  .addDecorator((story, context) => (
-    <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-  )) // ====== Stories ======
-  .add('Connecting', DefaultSyncingConnectingStory)
-  .add('Trouble Connecting', ConnectivityIssuesSyncingConnectingStory)
-  .add('Loading Wallet Data', LoadingWalletDataSyncingConnectingStory);
+export default {
+  title: 'Nodes / Connecting and Loading',
+  args: blockSyncProgressArgs,
+
+  argTypes: {
+    verifyingBlockchainState: rangeFrom(percentRange),
+    replayingLedger: rangeFrom(percentRange),
+    syncingBlockchain: rangeFrom(percentRange),
+  },
+
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
+};
+
+export const Connecting = {
+  args: defaultSyncingConnectingArgs,
+  render: (args) => <DefaultSyncingConnectingStory {...args} />,
+};
+
+export const TroubleConnecting = {
+  args: connectivityIssuesArgs,
+  render: (args) => <ConnectivityIssuesSyncingConnectingStory {...args} />,
+};
+
+export const LoadingWalletData = {
+  render: (args) => <LoadingWalletDataSyncingConnectingStory {...args} />,
+};

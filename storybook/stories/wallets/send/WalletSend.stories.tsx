@@ -1,7 +1,5 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { boolean, number } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
 import {
   generateHash,
@@ -10,7 +8,7 @@ import {
   promise,
 } from '../../_support/utils';
 // Assets and helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import { NUMBER_OPTIONS } from '../../../../source/renderer/app/config/profileConfig';
 import Wallet, {
   HwDeviceStatuses,
@@ -290,9 +288,25 @@ const selectedAsset = {
   update: () => {},
 };
 
-storiesOf('Wallets / Send', module)
-  .addDecorator(WalletsWrapper)
-  .add('Send - Send screen', () => (
+export default {
+  title: 'Wallets / Send',
+  args: walletsLayoutArgs,
+  decorators: [WalletsWrapper],
+};
+
+// The two confirmation-dialog stories carried the same five controls.
+const confirmationArgs = {
+  areTermsAccepted: true,
+  isFlight: false,
+  isHardwareWallet: false,
+  isSubmitting: false,
+  isTrezor: false,
+};
+
+export const SendSendScreen = {
+  args: { isRestoreActive: false, isLoadingAssets: false },
+
+  render: ({ isRestoreActive, isLoadingAssets }) => (
     <WalletSendForm
       currencyMaxFractionalDigits={6}
       currencyMaxIntegerDigits={11}
@@ -303,14 +317,14 @@ storiesOf('Wallets / Send', module)
       walletAmount={new BigNumber(123)}
       addressValidator={() => true}
       onSubmit={action('onSubmit')}
-      isRestoreActive={boolean('isRestoreActive', false)}
+      isRestoreActive={isRestoreActive}
       hwDeviceStatus={HwDeviceStatuses.READY}
       isDialogOpen={() => false}
       hasAssets={false}
       selectedAsset={null}
       assets={[]}
       isHardwareWallet
-      isLoadingAssets={boolean('isLoadingAssets', false)}
+      isLoadingAssets={isLoadingAssets}
       onExternalLinkClick={action('onExternalLinkClick')}
       onUnsetActiveAsset={() => {}}
       isAddressFromSameWallet={false}
@@ -321,8 +335,13 @@ storiesOf('Wallets / Send', module)
       analyticsTracker={analyticsTracker}
       confirmationDialogData={formData}
     />
-  ))
-  .add('Send - Hardware wallet verifying transaction', () => (
+  ),
+
+  name: 'Send - Send screen',
+};
+
+export const SendHardwareWalletVerifyingTransaction = {
+  render: () => (
     <WalletSendForm
       currencyMaxFractionalDigits={6}
       currencyMaxIntegerDigits={11}
@@ -351,8 +370,15 @@ storiesOf('Wallets / Send', module)
       analyticsTracker={analyticsTracker}
       confirmationDialogData={formData}
     />
-  ))
-  .add('Send - Hardware wallet verifying transaction succeeded', () => (
+  ),
+
+  name: 'Send - Hardware wallet verifying transaction',
+};
+
+export const SendHardwareWalletVerifyingTransactionSucceeded = {
+  args: { isAddressFromSameWallet: false },
+
+  render: ({ isAddressFromSameWallet }) => (
     <WalletSendForm
       currencyMaxFractionalDigits={6}
       currencyMaxIntegerDigits={11}
@@ -373,7 +399,7 @@ storiesOf('Wallets / Send', module)
       hasAssets
       selectedAsset={null}
       onUnsetActiveAsset={() => {}}
-      isAddressFromSameWallet={boolean('isAddressFromSameWallet', false)}
+      isAddressFromSameWallet={isAddressFromSameWallet}
       tokenFavorites={{}}
       walletName="My wallet"
       onTokenPickerDialogClose={action('onTokenPickerDialogClose')}
@@ -381,8 +407,15 @@ storiesOf('Wallets / Send', module)
       analyticsTracker={analyticsTracker}
       confirmationDialogData={formData}
     />
-  ))
-  .add('Send - Hardware wallet verifying transaction failed', () => (
+  ),
+
+  name: 'Send - Hardware wallet verifying transaction succeeded',
+};
+
+export const SendHardwareWalletVerifyingTransactionFailed = {
+  args: { isAddressFromSameWallet: false },
+
+  render: ({ isAddressFromSameWallet }) => (
     <WalletSendForm
       currencyMaxFractionalDigits={6}
       currencyMaxIntegerDigits={11}
@@ -403,7 +436,7 @@ storiesOf('Wallets / Send', module)
       hasAssets
       selectedAsset={null}
       onUnsetActiveAsset={() => {}}
-      isAddressFromSameWallet={boolean('isAddressFromSameWallet', false)}
+      isAddressFromSameWallet={isAddressFromSameWallet}
       tokenFavorites={{}}
       walletName="My wallet"
       onTokenPickerDialogClose={action('onTokenPickerDialogClose')}
@@ -411,8 +444,21 @@ storiesOf('Wallets / Send', module)
       analyticsTracker={analyticsTracker}
       confirmationDialogData={formData}
     />
-  ))
-  .add('Wallet Send Confirmation Dialog With Assets', () => {
+  ),
+
+  name: 'Send - Hardware wallet verifying transaction failed',
+};
+
+export const WalletSendConfirmationDialogWithAssets = {
+  args: confirmationArgs,
+
+  render: ({
+    areTermsAccepted,
+    isFlight,
+    isHardwareWallet,
+    isSubmitting,
+    isTrezor,
+  }) => {
     // @ts-ignore[prop-missing]
     const wallet: Wallet = {
       name: generateWallet('TrueUSD', '15119903750165', walletTokens).name,
@@ -423,7 +469,7 @@ storiesOf('Wallets / Send', module)
       <div>
         <WalletSendConfirmationDialogView
           amount="20.000000"
-          areTermsAccepted={boolean('areTermsAccepted', true)}
+          areTermsAccepted={areTermsAccepted}
           wallet={wallet}
           totalAmount={new BigNumber('21.000000')}
           receiver={generateHash()}
@@ -432,10 +478,10 @@ storiesOf('Wallets / Send', module)
           assetsAmounts={confirmationTokensAmounts}
           transactionFee="1.000000"
           hwDeviceStatus={HwDeviceStatuses.CONNECTING}
-          isFlight={boolean('isFlight', false)}
-          isHardwareWallet={boolean('isHardwareWallet', false)}
-          isSubmitting={boolean('isSubmitting', false)}
-          isTrezor={boolean('isTrezor', false)}
+          isFlight={isFlight}
+          isHardwareWallet={isHardwareWallet}
+          isSubmitting={isSubmitting}
+          isTrezor={isTrezor}
           formattedTotalAmount="21.000000"
           error={null}
           onCancel={action('onCancel')}
@@ -446,8 +492,19 @@ storiesOf('Wallets / Send', module)
         />
       </div>
     );
-  })
-  .add('Wallet Send Confirmation Dialog With No Assets', () => {
+  },
+};
+
+export const WalletSendConfirmationDialogWithNoAssets = {
+  args: confirmationArgs,
+
+  render: ({
+    areTermsAccepted,
+    isFlight,
+    isHardwareWallet,
+    isSubmitting,
+    isTrezor,
+  }) => {
     // @ts-ignore[prop-missing]
     const wallet: Wallet = {
       name: generateWallet('TrueUSD', '15119903750165', walletTokens).name,
@@ -466,11 +523,11 @@ storiesOf('Wallets / Send', module)
           assetTokens={confirmationTokens}
           assetsAmounts={confirmationTokensAmounts}
           hwDeviceStatus={HwDeviceStatuses.CONNECTING}
-          areTermsAccepted={boolean('areTermsAccepted', true)}
-          isFlight={boolean('isFlight', false)}
-          isTrezor={boolean('isTrezor', false)}
-          isSubmitting={boolean('isSubmitting', false)}
-          isHardwareWallet={boolean('isHardwareWallet', false)}
+          areTermsAccepted={areTermsAccepted}
+          isFlight={isFlight}
+          isTrezor={isTrezor}
+          isSubmitting={isSubmitting}
+          isHardwareWallet={isHardwareWallet}
           formattedTotalAmount="21.000000"
           error={
             new LocalizableError({
@@ -485,4 +542,5 @@ storiesOf('Wallets / Send', module)
         />
       </div>
     );
-  });
+  },
+};

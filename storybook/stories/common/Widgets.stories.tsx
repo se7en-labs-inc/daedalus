@@ -1,9 +1,7 @@
 import React from 'react';
 import { defineMessages, IntlProvider } from 'react-intl';
-import { storiesOf } from '@storybook/react';
 import { observable, action as mobxAction } from 'mobx';
-import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, number, text, date } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
 import StoryLayout from '../_support/StoryLayout';
@@ -24,6 +22,7 @@ import NormalSwitch from '../../../source/renderer/app/components/widgets/forms/
 import { Separator } from '../../../source/renderer/app/components/widgets/separator/Separator';
 import { CollapsibleSection } from '../../../source/renderer/app/components/widgets/collapsible-section/CollapsibleSection';
 import { VerticalSeparator } from '../../../source/renderer/app/components/wallet/widgets/VerticalSeparator';
+import { currentThemeOf, localeOf } from '../_support/globals';
 
 const { intl: enIntl } = new IntlProvider({
   locale: 'en-US',
@@ -86,38 +85,84 @@ function WidgetPresentationBox({ children }) {
   return <div style={{ padding: 20 }}>{children}</div>;
 }
 
-storiesOf('Common / Widgets', module)
-  .addDecorator((story: any, context: any) => {
-    if (context.name === 'CountdownWidget') {
-      return story();
-    }
+export default {
+  title: 'Common / Widgets',
 
-    const onChangeAction = action('onChange');
-    const state = observable({
-      checked: false,
-      onChange: mobxAction((value, event) => {
-        state.checked = value;
-        onChangeAction(value, event);
-      }),
-    });
-    return (
-      <StoryDecorator propsForChildren={state}>
-        <StoryProvider>
-          <StoryLayout activeSidebarCategory={null} {...context}>
-            {story()}
-          </StoryLayout>
-        </StoryProvider>
-      </StoryDecorator>
-    );
-  })
-  .addDecorator(withKnobs) // ====== Stories ======
-  .add('CountdownWidget', () => (
+  decorators: [
+    (story: any, context: any) => {
+      if (context.name === 'CountdownWidget') {
+        return story();
+      }
+
+      const onChangeAction = action('onChange');
+      const state = observable({
+        checked: false,
+        onChange: mobxAction((value, event) => {
+          state.checked = value;
+          onChangeAction(value, event);
+        }),
+      });
+      return (
+        <StoryDecorator propsForChildren={state}>
+          <StoryProvider>
+            <StoryLayout
+              activeSidebarCategory={null}
+              {...context}
+              currentTheme={currentThemeOf(context)}
+            >
+              {story()}
+            </StoryLayout>
+          </StoryProvider>
+        </StoryDecorator>
+      );
+    },
+  ],
+};
+
+export const _CountdownWidget = {
+  args: { startDateTime: new Date() },
+  argTypes: { startDateTime: { control: 'date' } },
+
+  // The arg holds a Date until the control is first changed and a timestamp
+  // afterwards, so the construction around it reads both.
+  render: ({ startDateTime }) => (
     <CountdownWidget
-      startDateTime={new Date(date('startDateTime')).toISOString()}
+      startDateTime={new Date(startDateTime).toISOString()}
       format="DD-HH-mm-ss"
     />
-  ))
-  .add('InlineEditingInput', () => (
+  ),
+
+  name: 'CountdownWidget',
+};
+
+export const _InlineEditingInput = {
+  args: {
+    inputFieldLabel: 'Input label',
+    inputFieldPlaceholder: 'Enter you text here',
+    validationErrorMessage: 'Error!',
+    successfullyUpdated: true,
+    isActive: true,
+    isSubmitting: false,
+    inputBlocked: false,
+    disabled: false,
+    readOnly: false,
+    maxLength: undefined,
+  },
+
+  argTypes: { maxLength: { control: 'number' } },
+
+  render: ({
+    inputFieldLabel,
+    inputFieldPlaceholder,
+    validationErrorMessage,
+    successfullyUpdated,
+    isActive,
+    isSubmitting,
+    inputBlocked,
+    disabled,
+    readOnly,
+    maxLength,
+  }) => (
     <div>
       <div
         style={{
@@ -127,26 +172,30 @@ storiesOf('Common / Widgets', module)
         }}
       >
         <InlineEditingInput
-          label={text('inputFieldLabel', 'Input label')}
+          label={inputFieldLabel}
           value=""
-          placeholder={text('inputFieldPlaceholder', 'Enter you text here')}
+          placeholder={inputFieldPlaceholder}
           onSubmit={action('onSubmit')}
           isValid={(value) => value && value.length > 3 && value !== 'error'}
           // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-          validationErrorMessage={text('validationErrorMessage', 'Error!')}
-          successfullyUpdated={boolean('successfullyUpdated', true)}
-          isActive={boolean('isActive', true)}
-          isSubmitting={boolean('isSubmitting', false)}
-          inputBlocked={boolean('inputBlocked', false)}
-          disabled={boolean('disabled', false)}
-          readOnly={boolean('readOnly', false)}
-          // @ts-ignore ts-migrate(2554) FIXME: Expected 2-4 arguments, but got 1.
-          maxLength={number('maxLength')}
+          validationErrorMessage={validationErrorMessage}
+          successfullyUpdated={successfullyUpdated}
+          isActive={isActive}
+          isSubmitting={isSubmitting}
+          inputBlocked={inputBlocked}
+          disabled={disabled}
+          readOnly={readOnly}
+          maxLength={maxLength}
         />
       </div>
     </div>
-  ))
-  .add('BigButtonForDialogs', (_, props) => (
+  ),
+
+  name: 'InlineEditingInput',
+};
+
+export const _BigButtonForDialogs = {
+  render: (_args, context) => (
     <div>
       <div
         style={{
@@ -156,10 +205,10 @@ storiesOf('Common / Widgets', module)
         }}
       >
         <BigButtonForDialogs
-          description={intl[props.locale].formatMessage(
+          description={intl[localeOf(context)].formatMessage(
             messages.createNewWallet
           )}
-          label={intl[props.locale].formatMessage(messages.create)}
+          label={intl[localeOf(context)].formatMessage(messages.create)}
           icon={createIcon}
           onClick={() => {}}
         />
@@ -172,10 +221,10 @@ storiesOf('Common / Widgets', module)
         }}
       >
         <BigButtonForDialogs
-          description={intl[props.locale].formatMessage(
+          description={intl[localeOf(context)].formatMessage(
             messages.joinSharedWallet
           )}
-          label={intl[props.locale].formatMessage(messages.join)}
+          label={intl[localeOf(context)].formatMessage(messages.join)}
           icon={joinSharedIcon}
           onClick={() => {}}
           isDisabled
@@ -189,34 +238,58 @@ storiesOf('Common / Widgets', module)
         }}
       >
         <BigButtonForDialogs
-          description={intl[props.locale].formatMessage(
+          description={intl[localeOf(context)].formatMessage(
             messages.importExistingWallet
           )}
-          label={intl[props.locale].formatMessage(messages.import)}
+          label={intl[localeOf(context)].formatMessage(messages.import)}
           icon={importIcon}
           onClick={() => {}}
         />
       </div>
     </div>
-  ))
-  .add('TinySwitch', () => <TinySwitch />)
-  .add('TinySwitch - short label', (_, props) => (
-    <TinySwitch label={intl[props.locale].formatMessage(messages.save)} />
-  ))
-  .add('ButtonLink', (_, props) => (
+  ),
+
+  name: 'BigButtonForDialogs',
+};
+
+export const _TinySwitch = {
+  render: () => <TinySwitch />,
+  name: 'TinySwitch',
+};
+
+export const TinySwitchShortLabel = {
+  render: (_args, context) => (
+    <TinySwitch label={intl[localeOf(context)].formatMessage(messages.save)} />
+  ),
+
+  name: 'TinySwitch - short label',
+};
+
+export const _ButtonLink = {
+  render: (_args, context) => (
     <ButtonLink
-      label={intl[props.locale].formatMessage(messages.save)}
+      label={intl[localeOf(context)].formatMessage(messages.save)}
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       onClick={action('onClick')}
     />
-  ))
-  .add('NormalSwitch', () => (
+  ),
+
+  name: 'ButtonLink',
+};
+
+export const _NormalSwitch = {
+  render: () => (
     <div>
       <NormalSwitch onChange={action('onChange')} />
       <NormalSwitch onChange={action('onChange')} checked />
     </div>
-  ))
-  .add('CollapsibleTextBlock', () => (
+  ),
+
+  name: 'NormalSwitch',
+};
+
+export const CollapsibleTextBlock = {
+  render: () => (
     <WidgetPresentationBox>
       <CollapsibleSection header="Lorem ipsum dolor sit amet">
         <p
@@ -243,14 +316,23 @@ storiesOf('Common / Widgets', module)
         </p>
       </CollapsibleSection>
     </WidgetPresentationBox>
-  ))
-  .add('Separator', () => (
-    <WidgetPresentationBox>
-      <Separator />
-    </WidgetPresentationBox>
-  ))
-  .add('VerticalSeparator', () => (
+  ),
+
+  name: 'CollapsibleTextBlock',
+};
+
+export const _Separator = () => (
+  <WidgetPresentationBox>
+    <Separator />
+  </WidgetPresentationBox>
+);
+
+export const _VerticalSeparator = {
+  render: () => (
     <WidgetPresentationBox>
       <VerticalSeparator />
     </WidgetPresentationBox>
-  ));
+  ),
+
+  name: 'VerticalSeparator',
+};

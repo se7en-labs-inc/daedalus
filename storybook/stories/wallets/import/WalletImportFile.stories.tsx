@@ -1,13 +1,12 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { boolean, number, select } from '@storybook/addon-knobs';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import { action } from 'storybook/actions';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
 import VerticalFlexContainer from '../../../../source/renderer/app/components/layout/VerticalFlexContainer';
 import WalletImportFileDialog from '../../../../source/renderer/app/components/wallet/wallet-import/WalletImportFileDialog';
 import WalletSelectImportDialog from '../../../../source/renderer/app/components/wallet/wallet-import/WalletSelectImportDialog';
 import { isValidWalletName } from '../../../../source/renderer/app/utils/validations';
 import { WalletImportStatuses } from '../../../../source/renderer/app/types/walletExportTypes';
+import { optionsFrom } from '../../_support/argTypes';
 
 const getWallet = (
   index: number,
@@ -27,9 +26,14 @@ const getWallet = (
   },
 });
 
-storiesOf('Wallets / Import File', module)
-  .addDecorator(WalletsWrapper)
-  .add('Step 1 - Import File', () => (
+export default {
+  title: 'Wallets / Import File',
+  args: walletsLayoutArgs,
+  decorators: [WalletsWrapper],
+};
+
+export const Step1ImportFile = {
+  render: () => (
     <VerticalFlexContainer>
       <WalletImportFileDialog
         isSubmitting={false}
@@ -46,27 +50,43 @@ storiesOf('Wallets / Import File', module)
         onResetExportSourcePath={action('onResetExportSourcePath')}
       />
     </VerticalFlexContainer>
-  ))
-  .add('Step 2 - Wallets', () => {
-    const statusSelect = select(
-      '1st wallet status',
-      WalletImportStatuses,
-      WalletImportStatuses.PENDING
-    );
+  ),
+
+  name: 'Step 1 - Import File',
+};
+
+export const Step2Wallets = {
+  args: {
+    firstWalletStatus: WalletImportStatuses.PENDING,
+    walletsWithName: 5,
+    walletsWithNoName: 5,
+    isSubmitting: false,
+    pendingImportWalletsCount: 0,
+  },
+
+  argTypes: { firstWalletStatus: optionsFrom(WalletImportStatuses) },
+
+  render: ({
+    firstWalletStatus,
+    walletsWithName,
+    walletsWithNoName,
+    isSubmitting,
+    pendingImportWalletsCount,
+  }) => {
     const namedWallets = [
-      ...Array(number('Wallets with name', 5)),
+      ...Array(walletsWithName),
       // @ts-ignore ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
-    ].map((x, index: number) => getWallet(index, true, statusSelect));
-    const unnamedWallets = [...Array(number('Wallets with no name', 5))].map(
+    ].map((x, index: number) => getWallet(index, true, firstWalletStatus));
+    const unnamedWallets = [...Array(walletsWithNoName)].map(
       (x, index: number) => getWallet(index, false)
     );
     return (
       <VerticalFlexContainer>
         <WalletSelectImportDialog
-          isSubmitting={boolean('isSubmitting', false)}
+          isSubmitting={isSubmitting}
           nameValidator={(name) => isValidWalletName(name)} // @ts-ignore
           exportedWallets={[...namedWallets, ...unnamedWallets]}
-          pendingImportWalletsCount={number('pendingImportWalletsCount', 0)}
+          pendingImportWalletsCount={pendingImportWalletsCount}
           onContinue={action('onContinue')}
           onOpenExternalLink={action('onOpenExternalLink')}
           onWalletNameChange={action('onWalletNameChange')}
@@ -78,4 +98,7 @@ storiesOf('Wallets / Import File', module)
         />
       </VerticalFlexContainer>
     );
-  });
+  },
+
+  name: 'Step 2 - Wallets',
+};

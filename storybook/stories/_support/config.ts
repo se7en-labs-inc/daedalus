@@ -1,3 +1,4 @@
+import { NUMBER_OPTIONS } from '../../../source/renderer/app/config/profileConfig';
 import cardano from '../../../source/renderer/app/themes/daedalus/cardano';
 import darkBlue from '../../../source/renderer/app/themes/daedalus/dark-blue';
 import lightBlue from '../../../source/renderer/app/themes/daedalus/light-blue';
@@ -49,28 +50,16 @@ export const osMinWindowHeights = {
   Mac: '700px',
 };
 
-/* eslint-disable no-restricted-globals */
-const getParams = (param: string) => {
-  const { hash, search } = parent.window.location;
-  const queries = hash || search;
-  const params = new URLSearchParams(queries.slice(1));
-  return params.get(param);
-};
-
-export const getInitialState = () => {
-  const themeName =
-    getParams('themeName') ||
-    sessionStorage.getItem('themeName') ||
-    themeNames[0];
-  const localeName =
-    getParams('localeName') ||
-    sessionStorage.getItem('localeName') ||
-    localeNames[0];
-  const osName =
-    getParams('osName') || sessionStorage.getItem('osName') || osNames[0];
-  return {
-    themeName,
-    localeName,
-    osName,
-  };
-};
+/*
+ * The number-format selections. `NUMBER_OPTIONS` labels each format with an
+ * example of the number it produces, which is what the toolbar shows; the value
+ * beside it is the key `NUMBER_FORMATS` is indexed by.
+ */
+export const numberFormats = NUMBER_OPTIONS.reduce<Record<string, string>>(
+  (obj, option) => {
+    obj[option.label] = option.value;
+    return obj;
+  },
+  {}
+);
+export const numberFormatNames: Array<string> = Object.keys(numberFormats);

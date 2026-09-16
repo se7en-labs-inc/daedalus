@@ -1,0 +1,39 @@
+import React from 'react';
+import StoryLayout from '../../_support/StoryLayout';
+import { currentThemeOf } from '../../_support/globals';
+import StoryProvider from '../../_support/StoryProvider';
+import StoryDecorator from '../../_support/StoryDecorator';
+import { CATEGORIES_BY_NAME } from '../../../../source/renderer/app/config/sidebarConfig';
+import StakingWithNavigation from '../../../../source/renderer/app/components/staking/layouts/StakingWithNavigation';
+
+export const stakingDecorator = (story, context) => {
+  const getItemFromContext = () => context.parameters.id;
+
+  const activeSidebarCategory = CATEGORIES_BY_NAME.STAKING.route;
+
+  return (
+    <StoryDecorator>
+      <StoryProvider>
+        <StoryLayout
+          activeSidebarCategory={activeSidebarCategory}
+          {...context}
+          currentTheme={currentThemeOf(context)}
+        >
+          {context.parameters.id === 'wizard' ? (
+            story()
+          ) : (
+            <StakingWithNavigation
+              key="stakingWithNavigation"
+              isActiveNavItem={(item) => item === getItemFromContext()}
+              showInfoTab
+              activeItem={getItemFromContext()}
+              onNavItemClick={() => {}}
+            >
+              {story()}
+            </StakingWithNavigation>
+          )}
+        </StoryLayout>
+      </StoryProvider>
+    </StoryDecorator>
+  );
+};

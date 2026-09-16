@@ -1,7 +1,5 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import classNames from 'classnames';
 import StoryDecorator from '../../_support/StoryDecorator';
 import StoryProvider from '../../_support/StoryProvider';
@@ -9,7 +7,6 @@ import SidebarLayout from '../../../../source/renderer/app/components/layout/Sid
 import TopBar from '../../../../source/renderer/app/components/layout/TopBar';
 import topBarStyles from '../../../../source/renderer/app/components/layout/TopBar.scss';
 import NodeSyncStatusIcon from '../../../../source/renderer/app/components/widgets/NodeSyncStatusIcon';
-import TadaButton from '../../../../source/renderer/app/components/widgets/TadaButton';
 import WalletTestEnvironmentLabel from '../../../../source/renderer/app/components/widgets/WalletTestEnvironmentLabel';
 import { formattedWalletAmount } from '../../../../source/renderer/app/utils/formatters';
 // @ts-ignore ts-migrate(2307) FIXME: Cannot find module '../../../../source/renderer/ap... Remove this comment to see the full error message
@@ -17,6 +14,7 @@ import menuIconClosed from '../../../../source/renderer/app/assets/images/menu-i
 import NewsFeedIcon from '../../../../source/renderer/app/components/widgets/NewsFeedIcon';
 import DiscreetToggleTopBar from '../../../../source/renderer/app/features/discreet-mode/ui/discreet-toggle-top-bar/DiscreetToggleTopBar';
 import { isShelleyTestnetTheme } from '../../_support/utils';
+import { currentThemeOf } from '../../_support/globals';
 
 const topBarTestEnv = (currentTheme) => (
   <TopBar
@@ -26,7 +24,6 @@ const topBarTestEnv = (currentTheme) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={boolean('isAlonzoActivated', false)}
   >
     <WalletTestEnvironmentLabel network="testnet" />
     <NodeSyncStatusIcon
@@ -35,13 +32,9 @@ const topBarTestEnv = (currentTheme) => (
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       isProduction={false}
       isMainnet={false}
-      hasTadaIcon
     />
-    <span
-      className={classNames(topBarStyles.rectangle, topBarStyles.hasTadaIcon)}
-    />
-    <DiscreetToggleTopBar hasTadaIcon />
-    <TadaButton onClick={action('onClickTadaButton')} shouldAnimate />
+    <span className={classNames(topBarStyles.rectangle)} />
+    <DiscreetToggleTopBar />
     <NewsFeedIcon
       onNewsFeedIconClick={action('onNewsFeedIconClick')}
       hasNotification={false}
@@ -58,7 +51,6 @@ const topBarStagingEnv = (currentTheme) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={boolean('isAlonzoActivated', false)}
   >
     <WalletTestEnvironmentLabel network="staging" />
     <NodeSyncStatusIcon
@@ -67,13 +59,9 @@ const topBarStagingEnv = (currentTheme) => (
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       isProduction={false}
       isMainnet={false}
-      hasTadaIcon
     />
-    <span
-      className={classNames(topBarStyles.rectangle, topBarStyles.hasTadaIcon)}
-    />
-    <DiscreetToggleTopBar hasTadaIcon />
-    <TadaButton onClick={action('onClickTadaButton')} shouldAnimate />
+    <span className={classNames(topBarStyles.rectangle)} />
+    <DiscreetToggleTopBar />
     <NewsFeedIcon
       onNewsFeedIconClick={action('onNewsFeedIconClick')}
       hasNotification={false}
@@ -90,7 +78,6 @@ const topBarProductionEnv = (currentTheme) => (
     showSubMenuToggle={false}
     leftIcon={menuIconClosed}
     isShelleyActivated={isShelleyTestnetTheme(currentTheme)}
-    isAlonzoActivated={boolean('isAlonzoActivated', false)}
   >
     <NodeSyncStatusIcon
       isSynced
@@ -98,13 +85,9 @@ const topBarProductionEnv = (currentTheme) => (
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       isProduction
       isMainnet
-      hasTadaIcon
     />
-    <span
-      className={classNames(topBarStyles.rectangle, topBarStyles.hasTadaIcon)}
-    />
-    <DiscreetToggleTopBar hasTadaIcon />
-    <TadaButton onClick={action('onClickTadaButton')} shouldAnimate />
+    <span className={classNames(topBarStyles.rectangle)} />
+    <DiscreetToggleTopBar />
     <NewsFeedIcon
       onNewsFeedIconClick={action('onNewsFeedIconClick')}
       hasNotification={false}
@@ -113,31 +96,41 @@ const topBarProductionEnv = (currentTheme) => (
   </TopBar>
 );
 
-storiesOf('Nodes / Environment', module)
-  .addDecorator((story) => (
-    <StoryProvider>
-      <StoryDecorator>{story()}</StoryDecorator>
-    </StoryProvider>
-  ))
-  .addDecorator(withKnobs) // ====== Stories ======
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Testnet', (props: { currentTheme: string }) => (
+export default {
+  title: 'Nodes / Environment',
+
+  decorators: [
+    (story) => (
+      <StoryProvider>
+        <StoryDecorator>{story()}</StoryDecorator>
+      </StoryProvider>
+    ),
+  ],
+};
+
+export const Testnet = {
+  render: (_args, context) => (
     <SidebarLayout
-      topbar={topBarTestEnv(props.currentTheme)}
+      topbar={topBarTestEnv(currentThemeOf(context))}
       sidebar={<noscript />}
     />
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Staging', (props: { currentTheme: string }) => (
+  ),
+};
+
+export const Staging = {
+  render: (_args, context) => (
     <SidebarLayout
-      topbar={topBarStagingEnv(props.currentTheme)}
+      topbar={topBarStagingEnv(currentThemeOf(context))}
       sidebar={<noscript />}
     />
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: {    currentTheme: strin... Remove this comment to see the full error message
-  .add('Production', (props: { currentTheme: string }) => (
+  ),
+};
+
+export const Production = {
+  render: (_args, context) => (
     <SidebarLayout
-      topbar={topBarProductionEnv(props.currentTheme)}
+      topbar={topBarProductionEnv(currentThemeOf(context))}
       sidebar={<noscript />}
     />
-  ));
+  ),
+};

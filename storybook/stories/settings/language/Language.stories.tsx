@@ -1,35 +1,58 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { withState } from '@dump247/storybook-state';
-import { mockedLocaleState, onLocaleValueChange } from '../utils/helpers';
+import { action } from 'storybook/actions';
+import { useArgs } from 'storybook/preview-api';
+import {
+  LocaleStoryStore,
+  mockedLocaleState,
+  onLocaleValueChange,
+} from '../utils/helpers';
 import StoryDecorator from '../../_support/StoryDecorator';
 import InitialSettings from '../../../../source/renderer/app/components/profile/initial-settings/InitialSettings';
 
-storiesOf('Settings / Language', module)
-  .addDecorator((story) => <StoryDecorator>{story()}</StoryDecorator>) // ====== Stories ======
-  .add(
-    'Select Language - initial',
-    withState(mockedLocaleState, (store) => (
+export default {
+  title: 'Settings / Language',
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
+};
+
+export const SelectLanguageInitial = {
+  args: mockedLocaleState,
+
+  render: () => {
+    const [locale, updateArgs] = useArgs<LocaleStoryStore>();
+    return (
       <div>
         <InitialSettings
           onSubmit={action('submit')}
-          onChangeItem={(id, value) => onLocaleValueChange(store, id, value)}
-          {...store.state}
+          onChangeItem={(id, value) =>
+            onLocaleValueChange(updateArgs, id, value)
+          }
+          {...locale}
         />
       </div>
-    ))
-  )
-  .add(
-    'Select Language - submitting',
-    withState(mockedLocaleState, (store) => (
+    );
+  },
+
+  name: 'Select Language - initial',
+};
+
+export const SelectLanguageSubmitting = {
+  args: mockedLocaleState,
+
+  render: () => {
+    const [locale, updateArgs] = useArgs<LocaleStoryStore>();
+    return (
       <div>
         <InitialSettings
           onSubmit={action('submit')}
-          onChangeItem={(id, value) => onLocaleValueChange(store, id, value)}
+          onChangeItem={(id, value) =>
+            onLocaleValueChange(updateArgs, id, value)
+          }
           isSubmitting
-          {...store.state}
+          {...locale}
         />
       </div>
-    ))
-  );
+    );
+  },
+
+  name: 'Select Language - submitting',
+};

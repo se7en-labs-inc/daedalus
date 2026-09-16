@@ -1,27 +1,26 @@
 // eslint-disable-file no-unused-vars
 import React from 'react';
-// import { omit } from 'lodash';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { boolean, select, number, withKnobs } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import StoryDecorator from '../_support/StoryDecorator';
 import NewsFeed from '../../../source/renderer/app/components/news/NewsFeed';
 import News from '../../../source/renderer/app/domains/News';
 import { dateOptions } from '../_support/profileSettings';
 import { DATE_ENGLISH_OPTIONS } from '../../../source/renderer/app/config/profileConfig';
 import { getNewsItem } from './_utils/fakeDataNewsFeed';
+import { localeOf } from '../_support/globals';
+import { optionsFrom, rangeFrom } from '../_support/argTypes';
 
-const updateDownloadProgressOptions = {
-  range: true,
-  min: 0,
-  max: 100,
-  step: 1,
+const updateDownloadProgressOptions = { min: 0, max: 100, step: 1 };
+
+export default {
+  title: 'News / NewsFeed',
+
+  decorators: [(story) => <StoryDecorator>{story()}</StoryDecorator>],
 };
-storiesOf('News / NewsFeed', module)
-  .addDecorator((story, context) => (
-    <StoryDecorator>{withKnobs(story, context)}</StoryDecorator>
-  )) // ====== Stories ======
-  .add('Empty', () => (
+
+export const Empty = {
+  args: { isNewsFeedOpen: true },
+  render: ({ isNewsFeedOpen }) => (
     <div>
       <NewsFeed
         // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
@@ -31,7 +30,7 @@ storiesOf('News / NewsFeed', module)
         onNewsItemActionClick={action('onNewsItemActionClick')}
         onClose={action('onClose')}
         news={new News.NewsCollection([])}
-        isNewsFeedOpen={boolean('isNewsFeedOpen', true)}
+        isNewsFeedOpen={isNewsFeedOpen}
         onOpenExternalLink={action('onOpenExternalLink')}
         onOpenAlert={action('onOpenAlert')}
         onProceedNewsAction={action('onOpenExternalLink')}
@@ -40,8 +39,12 @@ storiesOf('News / NewsFeed', module)
         isUpdatePostponed={false}
       />
     </div>
-  ))
-  .add('Fetching', () => (
+  ),
+};
+
+export const Fetching = {
+  args: { isNewsFeedOpen: true },
+  render: ({ isNewsFeedOpen }) => (
     <div>
       <NewsFeed
         // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
@@ -51,7 +54,7 @@ storiesOf('News / NewsFeed', module)
         onNewsItemActionClick={action('onNewsItemActionClick')}
         onClose={action('onClose')}
         news={new News.NewsCollection([])}
-        isNewsFeedOpen={boolean('isNewsFeedOpen', true)}
+        isNewsFeedOpen={isNewsFeedOpen}
         onOpenExternalLink={action('onOpenExternalLink')}
         onOpenAlert={action('onOpenAlert')}
         onProceedNewsAction={action('onOpenExternalLink')}
@@ -60,12 +63,28 @@ storiesOf('News / NewsFeed', module)
         isUpdatePostponed={false}
       />
     </div>
-  ))
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '({ locale }: { locale: string; }... Remove this comment to see the full error message
-  .add('Fetched', (_, { locale }: { locale: string }) => {
-    const displayAppUpdateNewsItem = boolean('displayAppUpdateNewsItem', true);
+  ),
+};
+
+export const Fetched = {
+  args: {
+    displayAppUpdateNewsItem: true,
+    updateDownloadProgress: 30,
+    isNewsFeedOpen: true,
+    currentDateFormat: DATE_ENGLISH_OPTIONS[0].value,
+  },
+
+  argTypes: {
+    updateDownloadProgress: rangeFrom(updateDownloadProgressOptions),
+    currentDateFormat: optionsFrom(dateOptions),
+  },
+
+  render: (args, context) => {
+    const locale = localeOf(context);
+    const { displayAppUpdateNewsItem, isNewsFeedOpen, currentDateFormat } =
+      args;
     const updateDownloadProgress = displayAppUpdateNewsItem
-      ? number('updateDownloadProgress', 30, updateDownloadProgressOptions)
+      ? args.updateDownloadProgress
       : 0;
     const news = new News.NewsCollection([
       getNewsItem(1, 'incident', locale),
@@ -88,20 +107,17 @@ storiesOf('News / NewsFeed', module)
           onNewsItemActionClick={action('onNewsItemActionClick')}
           onClose={action('onClose')}
           news={news}
-          isNewsFeedOpen={boolean('isNewsFeedOpen', true)}
+          isNewsFeedOpen={isNewsFeedOpen}
           onOpenExternalLink={action('onOpenExternalLink')}
           onOpenAlert={action('onOpenAlert')}
           onProceedNewsAction={action('onOpenExternalLink')}
           displayAppUpdateNewsItem={displayAppUpdateNewsItem}
           updateDownloadProgress={updateDownloadProgress}
           onOpenAppUpdate={action('onOpenAppUpdate')}
-          currentDateFormat={select(
-            'currentDateFormat',
-            dateOptions,
-            DATE_ENGLISH_OPTIONS[0].value
-          )}
+          currentDateFormat={currentDateFormat}
           isUpdatePostponed={false}
         />
       </div>
     );
-  });
+  },
+};

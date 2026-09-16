@@ -1,9 +1,8 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { number, boolean, select } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 // Assets and helpers
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
+import { localeOf } from '../../_support/globals';
 import { generateAddress } from '../../_support/utils';
 // Screens
 import WalletReceiveSequential from '../../../../source/renderer/app/components/wallet/receive/WalletReceiveSequential';
@@ -11,33 +10,48 @@ import WalletReceiveRandom from '../../../../source/renderer/app/components/wall
 import WalletReceiveDialog from '../../../../source/renderer/app/components/wallet/receive/WalletReceiveDialog';
 import VerticalFlexContainer from '../../../../source/renderer/app/components/layout/VerticalFlexContainer';
 import { HwDeviceStatuses } from '../../../../source/renderer/app/domains/Wallet';
+import { optionsFrom } from '../../_support/argTypes';
 
 const onToggleSubMenus = {
   listen: action('onToggleSubMenus:listen'),
   remove: action('onToggleSubMenus:remove'),
 };
-storiesOf('Wallets / Receive', module)
-  .addDecorator(WalletsWrapper)
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '({ locale }: { locale: string; }... Remove this comment to see the full error message
-  .add('Receive - sequential', ({ locale }: { locale: string }) => {
-    const showDialog = boolean('showDialog', false);
+
+export default {
+  title: 'Wallets / Receive',
+  args: walletsLayoutArgs,
+  decorators: [WalletsWrapper],
+};
+
+export const ReceiveSequential = {
+  args: {
+    showDialog: false,
+    addressesUsed: 2,
+    addresses: 10,
+    showUsed: false,
+    isTrezor: false,
+  },
+
+  render: (
+    { showDialog, addressesUsed, addresses, showUsed, isTrezor },
+    context
+  ) => {
+    const locale = localeOf(context);
     return (
       <VerticalFlexContainer>
         <WalletReceiveSequential
           walletAddresses={[
-            ...Array.from(Array(number('Addresses (used)', 2))).map(() =>
+            ...Array.from(Array(addressesUsed)).map(() =>
               generateAddress(true)
             ),
-            ...Array.from(Array(number('Addresses', 10))).map(() =>
-              generateAddress()
-            ),
+            ...Array.from(Array(addresses)).map(() => generateAddress()),
           ]}
           onShareAddress={action('onShareAddress')}
           onCopyAddress={action('onCopyAddress')}
           // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
           isAddressValid={() => parseInt(Math.random() * 10, 10) > 3}
           currentLocale={locale}
-          showUsed={boolean('showUsed', false)}
+          showUsed={showUsed}
           onToggleUsedAddresses={action('onToggleUsedAddresses')}
           onToggleSubMenus={onToggleSubMenus}
           isShowingSubMenus
@@ -56,68 +70,107 @@ storiesOf('Wallets / Receive', module)
             isAddressChecked={false}
             onChangeVerificationStatus={action('onChangeVerificationStatus')}
             onSupportRequestClick={action('onSupportRequestClick')}
-            isTrezor={boolean('isTrezor', false)}
+            isTrezor={isTrezor}
           />
         )}
       </VerticalFlexContainer>
     );
-  })
-  .add(
-    'Receive - sequential with address verification',
-    // @ts-ignore ts-migrate(2345) FIXME: Argument of type '({ locale }: { locale: string; }... Remove this comment to see the full error message
-    ({ locale }: { locale: string }) => {
-      return (
-        <VerticalFlexContainer>
-          <WalletReceiveSequential
-            walletAddresses={[
-              ...Array.from(Array(number('Addresses (used)', 2))).map(() =>
-                generateAddress(true)
-              ),
-              ...Array.from(Array(number('Addresses', 10))).map(() =>
-                generateAddress()
-              ),
-            ]}
-            onShareAddress={action('onShareAddress')}
-            onCopyAddress={action('onCopyAddress')}
-            // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
-            isAddressValid={() => parseInt(Math.random() * 10, 10) > 3}
-            currentLocale={locale}
-            onToggleSubMenus={onToggleSubMenus}
-            isShowingSubMenus
-            onToggleUsedAddresses={action('onToggleUsedAddresses')}
-            showUsed={boolean('showUsed', false)}
-          />
-          <WalletReceiveDialog
-            address={generateAddress()}
-            onCopyAddress={action('onCopyAddress')}
-            onDownloadPDF={action('onDownloadPDF')}
-            onSaveQRCodeImage={action('onSaveQRCodeImage')}
-            onClose={action('onClose')}
-            hwDeviceStatus={select(
-              'Address verification state',
-              {
-                Verify: HwDeviceStatuses.VERIFYING_ADDRESS,
-                Verified: HwDeviceStatuses.VERIFYING_ADDRESS_SUCCEEDED,
-                Errored: HwDeviceStatuses.VERIFYING_ADDRESS_FAILED,
-              },
-              HwDeviceStatuses.VERIFYING_ADDRESS
-            )}
-            isHardwareWallet
-            walletName="Ledger Nano S"
-            isAddressDerived={boolean('isAddressDerived', false)}
-            isAddressChecked={boolean('isAddressChecked', false)}
-            onChangeVerificationStatus={action('onChangeVerificationStatus')}
-            onSupportRequestClick={action('onSupportRequestClick')}
-            isTrezor={boolean('isTrezor', false)}
-          />
-        </VerticalFlexContainer>
-      );
-    }
-  )
-  .add('Receive - random', () => {
-    const isSidebarExpanded = boolean('isSidebarExpanded', false);
-    const walletHasPassword = boolean('walletHasPassword', false);
-    const isSubmitting = boolean('isSubmitting', false);
+  },
+
+  name: 'Receive - sequential',
+};
+
+export const ReceiveSequentialWithAddressVerification = {
+  args: {
+    addressesUsed: 2,
+    addresses: 10,
+    showUsed: false,
+    addressVerificationState: HwDeviceStatuses.VERIFYING_ADDRESS,
+    isAddressDerived: false,
+    isAddressChecked: false,
+    isTrezor: false,
+  },
+
+  argTypes: {
+    addressVerificationState: optionsFrom({
+      Verify: HwDeviceStatuses.VERIFYING_ADDRESS,
+      Verified: HwDeviceStatuses.VERIFYING_ADDRESS_SUCCEEDED,
+      Errored: HwDeviceStatuses.VERIFYING_ADDRESS_FAILED,
+    }),
+  },
+
+  render: (
+    {
+      addressesUsed,
+      addresses,
+      showUsed,
+      addressVerificationState,
+      isAddressDerived,
+      isAddressChecked,
+      isTrezor,
+    },
+    context
+  ) => {
+    const locale = localeOf(context);
+    return (
+      <VerticalFlexContainer>
+        <WalletReceiveSequential
+          walletAddresses={[
+            ...Array.from(Array(addressesUsed)).map(() =>
+              generateAddress(true)
+            ),
+            ...Array.from(Array(addresses)).map(() => generateAddress()),
+          ]}
+          onShareAddress={action('onShareAddress')}
+          onCopyAddress={action('onCopyAddress')}
+          // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
+          isAddressValid={() => parseInt(Math.random() * 10, 10) > 3}
+          currentLocale={locale}
+          onToggleSubMenus={onToggleSubMenus}
+          isShowingSubMenus
+          onToggleUsedAddresses={action('onToggleUsedAddresses')}
+          showUsed={showUsed}
+        />
+        <WalletReceiveDialog
+          address={generateAddress()}
+          onCopyAddress={action('onCopyAddress')}
+          onDownloadPDF={action('onDownloadPDF')}
+          onSaveQRCodeImage={action('onSaveQRCodeImage')}
+          onClose={action('onClose')}
+          hwDeviceStatus={addressVerificationState}
+          isHardwareWallet
+          walletName="Ledger Nano S"
+          isAddressDerived={isAddressDerived}
+          isAddressChecked={isAddressChecked}
+          onChangeVerificationStatus={action('onChangeVerificationStatus')}
+          onSupportRequestClick={action('onSupportRequestClick')}
+          isTrezor={isTrezor}
+        />
+      </VerticalFlexContainer>
+    );
+  },
+
+  name: 'Receive - sequential with address verification',
+};
+
+export const ReceiveRandom = {
+  args: {
+    isSidebarExpanded: false,
+    walletHasPassword: false,
+    isSubmitting: false,
+    addresses: 5,
+    addressesUsed: 5,
+    showUsed: false,
+  },
+
+  render: ({
+    isSidebarExpanded,
+    walletHasPassword,
+    isSubmitting,
+    addresses,
+    addressesUsed,
+    showUsed,
+  }) => {
     const walletAddress = generateAddress();
     return (
       <VerticalFlexContainer>
@@ -125,10 +178,8 @@ storiesOf('Wallets / Receive', module)
           walletAddress={walletAddress.id}
           isWalletAddressUsed={walletAddress.used}
           walletAddresses={[
-            ...Array.from(Array(number('Addresses', 5))).map(() =>
-              generateAddress()
-            ),
-            ...Array.from(Array(number('Addresses (used)', 5))).map(() =>
+            ...Array.from(Array(addresses)).map(() => generateAddress()),
+            ...Array.from(Array(addressesUsed)).map(() =>
               generateAddress(true)
             ),
           ]}
@@ -138,9 +189,12 @@ storiesOf('Wallets / Receive', module)
           isSidebarExpanded={isSidebarExpanded}
           walletHasPassword={walletHasPassword}
           isSubmitting={isSubmitting}
-          showUsed={boolean('showUsed', false)}
+          showUsed={showUsed}
           onToggleUsedAddresses={action('onToggleUsedAddresses')}
         />
       </VerticalFlexContainer>
     );
-  });
+  },
+
+  name: 'Receive - random',
+};

@@ -1,7 +1,5 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, number, select } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
 import StoryDecorator from '../_support/StoryDecorator';
 import StoryProvider from '../_support/StoryProvider';
@@ -10,10 +8,7 @@ import VotingRegistrationStepsRegister from '../../../source/renderer/app/compon
 import VotingRegistrationStepsConfirm from '../../../source/renderer/app/components/voting/voting-registration-wizard-steps/VotingRegistrationStepsConfirm';
 import VotingRegistrationStepsEnterPinCode from '../../../source/renderer/app/components/voting/voting-registration-wizard-steps/VotingRegistrationStepsEnterPinCode';
 import VotingRegistrationStepsQrCode from '../../../source/renderer/app/components/voting/voting-registration-wizard-steps/VotingRegistrationStepsQrCode';
-import VotingInfo from '../../../source/renderer/app/components/voting/voting-info/VotingInfo';
-import { FundPhase } from '../../../source/renderer/app/stores/VotingStore';
-import { CatalystFund } from '../../../source/renderer/app/api/voting/types';
-import { VotingFooterLinks } from '../../../source/renderer/app/components/voting/VotingFooterLinks';
+import { mockFundInfo } from './_support/fundInfo';
 import {
   LANGUAGE_OPTIONS,
   DATE_ENGLISH_OPTIONS,
@@ -29,23 +24,8 @@ import {
   generateWallet,
 } from '../_support/utils';
 import { HwDeviceStatuses } from '../../../source/renderer/app/domains/Wallet';
-import VerticalFlexContainer from '../../../source/renderer/app/components/layout/VerticalFlexContainer';
 import { Locale } from '../../../source/common/types/locales.types';
-
-const mockFundInfo: CatalystFund = {
-  current: {
-    number: 7,
-    startTime: new Date('Jan 20, 2022, 11:00 UTC'),
-    endTime: new Date('Feb 3, 2022, 11:00 UTC'),
-    resultsTime: new Date('Feb 10, 2022'),
-    registrationSnapshotTime: new Date('Jan 6, 2022, 11:00 UTC'),
-  },
-  next: {
-    number: 8,
-    startTime: new Date('Jan 6, 2022, 11:00 UTC'),
-    registrationSnapshotTime: new Date('Apr 7, 2022, 11:00 UTC'),
-  },
-};
+import { rangeFrom } from '../_support/argTypes';
 
 const assets = {
   available: [
@@ -95,28 +75,27 @@ const WALLETS = [
 ];
 const stepsList = ['Wallet', 'Sign', 'Confirm', 'PIN code', 'QR code'];
 
-const votingInfo = {
-  fundInfo: mockFundInfo,
-  currentLocale: LANGUAGE_OPTIONS[0].value as Locale,
-  currentDateFormat: DATE_ENGLISH_OPTIONS[0].value,
-  currentTimeFormat: TIME_OPTIONS[0].value,
-  onRegisterToVoteClick: action('onRegisterToVoteClick'),
-  onExternalLinkClick: action('onExternalLinkClick'),
+export default {
+  title: 'Voting / Voting Registration Wizard',
+
+  decorators: [
+    (story) => (
+      <StoryProvider>
+        <StoryDecorator>{story()}</StoryDecorator>
+      </StoryProvider>
+    ),
+  ],
 };
 
-storiesOf('Voting / Voting Registration Wizard', module)
-  .addDecorator((story) => (
-    <StoryProvider>
-      <StoryDecorator>{story()}</StoryDecorator>
-    </StoryProvider>
-  ))
-  .addDecorator(withKnobs) // ====== Stories ======
-  .add('Voting Registration - Step 1', () => (
+export const VotingRegistrationStep1 = {
+  args: { numberOfStakePools: 100 },
+
+  render: ({ numberOfStakePools }) => (
     <VotingRegistrationStepsChooseWallet
       onClose={action('onClose')}
       stepsList={stepsList}
       activeStep={1}
-      numberOfStakePools={number('numberOfStakePools', 100)}
+      numberOfStakePools={numberOfStakePools}
       onSelectWallet={action('onSelectWallet')}
       wallets={WALLETS}
       minVotingRegistrationFunds={VOTING_REGISTRATION_MIN_WALLET_FUNDS}
@@ -124,56 +103,95 @@ storiesOf('Voting / Voting Registration Wizard', module)
       isWalletAcceptable={action('isWalletAcceptable')}
       getStakePoolById={action('getStakePoolById')}
     />
-  ))
-  .add('Voting Registration - Step 2', () => (
+  ),
+
+  name: 'Voting Registration - Step 1',
+};
+
+export const VotingRegistrationStep2 = {
+  args: {
+    transactionFee: 0.3,
+    isSubmitting: undefined,
+    isHardwareWallet: false,
+    isTrezor: false,
+  },
+
+  argTypes: {
+    transactionFee: { control: { type: 'number', min: 0, max: 1000000 } },
+    isSubmitting: { control: 'boolean' },
+  },
+
+  render: ({ transactionFee, isSubmitting, isHardwareWallet, isTrezor }) => (
     <VotingRegistrationStepsRegister
       onClose={action('onClose')}
       onBack={action('onBack')}
       stepsList={stepsList}
       activeStep={2}
-      transactionFee={
-        new BigNumber(
-          number('transactionFee', 0.3, {
-            min: 0,
-            max: 1000000,
-          })
-        )
-      }
-      // @ts-ignore ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
-      isSubmitting={boolean('isSubmitting')}
+      transactionFee={new BigNumber(transactionFee)}
+      isSubmitting={isSubmitting}
       onConfirm={action('onConfirm')}
       onExternalLinkClick={action('onExternalLinkClick')}
       hwDeviceStatus={HwDeviceStatuses.CONNECTING}
-      isHardwareWallet={boolean('isHardwareWallet', false)}
-      isTrezor={boolean('isTrezor', false)}
+      isHardwareWallet={isHardwareWallet}
+      isTrezor={isTrezor}
       selectedWallet={WALLETS[0]}
     />
-  ))
-  .add('Voting Registration - Step 3', () => (
+  ),
+
+  name: 'Voting Registration - Step 2',
+};
+
+export const VotingRegistrationStep3 = {
+  args: {
+    isTransactionPending: true,
+    isTransactionConfirmed: false,
+    transactionConfirmations: 0,
+    transactionError: false,
+  },
+
+  argTypes: {
+    transactionConfirmations: rangeFrom({
+      max: VOTING_REGISTRATION_MIN_TRANSACTION_CONFIRMATIONS,
+    }),
+  },
+
+  render: ({
+    isTransactionPending,
+    isTransactionConfirmed,
+    transactionConfirmations,
+    transactionError,
+  }) => (
     <VotingRegistrationStepsConfirm
       onClose={action('onClose')}
       stepsList={stepsList}
       activeStep={3}
-      isTransactionPending={boolean('isTransactionPending', true)}
-      isTransactionConfirmed={boolean('isTransactionConfirmed', false)}
-      transactionConfirmations={number('transactionConfirmations', 0, {
-        range: true,
-        max: VOTING_REGISTRATION_MIN_TRANSACTION_CONFIRMATIONS,
-      })}
+      isTransactionPending={isTransactionPending}
+      isTransactionConfirmed={isTransactionConfirmed}
+      transactionConfirmations={transactionConfirmations}
       onConfirm={action('onConfirm')}
       onRestart={action('onRestart')}
-      transactionError={boolean('transactionError', false)}
+      transactionError={transactionError}
     />
-  ))
-  .add('Voting Registration - Step 4', () => (
+  ),
+
+  name: 'Voting Registration - Step 3',
+};
+
+export const VotingRegistrationStep4 = {
+  render: () => (
     <VotingRegistrationStepsEnterPinCode
       onClose={action('onClose')}
       stepsList={stepsList}
       activeStep={4}
       onSetPinCode={action('onSetPinCode')}
     />
-  ))
-  .add('Voting Registration - Step 5', () => (
+  ),
+
+  name: 'Voting Registration - Step 4',
+};
+
+export const VotingRegistrationStep5 = {
+  render: () => (
     <VotingRegistrationStepsQrCode
       onClose={action('onClose')}
       onDownloadPDF={action('onDownloadPDF')}
@@ -181,27 +199,7 @@ storiesOf('Voting / Voting Registration Wizard', module)
       activeStep={5}
       qrCode="djkhfkwdjhfkwdhfkwjdhfkwdhf9wdyf9wdh9u3h03hd0f3hd0h30hf30dhf03dhf03dhf03dhf03dhf0u3dhf0u3dhf0u3dfh30uhfd30uh"
     />
-  ));
-storiesOf('Voting / Voting Info', module)
-  .addDecorator((story) => (
-    <StoryDecorator>
-      <VerticalFlexContainer>
-        {story()}
-        <VotingFooterLinks />
-      </VerticalFlexContainer>
-    </StoryDecorator>
-  ))
-  .addDecorator(withKnobs) // ====== Stories ======
-  .add('Snapshot phase', () => (
-    <VotingInfo {...votingInfo} fundPhase={FundPhase.SNAPSHOT} />
-  ))
-  .add('Voting phase', () => (
-    <VotingInfo {...votingInfo} fundPhase={FundPhase.VOTING} />
-  ))
-  .add('Tallying phase', () => (
-    <VotingInfo {...votingInfo} fundPhase={FundPhase.TALLYING} />
-  ))
-  .add('Results phase', () => (
-    <VotingInfo {...votingInfo} fundPhase={FundPhase.RESULTS} />
-  ))
-  .add('API error', () => <VotingInfo {...votingInfo} fundPhase={null} />);
+  ),
+
+  name: 'Voting Registration - Step 5',
+};

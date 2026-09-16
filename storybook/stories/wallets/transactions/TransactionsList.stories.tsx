@@ -1,7 +1,5 @@
 import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
-import { withKnobs, select } from '@storybook/addon-knobs';
+import { action } from 'storybook/actions';
 import BigNumber from 'bignumber.js';
 // Assets and helpers
 import {
@@ -11,7 +9,8 @@ import {
   generateWallet,
 } from '../../_support/utils';
 import { formattedWalletAmount } from '../../../../source/renderer/app/utils/formatters';
-import WalletsWrapper from '../_utils/WalletsWrapper';
+import WalletsWrapper, { walletsLayoutArgs } from '../_utils/WalletsWrapper';
+import { localeOf } from '../../_support/globals';
 import WalletsTransactionsWrapper from '../_utils/WalletsTransactionsWrapper';
 import {
   DATE_ENGLISH_OPTIONS, // LANGUAGE_OPTIONS,
@@ -24,6 +23,16 @@ import type { TransactionFilterOptionsType } from '../../../../source/renderer/a
 import WalletTransactions from '../../../../source/renderer/app/components/wallet/transactions/WalletTransactions';
 import { WALLET_ASSETS_ENABLED } from '../../../../source/renderer/app/config/walletsConfig';
 import Asset from '../../../../source/renderer/app/domains/Asset';
+import { optionsFrom } from '../../_support/argTypes';
+
+const transactionsOptions = {
+  'Grouped by days': 'groupedByDays',
+  'Confirmed and pending transactions': 'confirmedAndPendingTransactions',
+  'Rendering many transactions': 'renderingManyTransactions',
+  'Unresolved income addresses': 'unresolvedIncomeAddresses',
+  'Without income addresses': 'withoutIncomeAddresses',
+  'With withdrawal addresses': 'withWithdrawalAddresses',
+};
 
 type Props = {
   defaultFilterOptions: TransactionFilterOptionsType;
@@ -132,34 +141,30 @@ const getAsset = (
   assetName: string
 ): Asset | null | undefined => assetDetails[`${policyId}${assetName}`];
 
-/* eslint-disable consistent-return */
-storiesOf('Wallets / Transactions', module)
-  .addDecorator(withKnobs)
-  .addDecorator((getStory, props) => {
-    const transactionsOption = select(
-      'Transactions',
-      {
-        'Grouped by days': 'groupedByDays',
-        'Confirmed and pending transactions': 'confirmedAndPendingTransactions',
-        'Rendering many transactions': 'renderingManyTransactions',
-        'Unresolved income addresses': 'unresolvedIncomeAddresses',
-        'Without income addresses': 'withoutIncomeAddresses',
-        'With withdrawal addresses': 'withWithdrawalAddresses',
-      },
-      'groupedByDays'
-    );
-    return (
+export default {
+  title: 'Wallets / Transactions',
+
+  // The knob this replaced was in the decorator rather than in a story, so the
+  // arg is on the meta and the decorator reads it off the context.
+  args: { ...walletsLayoutArgs, transactionsOption: 'groupedByDays' },
+  argTypes: { transactionsOption: optionsFrom(transactionsOptions) },
+
+  decorators: [
+    (getStory, props) => (
       // @ts-ignore ts-migrate(2769) FIXME: No overload matches this call.
       <WalletsTransactionsWrapper
         {...props}
-        transactionsOption={transactionsOption}
+        locale={localeOf(props)}
+        transactionsOption={props.args.transactionsOption}
         getStory={getStory}
       />
-    );
-  })
-  .addDecorator(WalletsWrapper) // ====== Stories ======
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: Props) => JSX.Element' i... Remove this comment to see the full error message
-  .add('Transactions List', (_, props: Props) => {
+    ),
+    WalletsWrapper,
+  ],
+};
+
+export const TransactionsList = {
+  render: (_, props: Props) => {
     const {
       defaultFilterOptions,
       filterOptions,
@@ -200,9 +205,11 @@ storiesOf('Wallets / Transactions', module)
         onCopyAssetParam={() => {}}
       />
     );
-  })
-  // @ts-ignore ts-migrate(2345) FIXME: Argument of type '(props: Props) => JSX.Element' i... Remove this comment to see the full error message
-  .add('Wallet Tokens Transactions List', (_, props: Props) => {
+  },
+};
+
+export const WalletTokensTransactionsList = {
+  render: (_, props: Props) => {
     const {
       defaultFilterOptions,
       filterOptions,
@@ -244,4 +251,5 @@ storiesOf('Wallets / Transactions', module)
         onCopyAssetParam={() => {}}
       />
     );
-  });
+  },
+};

@@ -1,7 +1,5 @@
 import React, { useLayoutEffect } from 'react';
-import { storiesOf } from '@storybook/react';
 import { observer } from 'mobx-react';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
 import StoryDecorator from '../../../../../../storybook/stories/_support/StoryDecorator';
 import StoryProvider from '../../../../../../storybook/stories/_support/StoryProvider';
 import {
@@ -10,35 +8,54 @@ import {
 } from '../context';
 import DiscreetValue from './DiscreetValue';
 
-const Toggle = observer(({ knob }: { knob: boolean }) => {
+const Toggle = observer(({ enabled }: { enabled: boolean }) => {
   const feature = useDiscreetModeFeature();
   useLayoutEffect(() => {
-    if (knob !== feature.isDiscreetMode) {
+    if (enabled !== feature.isDiscreetMode) {
       feature.toggleDiscreetMode();
     }
-  }, [knob, feature.isDiscreetMode]);
+  }, [enabled, feature.isDiscreetMode]);
   return null;
 });
-storiesOf('Discreet Mode / Discreet Asset Amount', module)
-  .addDecorator(withKnobs)
-  .addDecorator((story) => (
-    <StoryDecorator>
-      <StoryProvider>
-        <DiscreetModeFeatureProvider>{story()}</DiscreetModeFeatureProvider>
-      </StoryProvider>
-    </StoryDecorator>
-  ))
-  .add('Discreet mode disabled', () => (
+
+export default {
+  title: 'Discreet Mode / Discreet Asset Amount',
+
+  decorators: [
+    (story) => (
+      <StoryDecorator>
+        <StoryProvider>
+          <DiscreetModeFeatureProvider>{story()}</DiscreetModeFeatureProvider>
+        </StoryProvider>
+      </StoryDecorator>
+    ),
+  ],
+};
+
+export const DiscreetModeDisabled = {
+  args: { toggleDiscreetMode: false },
+
+  render: ({ toggleDiscreetMode }) => (
     <>
       {/* @ts-ignore ts-migrate(2741) FIXME: Property 'replacer' is missing in type '{ children... Remove this comment to see the full error message */}
       <DiscreetValue>123</DiscreetValue>
-      <Toggle knob={boolean('Toggle discreet mode', false)} />
+      <Toggle enabled={toggleDiscreetMode} />
     </>
-  ))
-  .add('Discreet mode enabled', () => (
+  ),
+
+  name: 'Discreet mode disabled',
+};
+
+export const DiscreetModeEnabled = {
+  args: { toggleDiscreetMode: true },
+
+  render: ({ toggleDiscreetMode }) => (
     <>
       {/* @ts-ignore ts-migrate(2741) FIXME: Property 'replacer' is missing in type '{ children... Remove this comment to see the full error message */}
       <DiscreetValue>123</DiscreetValue>
-      <Toggle knob={boolean('Toggle discreet mode', true)} />
+      <Toggle enabled={toggleDiscreetMode} />
     </>
-  ));
+  ),
+
+  name: 'Discreet mode enabled',
+};
