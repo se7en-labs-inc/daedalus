@@ -1880,7 +1880,7 @@
           "id": "task-051",
           "title": "Build the wallet domain fixture data",
           "description": "Nine store keys arrive with this tranche: wallets, transactions, assets, addresses, walletSettings, walletMigration, hardwareWallets, currency and uiDialogs. This is the largest fixture volume in the plan.",
-          "status": "pending",
+          "status": "completed",
           "priority": "critical",
           "estimatedHours": 12.0,
           "dependencies": [

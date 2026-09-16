@@ -2,7 +2,7 @@ import React from 'react';
 import WalletSummaryPageContainer from '../../../../source/renderer/app/containers/wallet/WalletSummaryPage';
 import { asScreen, screenDecorator } from '../../_support/harness/ScreenStory';
 import { requestDefault } from '../../_support/harness/storeDefaults';
-import { WALLETS } from '../../_support/StoryProvider';
+import { restoringWallet } from '../../_support/harness/fixtures/wallets';
 import { generateMultipleTransactions } from '../../_support/utils';
 
 /*
@@ -26,13 +26,6 @@ const withTransactions = {
   totalAvailable: 42,
   pendingTransactionsCount: 1,
 };
-
-/*
- * Spread from the provider's own wallet rather than taken from the restoring one
- * in that list, which carries no `assets` and would throw where the screen reads
- * `wallet.assets.total`.
- */
-const restoringWallet = { ...WALLETS[0], isRestoring: true };
 
 export default {
   title: 'Screens / Wallets / Wallet Summary',
@@ -80,7 +73,7 @@ export const Restoring = {
   decorators: [
     screenDecorator(
       {
-        wallets: { active: restoringWallet },
+        wallets: { active: restoringWallet() },
         transactions: withTransactions,
       },
       { path: ON_THIS_WALLET }

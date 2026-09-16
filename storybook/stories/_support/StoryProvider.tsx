@@ -17,6 +17,7 @@ import {
   withStoreOverrides,
   type StoreOverrides,
 } from './harness/storeDefaults';
+import { activeWallet } from './harness/fixtures/wallets';
 
 type Props = {
   children: Node;
@@ -261,7 +262,21 @@ class StoryProvider extends Component<Props> {
         },
       },
       wallets: {
-        active: WALLETS[parseInt(this.activeWalletId, 10)],
+        /*
+         * A real `Wallet` instance rather than the literal from the list below.
+         *
+         * The domain class carries eleven computed getters and the wallet
+         * screens branch on most of them: `isRandom` against `isSequential` on
+         * the receive screen, `isRestoring` on the shell, `hasAssets` on the
+         * summary. A literal supplies the observables and none of the getters,
+         * so each one reads `undefined` and every branch testing it takes its
+         * false arm, producing a screen the application cannot actually be in.
+         *
+         * `WALLETS` below is unchanged and still feeds `storiesProps`, which is
+         * what the component corpus's own layout reads. Nothing outside the
+         * screen corpus reads `stores.wallets.active`.
+         */
+        active: activeWallet(),
         sendMoney: () => {},
         sendMoneyRequest: {
           isExecuting: false,

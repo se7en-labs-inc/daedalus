@@ -13,9 +13,22 @@ import GeneralSettingsPage from '../../../../source/renderer/app/containers/sett
 // The application's translations module bulk-loads through require.context,
 // which is a webpack construct. The spec reads the one locale file it needs.
 import enMessages from '../../../../source/renderer/app/i18n/locales/en-US.json';
-import { createStoreDefaults, withStoreOverrides } from './storeDefaults';
+import {
+  createStoreDefaults,
+  dialogOpen,
+  withStoreOverrides,
+} from './storeDefaults';
 import { backendPhase } from './fixtures/backend';
 import { screenDecorator } from './ScreenStory';
+import {
+  activeWallet,
+  legacyWallet,
+  randomWallet,
+  restoringWallet,
+  walletList,
+} from './fixtures/wallets';
+import { withAssets, walletTokens } from './fixtures/assets';
+import { withTransactions } from './fixtures/transactions';
 import StoryProvider from '../StoryProvider';
 import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import {
@@ -239,6 +252,114 @@ describe('news fixtures', () => {
     // between a story and an empty panel.
     expect(updateAvailable().availableUpdate).not.toBeNull();
     expect(createStoreDefaults().appUpdate.availableUpdate).toBeNull();
+  });
+});
+
+describe('wallet domain fixtures', () => {
+  /*
+   * The point of these is that they are `Wallet` instances rather than objects
+   * shaped like one, so the assertions are on the computed getters. A literal
+   * carrying the same observables answers `undefined` to every one of these, and
+   * a screen branching on `undefined` renders its other arm without complaint.
+   */
+  const GETTERS = [
+    'hasFunds',
+    'hasAssets',
+    'isRestoring',
+    'isSyncing',
+    'isNotResponding',
+    'isRandom',
+    'isDelegating',
+    'isVoting',
+    'isSequential',
+    'restorationProgress',
+  ];
+
+  it('answers every computed getter the screens branch on', () => {
+    const wallet = activeWallet();
+    GETTERS.forEach((getter) => {
+      expect(wallet[getter]).toBeDefined();
+    });
+  });
+
+  it('distinguishes the states the screens select between', () => {
+    // The receive screen has two separate branches keyed on exactly this pair.
+    expect(randomWallet().isRandom).toBe(true);
+    expect(randomWallet().isSequential).toBe(false);
+    expect(activeWallet().isSequential).toBe(true);
+    // Restoring is the status and a progress under 100, not the status alone.
+    expect(restoringWallet().isRestoring).toBe(true);
+    expect(restoringWallet().restorationProgress).toBeLessThan(100);
+    expect(activeWallet().isRestoring).toBe(false);
+    expect(legacyWallet().isLegacy).toBe(true);
+  });
+
+  it('is deterministic between calls', () => {
+    // Two renders of one story must show the same wallet, which rules out the
+    // generated ids the component-level fixtures use.
+    expect(activeWallet().id).toBe(activeWallet().id);
+    expect(walletList()).toHaveLength(5);
+  });
+});
+
+describe('asset fixtures', () => {
+  it('pairs every wallet token with an asset that resolves it', () => {
+    /*
+     * The screens join these two by uniqueId and read a shortfall as loading
+     * still in progress, so a token with no matching asset shows a spinner
+     * rather than a gap. Asserted as a set comparison because that is the
+     * failure: not a crash, a permanent loading state.
+     */
+    const tokens = walletTokens();
+    const { all } = withAssets();
+    const assetIds = new Set(all.map((asset) => asset.uniqueId));
+    tokens.forEach((token) => {
+      expect(assetIds.has(token.uniqueId)).toBe(true);
+    });
+    expect(tokens).toHaveLength(all.length);
+  });
+
+  it('gives the assets names the screens can print', () => {
+    const { all } = withAssets();
+    all.forEach((asset) => {
+      expect(asset.metadata.name.length).toBeGreaterThan(0);
+      // Decoded from the hex name by a getter on the domain class.
+      expect(asset.assetNameASCII.length).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('transaction fixtures', () => {
+  it('sets the count alongside the list', () => {
+    // `hasAny` is computed in the real store and a plain value here, so a list
+    // supplied without it shows an empty-state screen holding a full list.
+    const transactions = withTransactions(5);
+    expect(transactions.recent).toHaveLength(5);
+    expect(transactions.hasAny).toBe(true);
+    expect(transactions.totalAvailable).toBe(5);
+  });
+
+  it('is deterministic between calls', () => {
+    expect(withTransactions(3).recent[0].id).toBe(
+      withTransactions(3).recent[0].id
+    );
+  });
+});
+
+describe('dialogOpen', () => {
+  it('opens one dialog and leaves the others shut', () => {
+    // The settings screens mount ten side by side, so a predicate that answered
+    // true for all of them would open all ten at once.
+    function Wanted() {
+      return null;
+    }
+    function Other() {
+      return null;
+    }
+    const uiDialogs = dialogOpen(Wanted);
+    expect(uiDialogs.isOpen(Wanted)).toBe(true);
+    expect(uiDialogs.isOpen(Other)).toBe(false);
+    expect(uiDialogs.activeDialog).toBe(Wanted);
   });
 });
 

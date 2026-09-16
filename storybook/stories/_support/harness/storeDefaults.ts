@@ -355,9 +355,52 @@ export const createStoreDefaults = () => ({
   wallets: { ...walletsDefaults, ...requestsFor('wallets') },
   walletsLocal: {},
   walletBackup: {},
-  walletMigration: {},
-  walletSettings: { ...requestsFor('walletSettings') },
+  /*
+   * The Byron import flow, which runs once on an installation that has an old
+   * state directory and never again. Every count is zero, which is what the
+   * screens branch on to stay out of the way.
+   */
+  walletMigration: {
+    walletMigrationStep: null,
+    isExportRunning: false,
+    exportedWallets: [],
+    exportErrors: '',
+    exportSourcePath: '',
+    defaultExportSourcePath: '',
+    isTestMigrationEnabled: false,
+    isRestorationRunning: false,
+    restoredWallets: [],
+    restorationErrors: [],
+    pendingImportWallets: [],
+    pendingImportWalletsCount: 0,
+    exportedWalletsData: [],
+    exportedWalletsCount: 0,
+    restoredWalletsData: [],
+    restoredWalletsCount: 0,
+  },
+  walletSettings: {
+    walletFieldBeingEdited: null,
+    lastUpdatedWalletField: null,
+    walletUtxos: null,
+    recoveryPhraseStep: 0,
+    walletsRecoveryPhraseVerificationData: {},
+    ...requestsFor('walletSettings'),
+  },
   window: {},
+});
+
+/*
+ * A dialog open, as one override.
+ *
+ * Containers ask `uiDialogs.isOpen(SomeDialog)` with the component itself rather
+ * than a name, and the settings screens mount ten of them side by side. A story
+ * that flipped the predicate to always-true would open all ten at once, so the
+ * predicate answers for one and the rest stay shut.
+ */
+export const dialogOpen = (dialog: unknown) => ({
+  isOpen: (candidate: unknown) => candidate === dialog,
+  activeDialog: dialog,
+  dataForActiveDialog: {},
 });
 
 export type StoreOverrides = Partial<
