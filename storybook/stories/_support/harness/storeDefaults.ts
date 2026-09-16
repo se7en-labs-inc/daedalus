@@ -9,6 +9,7 @@ import { ROUTES } from '../../../../source/renderer/app/routes-config';
 import environment from '../environment';
 import { backendDefaults } from './fixtures/backend';
 import { routerAt } from './fixtures/router';
+import { emptyFilterOptions } from './fixtures/transactions';
 import { CATEGORIES_LIST } from '../../../../source/renderer/app/config/sidebarConfig';
 import {
   WalletSortBy,
@@ -200,6 +201,10 @@ const walletsDefaults = {
   hasMaxWallets: false,
   hasRewardsWallets: false,
   isWalletRoute: false,
+  isValidAddress: () => Promise.resolve(true),
+  // Inherited from the Store base class, the way networkStatus carries it. The
+  // add-wallet screen reads three network flags off it.
+  environment,
   createWalletStep: null,
   createWalletShowAbortConfirmation: false,
   createWalletUseNewProcess: false,
@@ -256,7 +261,11 @@ export const createStoreDefaults = () => ({
    */
   addresses: {
     all: [],
+    active: null,
+    lastGeneratedAddress: null,
+    addressesRequests: [],
     stakeAddresses: {},
+    error: null,
     isInternalAddress: () => false,
     ...requestsFor('addresses'),
   },
@@ -340,7 +349,12 @@ export const createStoreDefaults = () => ({
     pendingTransactionsCount: 0,
     withdrawals: {},
     filterOptions: null,
+    populatedFilterOptions: emptyFilterOptions,
+    defaultFilterOptions: emptyFilterOptions,
     deletePendingTransaction: () => Promise.resolve(),
+    // Form validators, called from the send screen as the user types.
+    validateAmount: () => Promise.resolve(true),
+    validateAssetAmount: () => Promise.resolve(true),
     ...requestsFor('transactions'),
   },
   uiDialogs: {
@@ -384,6 +398,13 @@ export const createStoreDefaults = () => ({
     walletUtxos: null,
     recoveryPhraseStep: 0,
     walletsRecoveryPhraseVerificationData: {},
+    // A method, keyed by wallet id. The wallet shell calls it before reading
+    // anything off the result, so an absent one throws rather than reads
+    // undefined.
+    getWalletsRecoveryPhraseVerificationData: () => ({}),
+    // Per-wallet local preferences, keyed by id. The receive screen reads
+    // `showUsedAddresses` off whatever comes back, and tolerates nothing.
+    getLocalWalletDataById: () => ({ showUsedAddresses: true }),
     ...requestsFor('walletSettings'),
   },
   window: {},

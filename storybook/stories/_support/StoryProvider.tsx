@@ -287,8 +287,20 @@ class StoryProvider extends Component<Props> {
         _resetTransaction: () => {},
         sendMoneyRequest: () => {},
         isTransactionPending: false,
-        checkIsTrezorByWalletId: () => {},
+        checkIsTrezorByWalletId: () => false,
         initiateTransaction: null,
+        /*
+         * The device state the wallet screens read while no device is attached,
+         * which is every story here. `connecting` is what the store initialises
+         * to and what a screen shows before anything is plugged in.
+         */
+        hwDeviceStatus: 'connecting',
+        transportDevice: null,
+        isAddressDerived: false,
+        isAddressChecked: false,
+        isAddressVerificationEnabled: false,
+        setAddressVerificationCheckStatus: () => {},
+        initiateWalletPairing: () => {},
       },
     };
   }

@@ -1909,7 +1909,7 @@
           "id": "task-052",
           "title": "Screen tranche 6: wallets, 9 screens",
           "description": "The Wallet shell, WalletAddPage, WalletSummaryPage, WalletSendPage, WalletReceivePage, WalletTokensPage, WalletTransactionsPage, WalletSettingsPage and WalletUtxoPage. Four of the nine carry multiple meaningful states.",
-          "status": "pending",
+          "status": "completed",
           "priority": "critical",
           "estimatedHours": 36.0,
           "dependencies": [
@@ -1947,55 +1947,55 @@
               "id": "task-052-a",
               "title": "Wallet shell",
               "description": "Wallet shell -> source/renderer/app/containers/wallet/Wallet.tsx -> storybook/stories/screens/wallet/Wallet.stories.tsx (stores: states: no-active-wallet, restoring, normal (Wallet.tsx:65-88))",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-b",
               "title": "WalletAddPage",
               "description": "WalletAddPage -> source/renderer/app/containers/wallet/WalletAddPage.tsx -> storybook/stories/screens/wallet/WalletAddPage.stories.tsx (stores: six dialog branches plus the bare screen; mounts WalletBackupDialogContainer at :80-81, which reads stores.walletBackup)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-c",
               "title": "WalletSummaryPage",
               "description": "WalletSummaryPage -> source/renderer/app/containers/wallet/WalletSummaryPage.tsx -> storybook/stories/screens/wallet/WalletSummaryPage.stories.tsx (stores: reads ~25 fields across 9 stores at :85-171; throws at :119 without a fully shaped Wallet domain object; withAnalytics)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-d",
               "title": "WalletSendPage",
               "description": "WalletSendPage -> source/renderer/app/containers/wallet/WalletSendPage.tsx -> storybook/stories/screens/wallet/WalletSendPage.stories.tsx (stores: withAnalytics; destructures assets.all at :134 and resolves via getAssetByUniqueId at :115-117)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-e",
               "title": "WalletReceivePage",
               "description": "WalletReceivePage -> source/renderer/app/containers/wallet/WalletReceivePage.tsx -> storybook/stories/screens/wallet/WalletReceivePage.stories.tsx (stores: separate random and sequential branches)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-f",
               "title": "WalletTokensPage",
               "description": "WalletTokensPage -> source/renderer/app/containers/wallet/WalletTokensPage.tsx -> storybook/stories/screens/wallet/WalletTokensPage.stories.tsx (stores: reads activeWallet.assets.total at :41)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-g",
               "title": "WalletTransactionsPage",
               "description": "WalletTransactionsPage -> source/renderer/app/containers/wallet/WalletTransactionsPage.tsx -> storybook/stories/screens/wallet/WalletTransactionsPage.stories.tsx (stores: transactions, wallets, addresses)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-h",
               "title": "WalletSettingsPage",
               "description": "WalletSettingsPage -> source/renderer/app/containers/wallet/WalletSettingsPage.tsx -> storybook/stories/screens/wallet/WalletSettingsPage.stories.tsx (stores: mounts eight nested containers, constructed as elements but rendered only behind isDialogOpen at WalletSettings.tsx:368-402)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-052-i",
               "title": "WalletUtxoPage",
               "description": "WalletUtxoPage -> source/renderer/app/containers/wallet/WalletUtxoPage.tsx -> storybook/stories/screens/wallet/WalletUtxoPage.stories.tsx (stores: wallets)",
-              "status": "pending"
+              "status": "completed"
             }
           ]
         },

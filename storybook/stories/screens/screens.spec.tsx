@@ -34,6 +34,14 @@ import * as topBar from './chrome/TopBarContainer.stories';
 import * as settingsChrome from './chrome/Settings.stories';
 import * as governance from './chrome/Governance.stories';
 import * as walletSummary from './wallets/WalletSummaryPage.stories';
+import * as walletShell from './wallets/Wallet.stories';
+import * as walletAdd from './wallets/WalletAddPage.stories';
+import * as walletSend from './wallets/WalletSendPage.stories';
+import * as walletReceive from './wallets/WalletReceivePage.stories';
+import * as walletTokens from './wallets/WalletTokensPage.stories';
+import * as walletTransactions from './wallets/WalletTransactionsPage.stories';
+import * as walletSettings from './wallets/WalletSettingsPage.stories';
+import * as walletUtxo from './wallets/WalletUtxoPage.stories';
 
 /*
  * Every screen story, mounted.
@@ -91,6 +99,14 @@ const modules = {
   Settings: settingsChrome,
   Governance: governance,
   WalletSummaryPage: walletSummary,
+  Wallet: walletShell,
+  WalletAddPage: walletAdd,
+  WalletSendPage: walletSend,
+  WalletReceivePage: walletReceive,
+  WalletTokensPage: walletTokens,
+  WalletTransactionsPage: walletTransactions,
+  WalletSettingsPage: walletSettings,
+  WalletUtxoPage: walletUtxo,
 };
 
 /*
@@ -197,7 +213,7 @@ const showsNoText = allStories.filter((s) => RENDERS_WITHOUT_TEXT.has(s.id));
 
 describe('screen stories', () => {
   it('composes every screen story', () => {
-    expect(allStories).toHaveLength(74);
+    expect(allStories).toHaveLength(98);
     expect(showsNothing).toHaveLength(RENDERS_NOTHING.size);
     expect(throwsAtTheLogo).toHaveLength(THROWS_AT_THE_LOGO.size);
     expect(showsNoText).toHaveLength(RENDERS_WITHOUT_TEXT.size);

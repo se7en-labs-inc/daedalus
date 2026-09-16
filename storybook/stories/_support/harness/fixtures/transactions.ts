@@ -96,3 +96,26 @@ export const withTransactions = (count = 5) => {
     totalFilteredAvailable: count,
   };
 };
+
+/*
+ * The filter state a transaction list starts in.
+ *
+ * `TransactionsStore.populatedFilterOptions` falls back to a constant when no
+ * filter is set, and the filter dialog destructures seven fields off it in its
+ * constructor, so an absent one throws before the dialog renders. The shape is
+ * written out here rather than imported because importing it would pull the
+ * store module, and its transitive imports, into the harness graph; the values
+ * are those at `stores/TransactionsStore.ts:66-77`.
+ */
+export const emptyFilterOptions = {
+  searchTerm: '',
+  searchLimit: 0,
+  searchSkip: 0,
+  dateRange: '',
+  fromDate: '',
+  toDate: '',
+  fromAmount: '',
+  toAmount: '',
+  incomingChecked: true,
+  outgoingChecked: true,
+};

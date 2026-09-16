@@ -16,3 +16,21 @@ if (!globalThis.crypto) {
     writable: true,
   });
 }
+
+// `jest-environment-jsdom` at this version also omits `TextEncoder` and
+// `TextDecoder`, which are platform globals everywhere the application actually
+// runs. `@noble/hashes` calls `TextEncoder` at import time to encode a constant,
+// so a package depending on it throws before any test body executes, and the
+// failure names the library rather than the missing global.
+//
+// Node's own implementations, for the same reason the WebCrypto one above is
+// Node's: they are the platform's, not a substitute for it.
+const { TextEncoder, TextDecoder } = require('util');
+
+if (!globalThis.TextEncoder) {
+  globalThis.TextEncoder = TextEncoder;
+}
+
+if (!globalThis.TextDecoder) {
+  globalThis.TextDecoder = TextDecoder;
+}
