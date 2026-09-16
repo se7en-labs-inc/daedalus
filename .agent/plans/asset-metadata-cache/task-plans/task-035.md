@@ -134,8 +134,8 @@ to keep synchronised and a startup order to get right.
 
 **The renderer learns which channel a name came from.** `source` reaches the
 domain object through the same four edits `hasImage` took, and
-`resolveAssetName` gains a rung that reads it. A chain name is **not** marked
-minter-chosen: it is in the transaction that minted the asset, which had to
+`resolveAssetName` gains a rung that reads it. A chain name is **not** marked as
+an on-chain name: it is in the transaction that minted the asset, which had to
 satisfy the minting policy, so it is bound to that policy. A decoded asset name
 is bound to nothing, which is what the marker exists for.
 
@@ -151,8 +151,8 @@ is bound to nothing, which is what the marker exists for.
    row exists.
 5. A chain row never changes the decimals used to format an amount, and the
    user's own setting still applies over one.
-6. A chain name is not marked minter-chosen, and the same string from the
-   registry is not marked as a chain name.
+6. A chain name is not marked as an on-chain name, and the same string from
+   the registry is not marked as a chain name.
 7. The decimals resolution order specs from `task-019` pass unchanged.
 8. `compile`, `lint`, `stylelint`, `jest`, `i18n` and `cucumber-unit` pass from
    `nix build`.

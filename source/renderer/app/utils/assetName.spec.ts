@@ -1,7 +1,7 @@
 import {
   AssetNameProvenance,
   decodeAssetNameText,
-  isMinterChosenAssetName,
+  isOnChainAssetName,
   resolveAssetName,
 } from './assetName';
 
@@ -50,7 +50,7 @@ describe('resolveAssetName', () => {
       })
     ).toEqual({
       name: 'Cointest',
-      provenance: AssetNameProvenance.MinterChosen,
+      provenance: AssetNameProvenance.OnChainName,
     });
   });
 
@@ -66,7 +66,7 @@ describe('resolveAssetName', () => {
     expect(resolveAssetName({})).toBeNull();
   });
 
-  it('marks a decoded name that spells a registry ticker as minter-chosen', () => {
+  it('marks a decoded name that spells a registry ticker as on-chain', () => {
     const impersonating = resolveAssetName({
       assetName: impersonatingAssetName,
     });
@@ -79,14 +79,14 @@ describe('resolveAssetName', () => {
       },
     });
     expect(impersonating.name).toBe(published.name);
-    expect(isMinterChosenAssetName(impersonating)).toBe(true);
-    expect(isMinterChosenAssetName(published)).toBe(false);
+    expect(isOnChainAssetName(impersonating)).toBe(true);
+    expect(isOnChainAssetName(published)).toBe(false);
   });
 });
 
-describe('isMinterChosenAssetName', () => {
+describe('isOnChainAssetName', () => {
   it('returns false when no name resolved', () => {
-    expect(isMinterChosenAssetName(null)).toBe(false);
+    expect(isOnChainAssetName(null)).toBe(false);
   });
 });
 
@@ -119,9 +119,9 @@ describe('resolveAssetName for a chain row', () => {
   // A chain name is in the transaction that minted the asset, which had to
   // satisfy the minting policy, so it is not the unbound case the marker exists
   // for.
-  it('does not mark a chain name as minter-chosen', () => {
+  it('does not mark a chain name as an on-chain name', () => {
     expect(
-      isMinterChosenAssetName(
+      isOnChainAssetName(
         resolveAssetName({
           assetName: '436f696e74657374',
           metadata: { name: 'Northwind Demo', description: '' },
@@ -139,7 +139,7 @@ describe('resolveAssetName for a chain row', () => {
     });
     expect(resolved).toEqual({
       name: 'Cointest',
-      provenance: AssetNameProvenance.MinterChosen,
+      provenance: AssetNameProvenance.OnChainName,
     });
   });
 });
@@ -266,15 +266,15 @@ describe('decodeAssetNameText', () => {
 });
 
 describe('resolveAssetName for a CIP-68 asset name', () => {
-  it('resolves the name behind the label as minter-chosen', () => {
+  it('resolves the name behind the label as on-chain', () => {
     const resolved = resolveAssetName({ assetName: '0014df105553444d' });
     expect(resolved).toEqual({
       name: 'USDM',
-      provenance: AssetNameProvenance.MinterChosen,
+      provenance: AssetNameProvenance.OnChainName,
     });
     // Recovering text from behind a label does not make an issuer have
     // published it, so the marking every surface renders must not move.
-    expect(isMinterChosenAssetName(resolved)).toBe(true);
+    expect(isOnChainAssetName(resolved)).toBe(true);
   });
 
   it('still lets a registry ticker win over it', () => {

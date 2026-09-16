@@ -23,7 +23,7 @@ every value it can be given.
 ## Non-Goals
 
 - No Japanese. The three amount-field labels, the two advisories, the settings
-  sentence, the refresh label, the two minter-chosen-name strings and the two
+  sentence, the refresh label, the two on-chain-name strings and the two
   notice strings are all untranslated and carry the `!!!` marker in `ja-JP.json`
   that says so. Supplying machine Japanese for copy about how an amount is
   entered would be worse than leaving the marker.

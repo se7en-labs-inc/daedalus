@@ -298,8 +298,8 @@ The immutable database excludes the last k blocks, which on mainnet is 2,160
 blocks at roughly twenty seconds, so about twelve hours. A pointer into that
 window cannot be confirmed, and nothing is written.
 
-**Until it can be, the asset shows its decoded name, marked as minter-chosen,
-and its CIP-14 fingerprint.** It gains its CIP-25 name on a later demand, once
+**Until it can be, the asset shows its decoded name, marked as an on-chain
+name, and its CIP-14 fingerprint.** It gains its CIP-25 name on a later demand, once
 the block has passed out of the volatile window and into the immutable database.
 Its amount is in raw units throughout, before and after, because a chain row
 never carries decimal places.

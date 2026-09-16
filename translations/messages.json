@@ -827,9 +827,14 @@
         "id": "assets.assetToken.settings.cogPopOver"
       },
       {
-        "defaultMessage": "!!!(minter-chosen name: {name})",
-        "description": "Decoded \"assetName\" param, marked as chosen by the minter rather than published by an issuer.",
-        "id": "assets.assetToken.param.assetNameMinterChosen"
+        "defaultMessage": "!!!This name is decoded from the asset name chosen by whoever minted this token. No issuer published it, and it does not identify the token. The fingerprint does.",
+        "description": "Accessible label on an asset name decoded from the asset name bytes rather than published by an issuer.",
+        "id": "assets.assetToken.onChainName"
+      },
+      {
+        "defaultMessage": "!!!({name})",
+        "description": "Decoded \"assetName\" param, rendered directly after the asset name bytes it decodes. Brackets only, because the row is already labelled \"Asset name\" and the parenthetical follows the hex it decodes.",
+        "id": "assets.assetToken.param.assetNameOnChain"
       }
     ],
     "path": "source/renderer/app/components/assets/AssetContent.tsx"
@@ -863,16 +868,6 @@
       }
     ],
     "path": "source/renderer/app/components/wallet/tokens/wallet-token/WalletToken.messages.ts"
-  },
-  {
-    "descriptors": [
-      {
-        "defaultMessage": "!!!This name is decoded from the asset name chosen by whoever minted this token. No issuer published it, and it does not identify the token. The fingerprint does.",
-        "description": "Tooltip on an asset name that was decoded from the asset name bytes rather than published by an issuer.",
-        "id": "assets.assetToken.minterChosenName"
-      }
-    ],
-    "path": "source/renderer/app/components/assets/Asset.tsx"
   },
   {
     "descriptors": [

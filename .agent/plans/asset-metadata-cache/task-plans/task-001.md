@@ -31,7 +31,7 @@ Every acceptance criterion is checkable from the repository: three Jest specs, `
   decoded byte is in `0x20` to `0x7E` inclusive, reject the empty name.
 - Add a name resolver that returns both the name and the provenance it came from, in the order the
   PRD fixes: registry ticker, registry name, decoded asset name when printable, nothing.
-- Render a minter-chosen decoded name in a treatment visibly distinct from a published name, and
+- Render an on-chain decoded name in a treatment visibly distinct from a published name, and
   give it an explanation the user can read without opening anything.
 - Apply the same predicate to the decoded annotation on the asset-name parameter row in the pill's
   pop-over, which decodes the same bytes with the same unconditional UTF-8 decode.
@@ -213,7 +213,7 @@ only `Asset.tsx:82`, `:176` and `:178`.
 - `source/renderer/app/utils/strings.spec.ts` — new. Predicate boundaries.
 - `source/renderer/app/utils/assetName.ts` — new. The provenance resolver.
 - `source/renderer/app/utils/assetName.spec.ts` — new. Resolution order.
-- `source/renderer/app/components/assets/Asset.tsx` — consume the resolver, mark a minter-chosen
+- `source/renderer/app/components/assets/Asset.tsx` — consume the resolver, mark an on-chain
   name, add one message.
 - `source/renderer/app/components/assets/Asset.scss` — the distinct treatment.
 - `source/renderer/app/components/assets/Asset.spec.tsx` — rewritten cases, including the
@@ -258,7 +258,7 @@ Four deviations from the task graph's `targetPaths`, each recorded here rather t
 2. **The resolver, in `utils/assetName.ts`.**
 
    ```
-   export enum AssetNameProvenance { RegistryTicker, RegistryName, MinterChosen }
+   export enum AssetNameProvenance { RegistryTicker, RegistryName, OnChainName }
    export type ResolvedAssetName = { name: string; provenance: AssetNameProvenance };
    export const resolveAssetName = (asset): ResolvedAssetName | null
    ```
@@ -267,7 +267,7 @@ Four deviations from the task graph's `targetPaths`, each recorded here rather t
    `null`. The CIP-25 and CIP-68 rung is documented in the module comment as sitting between the
    second and third, and no placeholder branch is written for it.
 
-   Also export `isMinterChosen(resolved)`, so no caller re-derives the security-relevant question
+   Also export `isOnChainName(resolved)`, so no caller re-derives the security-relevant question
    from the enum by hand.
 
    Input contract: the resolver takes a partial asset. `components/widgets/forms/AssetsDropdown.tsx:20`
@@ -280,12 +280,12 @@ Four deviations from the task graph's `targetPaths`, each recorded here rather t
    `renderPillContent` calls `resolveAssetName` once, keeps the existing ellipsis behaviour, and
    renders the name element with:
 
-   - `data-testid="assetName"` for a published name and `data-testid="assetNameMinterChosen"` for a
+   - `data-testid="assetName"` for a published name and `data-testid="assetNameOnChain"` for a
      decoded one, so the distinction is structural and assertable rather than only visual;
-   - `styles.minterChosen` alongside `styles.metadataName` for a decoded one, giving it a dashed
+   - `styles.onChainName` alongside `styles.metadataName` for a decoded one, giving it a dashed
      outline, italics and the muted colour `styles.ascii` already used. Three independent visual
      channels, so the distinction survives a monochrome rendering and colour-blindness. The dashed
-     outline is the load-bearing one: a published name is plain text, a minter-chosen name sits in an
+     outline is the load-bearing one: a published name is plain text, an on-chain name sits in an
      outlined chip;
    - a `title` attribute carrying one new message explaining that the name was decoded from bytes
      chosen by whoever minted the token and was not published in the registry. A `title` rather than
@@ -299,7 +299,7 @@ Four deviations from the task graph's `targetPaths`, each recorded here rather t
 4. **The second decode, in `AssetContent.tsx`.**
 
    The asset-name parameter row keeps showing the raw hex as its copyable value. Its decoded
-   annotation renders only when the predicate accepts, and is worded as a minter-chosen name rather
+   annotation renders only when the predicate accepts, and is worded as an on-chain name rather
    than as `ASCII:`, using one new message with a `{name}` placeholder. When the predicate rejects,
    the annotation is omitted entirely and the row shows the hex alone, which is the honest rendering
    of bytes that are not text.
@@ -307,8 +307,8 @@ Four deviations from the task graph's `targetPaths`, each recorded here rather t
 5. **Messages.** Two, both following `namespace.context.messageKey`, both with `description`, both
    with `!!!`-prefixed `defaultMessage`:
 
-   - `assets.assetToken.minterChosenName` in `Asset.tsx`, the pill's `title`.
-   - `assets.assetToken.param.assetNameMinterChosen` in `AssetContent.tsx`, the pop-over annotation,
+   - `assets.assetToken.onChainName` in `Asset.tsx`, the pill's `title`.
+   - `assets.assetToken.param.assetNameOnChain` in `AssetContent.tsx`, the pop-over annotation,
      carrying a `{name}` placeholder.
 
    Neither collides with the seven `assets.assetToken.*` ids already at
@@ -325,10 +325,10 @@ Four deviations from the task graph's `targetPaths`, each recorded here rather t
 
 Carried from the task graph, with the check that settles each.
 
-1. **A minter-chosen decoded name renders in a treatment visually distinct from a registry or CIP-25
+1. **An on-chain decoded name renders in a treatment visually distinct from a registry or CIP-25
    name, on the token list, the send form and the transaction list.** Settled by the surface table
    under Live Repo Findings: all three route through `Asset.tsx:204-214`, and by an assertion that
-   the decoded name carries `styles.minterChosen` and the published name does not.
+   the decoded name carries `styles.onChainName` and the published name does not.
 2. **An asset whose name bytes spell an existing registry ticker is distinguishable from the real one
    without reading the fingerprint, demonstrated with a fixture for both.** Settled by a spec that
    renders two assets whose visible name text is identically `USDC`, one from `metadata.ticker` and
@@ -417,7 +417,7 @@ the task does not close.
    follow-up translation work is named explicitly in the handoff rather than left silent.
 6. **Open question for the owner, not blocking:** whether the decoded-name treatment should also
    suppress the name in the `sortAssets` `'token'` comparison at `utils/assets.ts:176-193`, which
-   sorts on `metadata.name` only and therefore already sorts every minter-chosen name by fingerprint.
+   sorts on `metadata.name` only and therefore already sorts every on-chain name by fingerprint.
    Current behaviour is already the conservative one, so nothing changes here.
 
 ## Required Docs, Research, and Tracking Updates
@@ -451,7 +451,7 @@ the task does not close.
 - Planning and implementation complete, reviewed and approved in
   `task-001-impl-review.md`.
 - The `ASCII: ` prefix is gone from both places that decoded asset-name bytes as text. The
-  distinction it carried is not: a minter-chosen name now renders in a dashed outline, in italics
+  distinction it carried is not: an on-chain name now renders in a dashed outline, in italics
   and in a muted colour, under its own test id, with a tooltip saying where the name came from and
   that the fingerprint, not the name, identifies the token.
 - A name resolves in the order the PRD fixes: registry ticker, registry name, printable decoded
@@ -473,7 +473,7 @@ the task does not close.
   will both carry the ticker once the cache lands, because `utils/formatters.ts:93-96` already
   appends it to the amount. Naming the duplication is `task-016`'s to resolve.
 - Carried forward for `task-035`: `utils/assetName.ts` is where the CIP-25 and CIP-68 rung goes, and
-  anything it adds must return a provenance that `isMinterChosenAssetName` reports as published.
+  anything it adds must return a provenance that `isOnChainAssetName` reports as published.
 
 ## Self-Review
 

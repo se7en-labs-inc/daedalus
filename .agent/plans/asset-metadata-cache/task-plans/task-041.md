@@ -48,9 +48,9 @@ shows its fingerprint and no name.
 
 ## Non-Goals
 
-- **No change to the marking.** A name recovered this way is still minter-chosen, so it keeps the
+- **No change to the marking.** A name recovered this way is still an on-chain name, so it keeps
   provenance `task-001` established and renders in the same dashed outline, italics and muted colour
-  under `data-testid="assetNameMinterChosen"`. Stripping a label recovers text; it does not make an
+  under `data-testid="assetNameOnChain"`. Stripping a label recovers text; it does not make an
   issuer have published it.
 - **No allowlist of the four CIP-0068 labels.** CIP-0068 requires a further asset class to be
   submitted as a new CIP and registered in CIP-0067, so the set is open by design and a list of four
@@ -214,7 +214,7 @@ about, and `AssetContent.tsx` would still have to choose which of the two functi
 
 4. **The third rung calls it.** `resolveAssetName` replaces its `hexToPrintableAsciiString` call with
    `decodeAssetNameText`. The branch it feeds is unchanged, so a recovered name returns
-   `AssetNameProvenance.MinterChosen` and `isMinterChosenAssetName` still reports true. Nothing about
+   `AssetNameProvenance.OnChainName` and `isOnChainAssetName` still reports true. Nothing about
    the marking, the test id or the tooltip moves.
 
 5. **The annotation calls it.** `AssetContent.tsx` imports `decodeAssetNameText` from
@@ -230,7 +230,7 @@ about, and `AssetContent.tsx` would still have to choose which of the two functi
 
 1. An asset whose name is a valid CIP-0067 label followed by printable ASCII renders that text as its
    name, on the token list, the send form and the transaction list.
-2. That name renders in the minter-chosen treatment, not as a published one: same test id, same
+2. That name renders in the on-chain treatment, not as a published one: same test id, same
    class, same tooltip as any other decoded name.
 3. Each of CIP-0068's four labels is stripped, asserted per label, which is also the check that the
    CRC-8 implementation agrees with the published one.
@@ -276,11 +276,11 @@ about, and `AssetContent.tsx` would still have to choose which of the two functi
 - An upper-case label is read, so a name in either case behaves the way `HEX_BYTES` already handles
   one.
 - `resolveAssetName` on a labelled name with no metadata returns the recovered name with provenance
-  `MinterChosen`, and `isMinterChosenAssetName` returns true for it. A registry ticker and a chain
+  `OnChainName`, and `isOnChainAssetName` returns true for it. A registry ticker and a chain
   name each still win over it.
 
 **`components/assets/Asset.spec.tsx`**: a labelled asset with no metadata renders `USDM` under
-`data-testid="assetNameMinterChosen"`, carrying `styles.minterChosenName` and the explanatory
+`data-testid="assetNameOnChain"`, carrying `styles.onChainName` and the explanatory
 `title`, and not under `assetName`. The negative complement is the case that matters: a criterion
 asserting only that the text appears would pass against a fix that promoted it to a published name.
 
@@ -307,7 +307,7 @@ git diff HEAD -- package.json yarn.lock   # must be empty
 1. **A minter can put a valid label on an asset that is not CIP-68.** The label is four bytes in a
    free-form name, and the checksum is a transcription check rather than a signature, so anyone can
    compute one. The consequence is bounded and is the reason the marking does not move: whatever comes
-   out of the strip renders as minter-chosen, beside the fingerprint, in the treatment that says the
+   out of the strip renders as an on-chain name, beside the fingerprint, in the treatment that says
    bytes are the minter's. An asset whose name is the FT label followed by `USDM` is displayed exactly
    as truthfully after this change as before it; the difference is that the user can now read what the
    minter wrote.
@@ -352,7 +352,7 @@ git diff HEAD -- package.json yarn.lock   # must be empty
 - An asset name carrying a valid CIP-0067 label is decoded from the bytes after it, so `USDM` and
   `FLDT` render their names instead of a bare fingerprint.
 - The label is recognised by its structure, so a label registered after this ships is recognised too.
-- The name still renders as minter-chosen, because that is what it is.
+- The name still renders as an on-chain name, because that is what it is.
 
 ## Final Outcome
 

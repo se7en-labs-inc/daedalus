@@ -28,8 +28,8 @@ Repo-Verified Findings Used To Shape The Plan:
 Planned Approach:
 - Predicate accepts only a well-formed, even-length, non-empty hex string whose every decoded byte is `0x20` to `0x7E`.
 - Resolver returns name plus provenance in the PRD order: registry ticker, registry name, printable decoded name, nothing.
-- A minter-chosen name renders in an outlined chip, italic and muted, under its own test id, with a `title` explaining the provenance.
-- The pop-over's decoded annotation renders only when the predicate accepts and is worded as a minter-chosen name.
+- An on-chain name renders in an outlined chip, italic and muted, under its own test id, with a `title` explaining the provenance.
+- The pop-over's decoded annotation renders only when the predicate accepts and is worded as an on-chain name.
 
 Scope Guard / Self-Review:
 - No cache, no IPC, no network, no dependency.
@@ -64,7 +64,7 @@ Plan Updates In Response To Critique:
 - Added the three prop shapes to the Verification Plan, so acceptance criterion one is driven under `hidePopOver small`, under `small={false}` with `metadataNameChars`, and under the bare props the transaction list uses, rather than argued from the render-site table.
 - Added `source/renderer/app/components/assets/AssetContent.spec.tsx` to Files Expected To Change and to the Verification Plan, covering the accepted and the rejected decode on the asset-name parameter row. Recorded as a fourth deviation from the task graph's `targetPaths`, for the same reason as the third.
 - Stated the resolver's input contract in the Implementation Approach: it takes a partial asset, treats a missing `metadata` and a missing `assetName` as absent rungs, and returns `null` rather than throwing. Added the case to the Verification Plan.
-- Wrote both message ids into the Implementation Approach: `assets.assetToken.minterChosenName` for the pill's title and `assets.assetToken.param.assetNameMinterChosen` for the pop-over annotation. Neither collides with the seven existing `assets.assetToken.*` ids.
+- Wrote both message ids into the Implementation Approach: `assets.assetToken.onChainName` for the pill's title and `assets.assetToken.param.assetNameOnChain` for the pop-over annotation. Neither collides with the seven existing `assets.assetToken.*` ids.
 - Added a revertibility line to Scope, naming what a revert restores and confirming no other phase-1 task depends on this one.
 
 Resulting Approved Plan Shape:

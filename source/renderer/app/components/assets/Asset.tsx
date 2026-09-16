@@ -6,10 +6,7 @@ import { defineMessages, intlShape } from 'react-intl';
 import { observer } from 'mobx-react';
 import styles from './Asset.scss';
 import { ellipsis } from '../../utils/strings';
-import {
-  isMinterChosenAssetName,
-  resolveAssetName,
-} from '../../utils/assetName';
+import { isOnChainAssetName, resolveAssetName } from '../../utils/assetName';
 import AssetContent from './AssetContent';
 import settingsIcon from '../../assets/images/asset-token-settings-ic.inline.svg';
 import warningIcon from '../../assets/images/asset-token-warning-ic.inline.svg';
@@ -70,12 +67,12 @@ const messages = defineMessages({
       '!!!You are not using the recommended decimal place configuration for this native token.',
     description: 'Asset settings recommended pop over content',
   },
-  minterChosenName: {
-    id: 'assets.assetToken.minterChosenName',
+  onChainName: {
+    id: 'assets.assetToken.onChainName',
     defaultMessage:
       '!!!This name is decoded from the asset name chosen by whoever minted this token. No issuer published it, and it does not identify the token. The fingerprint does.',
     description:
-      'Tooltip on an asset name that was decoded from the asset name bytes rather than published by an issuer.',
+      'Accessible label on an asset name decoded from the asset name bytes rather than published by an issuer.',
   },
 });
 type Props = {
@@ -195,7 +192,7 @@ class Asset extends Component<Props, State> {
       metadata,
       source,
     });
-    const isMinterChosen = isMinterChosenAssetName(resolvedName);
+    const isOnChainName = isOnChainAssetName(resolvedName);
     const name = resolvedName?.name || '';
 
     const displayName = metadataNameChars
@@ -224,14 +221,14 @@ class Asset extends Component<Props, State> {
         </div>
         {displayName && (
           <div
-            data-testid={isMinterChosen ? 'assetNameMinterChosen' : 'assetName'}
+            data-testid={isOnChainName ? 'assetNameOnChain' : 'assetName'}
             className={classnames(
               styles.metadataName,
-              isMinterChosen && styles.minterChosenName
+              isOnChainName && styles.onChainName
             )}
-            title={
-              isMinterChosen
-                ? intl.formatMessage(messages.minterChosenName)
+            aria-label={
+              isOnChainName
+                ? intl.formatMessage(messages.onChainName)
                 : undefined
             }
           >

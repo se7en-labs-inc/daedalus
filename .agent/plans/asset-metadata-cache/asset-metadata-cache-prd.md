@@ -1108,7 +1108,7 @@ with the prefix gone, it renders into the same `displayName` span as a genuine r
 distinguishable only by the fingerprint. Today the prefix is the only thing that marks the decoded
 bytes as raw asset-name bytes rather than something an issuer published.
 
-The prefix itself is not worth keeping; the distinction is. A minter-chosen decoded name is rendered
+The prefix itself is not worth keeping; the distinction is. An on-chain decoded name is rendered
 in a visually distinct treatment from a registry or CIP-25 name, and never in a form that reads as a
 published name. The exact treatment is a design decision; the requirement is that a user can tell
 the two apart without reading the fingerprint. This applies to every surface that renders a name,
@@ -1564,7 +1564,7 @@ image channel stay.
    The resolution taken: an asset minted inside that window resolves late rather than not at all. Its
    row is not written, `asset_resolution` records `pending` with a `retry_after` inside the window,
    and the subject resolves on a later demand. Until then the asset shows its decoded name, marked as
-   minter-chosen, and its fingerprint. Reading `volatile/` would close the window and is deliberately
+   an on-chain name, and its fingerprint. Reading `volatile/` would close the window and is deliberately
    not in scope; it is a different on-disk format and would be its own task.
 
    The common case is the bad one: a freshly minted NFT is exactly the asset a user has just
@@ -1639,7 +1639,7 @@ Decisions changed:
   Phase 7 and the image table stay, and whether the logo surface earns its column
   is closed by the request itself.
 - The `ASCII: ` prefix is not simply deleted. It is today the only marking that
-  separates a minter-chosen decoded name from a published one, and removing it would
+  separates an on-chain decoded name from a published one, and removing it would
   let an asset whose name bytes spell an existing ticker render as that ticker.
 
 Defects corrected: batching is sized in request bytes with a 6 KB ceiling, because

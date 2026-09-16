@@ -115,8 +115,8 @@ Acceptance criteria, each against the evidence:
 
 The judgement worth naming is the unit source. A decoded asset name is the most
 available string on an unresolved token and the wrong one here: `task-001`
-established that minter-chosen bytes render only with a marking that separates
-them from a published name, and a unit of account is where an unmarked one would
+established that the asset's own name bytes render only with a marking that
+separates them from a published name, and a unit of account is where an unmarked one would
 cost the most. The label says `asset1cvm…kvpa` for a token nobody has published
 a ticker for, which is uglier and true.
 

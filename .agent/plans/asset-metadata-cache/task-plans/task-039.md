@@ -75,7 +75,7 @@ durable translated unit label belongs here. This task takes it.
    renders `ellipsis(fingerprint, 9, 4)` for a small pill, which is the spelling
    this label matches so the two agree on screen.
 6. **A decoded asset name is not a candidate for this label.** `task-001`
-   established that a minter-chosen name is rendered only with a marking that
+   established that an on-chain name is rendered only with a marking that
    separates it from a published one, because an asset whose name bytes spell an
    existing ticker is free to exist. A unit label is exactly the place that
    confusion would be expensive, so the label uses the published ticker or the

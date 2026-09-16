@@ -3,20 +3,26 @@ import type { AssetMetadata } from '../api/assets/types';
 import type { AssetMetadataSource } from '../../../common/types/asset-metadata.types';
 
 /**
- * Where a displayed asset name came from.
+ * Where a displayed asset name came from, ordered by what stands behind it.
  *
  * A registry name was published by an issuer against the token's minting
- * policy. A chain name is in the transaction that minted the asset, which had
- * to satisfy that policy, so it is bound to the policy too. A minter-chosen
- * name is the asset's own name bytes decoded as text, and those bytes are
- * whatever the minter put there: an asset whose name bytes spell an existing
- * ticker is free to exist. The last must never render like the first two.
+ * policy, through a curated repository that reviews entries, and may carry a
+ * signature bound to that policy. A chain name is in the transaction that
+ * minted the asset, which had to satisfy the policy, so it is bound to the
+ * policy too. An on-chain name is the asset's own name bytes decoded as text,
+ * and nothing attests them: they are whatever was set at mint time, so an asset
+ * whose name bytes spell an existing ticker is free to exist. The last must
+ * never render like the first two.
+ *
+ * `ChainName` and `OnChainName` are two characters apart and are not the same
+ * claim. Both are on the chain. Only the first had to satisfy the minting
+ * policy to get there.
  */
 export enum AssetNameProvenance {
   RegistryTicker = 'registryTicker',
   RegistryName = 'registryName',
   ChainName = 'chainName',
-  MinterChosen = 'minterChosen',
+  OnChainName = 'onChainName',
 }
 /**
  * CRC-8 with the polynomial `0x07`, as CIP-0067 specifies for an asset name
@@ -96,9 +102,9 @@ const withoutCip67Label = (assetName: string): string =>
  * is literally `USDM`, and a printable test taken over the whole name rejects
  * every one of them.
  *
- * Either way the answer is a name the minter chose, and every surface that
- * renders one marks it as such. Recovering text from behind a label does not
- * make an issuer have published it.
+ * Either way the answer is the asset's own name bytes, which nothing attests,
+ * and every surface that renders one marks it as such. Recovering text from
+ * behind a label does not make an issuer have published it.
  *
  * A name that is only a label leaves an empty remainder, which
  * `hexToPrintableAsciiString` rejects, so a bare label is no name rather than an
@@ -161,7 +167,7 @@ export const resolveAssetName = ({
   if (decodedAssetName) {
     return {
       name: decodedAssetName,
-      provenance: AssetNameProvenance.MinterChosen,
+      provenance: AssetNameProvenance.OnChainName,
     };
   }
 
@@ -169,9 +175,10 @@ export const resolveAssetName = ({
 };
 
 /**
- * Whether a resolved name was chosen by the minter rather than published by an
- * issuer. Every surface that renders a name marks this case.
+ * Whether a resolved name is the asset's own on-chain name bytes, which nothing
+ * attests, rather than a name an issuer published or the minting policy bound.
+ * Every surface that renders a name marks this case.
  */
-export const isMinterChosenAssetName = (
+export const isOnChainAssetName = (
   resolved: ResolvedAssetName | null
-): boolean => resolved?.provenance === AssetNameProvenance.MinterChosen;
+): boolean => resolved?.provenance === AssetNameProvenance.OnChainName;

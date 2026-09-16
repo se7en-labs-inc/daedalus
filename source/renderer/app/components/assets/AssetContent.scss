@@ -109,8 +109,18 @@
   flex-direction: column;
   width: 100%;
 
-  .assetAsciiName {
+  // The decoded form of the asset name bytes, which nothing attests. It sits
+  // inline after the hex it decodes and must not read as a name an issuer
+  // published, so it is marked on three independent channels: an outline,
+  // italics and a muted colour. All three are visible without interaction; the
+  // outline is the one that survives a monochrome rendering. The marking is on
+  // the brackets, never on the hex.
+  .onChainName {
+    border: 1px dashed currentcolor;
+    border-radius: 3px;
+    font-style: italic;
     opacity: 0.5;
+    padding: 0 4px;
   }
 }
 

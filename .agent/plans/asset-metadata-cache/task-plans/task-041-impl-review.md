@@ -2,7 +2,7 @@ Implementation: Iteration 1
 Timestamp: 2026-09-15T10:05:00Z
 
 Changes made:
-- `source/renderer/app/utils/assetName.ts`: added `CIP68_ASSET_NAME_LABELS`, the private `withoutCip68Label`, and `decodeAssetNameText`. The third rung of `resolveAssetName` now calls the new decoder instead of `hexToPrintableAsciiString` directly. The rung, the provenance it returns and `isMinterChosenAssetName` are untouched.
+- `source/renderer/app/utils/assetName.ts`: added `CIP68_ASSET_NAME_LABELS`, the private `withoutCip68Label`, and `decodeAssetNameText`. The third rung of `resolveAssetName` now calls the new decoder instead of `hexToPrintableAsciiString` directly. The rung, the provenance it returns and `isOnChainAssetName` are untouched.
 - `source/renderer/app/components/assets/AssetContent.tsx`: the asset-name parameter row's annotation reads the same decoder, imported from `utils/assetName` rather than `utils/strings`. The row's value is still the whole hex, label included, and still what is copied.
 - `source/renderer/app/utils/assetName.spec.ts`, `components/assets/Asset.spec.tsx`, `components/assets/AssetContent.spec.tsx`: 21 cases added across the three.
 
@@ -29,8 +29,8 @@ Verification run:
 - `3030306465313430` decodes whole, to the text `000de140`. This is the case the defect report asked to protect: a name whose decoded text reads like a label, whose bytes are not one. `30303134646631305553444d`, which reads `0014df10USDM`, likewise decodes whole and keeps all twelve characters.
 - `0014df105553444` and `0014df10zz` return null, so the hex-shape check `task-001` added still applies after the strip rather than only before it.
 - `436f696e74657374` still decodes to `Cointest` and the 32-byte random name still returns null, so nothing unlabelled moved.
-- `resolveAssetName` on `0014df105553444d` returns `USDM` with provenance `MinterChosen`, and a registry ticker and a chain name each still win over it.
-- Component: a CIP-68 asset renders `USDM` under `assetNameMinterChosen`, carries `styles.minterChosenName` and a non-empty `title`, and renders nothing under `assetName`. The negative half is the one that matters, because an assertion that only looked for the text would pass against a fix that promoted the name to a published one.
+- `resolveAssetName` on `0014df105553444d` returns `USDM` with provenance `OnChainName`, and a registry ticker and a chain name each still win over it.
+- Component: a CIP-68 asset renders `USDM` under `assetNameOnChain`, carries `styles.onChainName` and a non-empty `title`, and renders nothing under `assetName`. The negative half is the one that matters, because an assertion that only looked for the text would pass against a fix that promoted the name to a published one.
 - Component: the rendered fingerprint for a CIP-68 asset is the one the fixture carries, which is computed from the policy id and the whole asset name. Nothing in this change reaches `utils/assetFingerprint.ts`, and this case fails if that ever stops being true.
 - Component: an asset name that is only a label renders no name element of either kind.
 - Pop-over: the parameter row for a CIP-68 asset shows the full hex as its value and the recovered name as its annotation; a label with no text after it shows the hex and no annotation.
@@ -57,7 +57,7 @@ Acceptance criteria, each against the evidence:
 
 1. *A CIP-68 asset renders the text behind its label, on the token list, the send form and the transaction list.* Met. All six surfaces route the name through `Asset.tsx`'s `renderPillContent`, which `task-001` established and verified by grep; the fix is inside the resolver that method calls, so there is no per-surface path to miss. The three named surfaces already have a case each driving their own prop shapes, and those cases still pass.
 
-2. *It renders as minter-chosen, not as published.* Met, and asserted in both directions: the fixture lands under `assetNameMinterChosen` with the class and the tooltip, and does not land under `assetName`.
+2. *It renders as an on-chain name, not as published.* Met, and asserted in both directions: the fixture lands under `assetNameOnChain` with the class and the tooltip, and does not land under `assetName`.
 
 3. *Each of the four labels is stripped, asserted per label.* Met. Four cases, not one parameterised case over a list that could be read from the implementation.
 

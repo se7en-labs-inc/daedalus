@@ -182,7 +182,8 @@ With the preset selected, open a wallet holding an NFT that carries a CIP-25
 record and is not in the token registry. Watch the token list from a cold cache.
 
 **Pass, in this order:** the row first shows its fingerprint and, if its asset
-name bytes are printable, a decoded name marked as minter-chosen; then, without
+name bytes are printable, a decoded name marked as an on-chain name; then,
+without
 a restart, it shows the CIP-25 name and that marking is gone. Its amount is in
 raw units throughout, before and after, and the settings dialog for it offers
 decimal places rather than applying any.

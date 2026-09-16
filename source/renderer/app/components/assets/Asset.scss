@@ -76,11 +76,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  // A name decoded from the asset's own name bytes, which whoever minted the
-  // token chose freely. It must not read as a name an issuer published, so it
-  // is marked on three independent channels: an outline, italics and a muted
-  // colour. The outline is the one that survives a monochrome rendering.
-  &.minterChosenName {
+  // A name decoded from the asset's own name bytes, which nothing attests. It
+  // must not read as a name an issuer published, so it is marked on three
+  // independent channels: an outline, italics and a muted colour. All three are
+  // visible without interaction; the outline is the one that survives a
+  // monochrome rendering.
+  &.onChainName {
     border: 1px dashed var(--theme-tokens-list-header-text-color);
     border-radius: 3px;
     color: var(--theme-tokens-list-header-text-color);

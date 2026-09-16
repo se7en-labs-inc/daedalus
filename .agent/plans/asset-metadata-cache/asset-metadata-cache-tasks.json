@@ -3,8 +3,8 @@
   "title": "Asset Metadata Cache Tasks",
   "created": "2026-09-10",
   "updated": "2026-09-16",
-  "version": "1.7.0",
-  "totalTasks": 44,
+  "version": "1.8.0",
+  "totalTasks": 45,
   "prdReference": ".agent/plans/asset-metadata-cache/asset-metadata-cache-prd.md",
   "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the metadata is cryptographically bound to the minting policy, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
   "sourceFiles": [
@@ -69,7 +69,7 @@
      "implementationNotes": [
       "Resolution order, highest first: registry ticker, registry name, the CIP-25 or CIP-68 name the chain channel resolves in task-035, decoded asset name when printable, nothing. Until the cache lands the first three are simply absent, so this task is the fourth rung and the ordering it sits in.",
       "The predicate is: decode asset_name from hex, accept only if every resulting byte is in 0x20 to 0x7E inclusive. Reject the empty name.",
-      "Do not simply delete the 'ASCII: ' prefix. Today it is the only thing marking the decoded bytes as raw asset-name bytes rather than a name an issuer published. Asset names are chosen freely by whoever mints, so an asset whose name bytes spell USDC would otherwise render into the same displayName span as a genuine registry USDC, separable only by the fingerprint. Replace the prefix with a visually distinct treatment for a minter-chosen decoded name, on every surface that renders a name. The exact treatment is a design decision; the requirement is that a user can tell a decoded name from a published one without reading the fingerprint. styles.ascii at Asset.tsx:209 is a starting point.",
+      "Do not simply delete the 'ASCII: ' prefix. Today it is the only thing marking the decoded bytes as raw asset-name bytes rather than a name an issuer published. Asset names are chosen freely by whoever mints, so an asset whose name bytes spell USDC would otherwise render into the same displayName span as a genuine registry USDC, separable only by the fingerprint. Replace the prefix with a visually distinct treatment for an on-chain decoded name, on every surface that renders a name. The exact treatment is a design decision; the requirement is that a user can tell a decoded name from a published one without reading the fingerprint. styles.ascii at Asset.tsx:209 is a starting point.",
       "The fingerprint is rendered separately at Asset.tsx:199-203 and remains the identity when no name resolves. Do not substitute a truncated policy id.",
       "domains/Asset.ts:22-25 already exposes assetNameASCII as a MobX computed over the same bytes. Put the predicate beside it rather than duplicating the decode."
      ],
@@ -80,7 +80,7 @@
       "A name whose bytes are valid UTF-8 but outside ASCII renders no name, which is the conservative choice recorded in the PRD"
      ],
      "acceptance": [
-      "A minter-chosen decoded name renders in a treatment visually distinct from a registry or CIP-25 name, on the token list, the send form and the transaction list",
+      "An on-chain decoded name renders in a treatment visually distinct from a registry or CIP-25 name, on the token list, the send form and the transaction list",
       "An asset whose name bytes spell an existing registry ticker is distinguishable from the real one without reading the fingerprint, demonstrated with a fixture for both",
       "No token row in the list or the send form shows replacement characters",
       "The predicate rejects the empty name and any byte outside 0x20 to 0x7E, asserted per boundary",
@@ -188,7 +188,7 @@
     {
      "id": "task-041",
      "title": "Recover the name inside a labelled asset name",
-     "description": "task-001's printable-ASCII predicate accepts a decoded asset name only when every byte is 0x20 to 0x7E. An asset name may carry a four-byte CIP-0067 label, and the label is never printable, so every CIP-68 asset renders with no name at all and only a fingerprint. Measured: USDM is 0014df105553444d, where bytes 0-3 are the label for 333 and bytes 4 onward are literally USDM. Validate the CIP-0067 structure and strip the label before the printable test, and keep the minter-chosen marking on what comes out.",
+     "description": "task-001's printable-ASCII predicate accepts a decoded asset name only when every byte is 0x20 to 0x7E. An asset name may carry a four-byte CIP-0067 label, and the label is never printable, so every CIP-68 asset renders with no name at all and only a fingerprint. Measured: USDM is 0014df105553444d, where bytes 0-3 are the label for 333 and bytes 4 onward are literally USDM. Validate the CIP-0067 structure and strip the label before the printable test, and keep the on-chain marking on what comes out.",
      "status": "completed",
      "priority": "high",
      "estimatedHours": 2.0,
@@ -208,7 +208,7 @@
       "Validate that structure rather than matching an allowlist. CIP-0068, Specification, registers 100 reference NFT, 222 NFT, 333 FT and 444 RFT, and requires further asset classes to be submitted as a new CIP, so the label set is open and a list of four stops being right the day a fifth is registered.",
       "Compute the CRC-8 rather than transcribing CIP-0067's 256-value lookup table. The four published labels are the check that the two agree: the polynomial reproduces 59, 20, 241 and 40 for 100, 222, 333 and 444.",
       "Read the label from the name's bytes, never from its decoded text. A valid label's first byte is at most 0x0f, so a name that passes the printable test can never carry one, and a name whose text merely reads like a label is a different byte string: the text 000de140 is the hex 3030306465313430.",
-      "The marking still applies. A name recovered this way is minter-chosen, not issuer-published, so it keeps the treatment, the test id and the tooltip task-001 established. Stripping a label must not promote it to looking like a published name.",
+      "The marking still applies. A name recovered this way is an on-chain name, not issuer-published, so it keeps the treatment, the test id and the tooltip task-001 established. Stripping a label must not promote it to looking like a published name.",
       "The decoder belongs in utils/assetName.ts, not in utils/strings.ts. hexToPrintableAsciiString answers a question about a hex string and a byte range with no asset in it; a CIP-0067 label is a ledger convention about asset names.",
       "components/assets/AssetContent.tsx decodes the same bytes for the parameter row's annotation and needs the same decoder, or the pop-over and the pill disagree about whether an asset has a name.",
       "Nothing here reaches the fingerprint. utils/assetFingerprint.ts hashes the policy id and the whole asset name as bytes and never sees a decoded string."
@@ -225,12 +225,68 @@
      ],
      "acceptance": [
       "An asset carrying a valid label renders the text behind it on the token list, the send form and the transaction list",
-      "That name renders in the minter-chosen treatment, asserted in the negative as well as the positive",
+      "That name renders in the on-chain treatment, asserted in the negative as well as the positive",
       "The rendered fingerprint of a labelled asset is unchanged, asserted against the value computed from the full asset name",
       "compile, lint, i18n and jest green from nix build",
       "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged"
      ],
      "notes": "Found in manual QA on this branch: every CIP-68 asset rendered as a bare fingerprint while non-CIP-68 assets in the same list rendered their decoded names correctly. A class of token rather than an edge case, and the class is growing. The repository had no concept of CIP-0067 anywhere, and every existing mention of CIP-68 treats it as a source of a metadata record rather than as a shape the asset name carries, which is how a printable check over raw asset name bytes shipped looking complete."
+    },
+    {
+     "id": "task-045",
+     "title": "Call the decoded asset name its on-chain name",
+     "description": "task-001 named the bottom rung of the name resolution order minter-chosen, and task-041 kept that name for a name recovered from behind a CIP-0067 label. The label implies a contrast that does not exist: the minter and the issuer are the same party, so it reads as though the other rungs came from a different and more trustworthy author. The real distinction is attestation. An asset name is raw on-chain bytes anyone can set to anything at mint time; a registry entry has been through a curated repository's review and may carry a signature bound to the minting policy. Rename the provenance, the predicate, the style, the test ids and both message ids to on-chain. Drop the list row's tooltip, which needs a pointer and so does not defend the case the marking exists for, and carry its explanation as an aria-label instead. Render the parameter row's decoded name inline after the hex it decodes, as 484f534b59 (HOSKY), with the marking on the brackets and never on the hex.",
+     "status": "completed",
+     "priority": "medium",
+     "estimatedHours": 3.0,
+     "dependencies": [
+      "task-001",
+      "task-041"
+     ],
+     "targetPaths": [
+      "source/renderer/app/utils/assetName.ts",
+      "source/renderer/app/utils/assetName.spec.ts",
+      "source/renderer/app/components/assets/Asset.tsx",
+      "source/renderer/app/components/assets/Asset.scss",
+      "source/renderer/app/components/assets/Asset.spec.tsx",
+      "source/renderer/app/components/assets/AssetContent.tsx",
+      "source/renderer/app/components/assets/AssetContent.scss",
+      "source/renderer/app/components/assets/AssetContent.spec.tsx",
+      "source/renderer/app/components/wallet/send-form/AssetInput.spec.tsx",
+      "source/renderer/app/i18n/locales/en-US.json",
+      "source/renderer/app/i18n/locales/ja-JP.json",
+      "source/renderer/app/i18n/locales/defaultMessages.json",
+      "translations/messages.json"
+     ],
+     "implementationNotes": [
+      "The enum member becomes OnChainName and sits one rung below ChainName, which is a different thing with a nearly identical name. ChainName is a CIP-25 or CIP-68 record from the transaction that minted the asset, which had to satisfy the minting policy; OnChainName is the asset's own name bytes, which satisfy nothing. Both are on the chain. The module comment carries that distinction, because the identifiers alone no longer do.",
+      "Both message ids change, so the old ids must be removed from en-US.json, ja-JP.json and defaultMessages.json by hand and the new ones added. yarn i18n:manage only adds keys it does not find; it never rewrites one it does, so a changed English default leaves both locale files carrying the old sentence while every check stays green.",
+      "Measured before starting: both ja-JP entries are !!!-prefixed English placeholders, not translator output, so no translation is lost and nothing needs marking for a translation round. Every neighbouring ja-JP entry in the same block is real Japanese and none of them is touched.",
+      "The tooltip was a title attribute rather than a PopOver, so its content was assertable in jsdom and was asserted. It is removed for the reason that applies to any hover-only carrier: it needs a pointer, so it does not exist on touch, it is transient, and the case the marking exists for is a token whose asset name bytes spell an existing ticker, which text nobody opens does not defend against. The dashed outline, italics and muted colour are the signal and are unchanged.",
+      "The parameter row's annotation loses its label. A parenthetical directly after a hex string reads as a decoding of it, under a row already labelled Asset name and beneath the registry-published Name row, so the message becomes brackets only. It stays a message rather than literal JSX so a locale can choose its own bracket glyphs.",
+      "The guard on the inline form is structural. The previous layout omitted a whole line when there was nothing to show, which fails safe; an inline parenthetical does not, because a condition on the content alone leaves 484f534b59 () and a condition that omits the brackets but not the space leaves a trailing space. The condition goes on the whole fragment, leading space included.",
+      "The explanation is declared in both Asset.tsx and AssetContent.tsx under one id with identical text, which is the pattern assets.warning.available already follows across four files. formatjs extract dedupes them and fails if the two copies ever disagree.",
+      "Asset.scss.d.ts and AssetContent.scss.d.ts are generated by yarn typedef:sass and gitignored, so the class renames land in the stylesheets and the declarations follow from the build rather than from an edit that would be committed.",
+      "assetMetadataChannel.ts:89 says minter-chosen key, about a key in a metadata record rather than about a name. It is a different noun and stays as it is."
+     ],
+     "testCases": [
+      "The resolver returns provenance onChainName for a decoded asset name, for a name recovered from behind a CIP-0067 label, and for a chain row that carries no name",
+      "isOnChainAssetName reports true for a decoded name, false for a chain name, false for a registry name and false for null",
+      "The pill renders a decoded name under data-testid assetNameOnChain with the onChainName class and a non-empty aria-label, and a published name under assetName with neither",
+      "The parameter row renders 484f534b59 (HOSKY) as one contiguous string, with the marking class on the brackets and not on the element holding the hex",
+      "A name that does not decode renders the hex alone, asserted for 32 random bytes, for a label followed by a non-printable byte, for a name that is only a label, and for an empty name: no brackets, no empty pair, no trailing space",
+      "The longest row the layout admits, 64 hex characters and a 32-character name, renders both parts inside the one value element with nothing truncated"
+     ],
+     "acceptance": [
+      "No occurrence of minterChosen, MinterChosen or minter-chosen survives in source/ or translations/ except assetMetadataChannel.ts:89, which is about a metadata key",
+      "en-US.json and ja-JP.json carry assets.assetToken.onChainName and assets.assetToken.param.assetNameOnChain and neither old id, verified by reading the files after yarn i18n:manage rather than by its exit code",
+      "A second run of yarn i18n:manage is a no-op",
+      "The list row carries the explanation as an aria-label and no title, and its visual treatment is unchanged",
+      "The parameter row reads the hex, a space, and the decoded name in brackets, and renders the hex alone when there is nothing to decode",
+      "compile, lint, stylelint, jest and i18n green from nix build",
+      "No new @ts-ignore and no new @ts-expect-error; package.json and yarn.lock unchanged"
+     ],
+     "notes": "A terminology decision by the project owner rather than a defect, with two rendering decisions that reached the same two elements while it was in flight. The term and the per-field verification marker being designed in .agent/findings/token-provenance-discarded.md are the same mechanism from opposite ends: this one marks a value with nothing standing behind it, that one marks values that do. They render on adjacent rows of one list, so they share vocabulary or they contradict each other in front of the user. That finding gains a section fixing the axis as attestation rather than authorship. One claim here is not closed by a check: the rendered line count of the longest parameter row, which jsdom cannot lay out and which task-027 is the place to confirm."
     }
    ]
   },
@@ -1629,7 +1685,7 @@
       "Name order in Asset.tsx: registry ticker, registry name, chain name, decoded asset name when printable, nothing.",
       "Precedence is enforced by not asking: a subject with a registry row is excluded before the pointer request, so no chain row is ever built for it and the question of which write wins never arises. That is also the filter the privacy argument depends on, because the registry answers for fungible holdings and they therefore never reach the index.",
       "The selected pointer source travels on the existing metadata request rather than on a channel of its own. The setting lives in the renderer and the client in the main process, and one field cannot fall out of step.",
-      "A chain name is not marked minter-chosen. It is in the transaction that minted the asset, which had to satisfy the minting policy, so it is bound to that policy; a decoded asset name is bound to nothing, which is what the marker exists for."
+      "A chain name is not marked as an on-chain name. It is in the transaction that minted the asset, which had to satisfy the minting policy, so it is bound to that policy; a decoded asset name is bound to nothing, which is what the marker exists for."
      ],
      "testCases": [
       "A written chain row has source 'chain', a slot, and NULL sequence_number, NULL decimals and verified 0",
@@ -1767,8 +1823,8 @@
  ],
  "summary": {
   "totalPhases": 7,
-  "totalTasks": 44,
-  "estimatedTotalHours": 204.0,
+  "totalTasks": 45,
+  "estimatedTotalHours": 207.0,
   "criticalPath": [
    "task-007",
    "task-008",

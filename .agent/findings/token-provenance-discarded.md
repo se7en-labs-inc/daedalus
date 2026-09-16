@@ -96,6 +96,39 @@ by a contract that can mint more, none of whose metadata is cryptographically
 checkable* is a real distinction about what a user is looking at. One boolean
 cannot carry it.
 
+## The vocabulary is already fixed at one end
+
+The parameter list already carries a marker of this kind, pointing the other
+way. The decoded form of the asset name renders as `484f534b59 (HOSKY)`, with
+the brackets in a dashed outline, italics and a muted colour, because nothing
+attests those bytes: anyone can set an asset name to anything at mint time. It
+is called an **on-chain name**, in the enum, in the predicate, in the style and
+in the accessible label, and the word was chosen deliberately over
+"minter-chosen". The minter and the issuer are the same party, so naming the
+author distinguished nothing; what separates this value from a registry entry is
+that no curated repository reviewed it and no signature binds it to the minting
+policy.
+
+A per-field verification marker is that same mechanism from the other end: it
+marks the values that do have something standing behind them. The two render on
+one screen, on adjacent rows of the same list, so they share a vocabulary, or
+they contradict each other in front of the user.
+
+What that fixes for the marker:
+
+- The axis is **attestation, not authorship**. A marker names what stands behind
+  a value, never who wrote it. "Issuer-published" and "minter-chosen" describe
+  the same party and will read as a distinction that is not there.
+- **On-chain** is taken, and means the unattested case: the asset's own name
+  bytes. It is not available as a general word for "in the ledger", which is a
+  live trap, because a CIP-25 record is on the chain too and is a stronger claim
+  than an on-chain name. `AssetNameProvenance` already keeps `ChainName` and
+  `OnChainName` apart for exactly this reason.
+- The **absence of a marking is the safe state**, which the existing one relies
+  on: a published name is plain text and only the unattested one is outlined. A
+  marker that decorated the attested values instead would invert that, and the
+  two cannot both be right on one list.
+
 ## What a fix would have to decide
 
 Whether `verified` becomes per property or gains a companion, and what the

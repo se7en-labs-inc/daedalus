@@ -24,7 +24,7 @@ Critique of Iteration 1:
    The row's `source` is the discriminator and it stops at the store today, which
    is the same four-edit gap `hasImage` had. Findings 4 and 5.
 
-4. *A chain name was going to be marked minter-chosen, by analogy.* It should not
+4. *A chain name was going to be marked as an on-chain name, by analogy.* It should not
    be. A CIP-25 record is in the transaction that minted the asset, which had to
    satisfy the minting policy, so it is bound to that policy. The marker exists
    for a name bound to nothing.

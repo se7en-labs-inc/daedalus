@@ -286,8 +286,8 @@ describe('AssetInput', () => {
 
     it('never names the asset the minter called it', () => {
       // The asset name bytes decode to "Cointest", and no issuer published a
-      // ticker. A label that reached for the decoded name would render a
-      // minter-chosen string as the unit of account.
+      // ticker. A label that reached for the decoded name would render an
+      // unattested on-chain string as the unit of account.
       const { label } = renderAssetInput(
         undefined,
         NUMBER_OPTIONS[0].value,

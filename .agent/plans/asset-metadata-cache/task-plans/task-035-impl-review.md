@@ -67,8 +67,9 @@ Verification run:
 - `yarn jest source/renderer/app/utils/assetName --coverage=false` — the chain
   rung driven both ways, with the same name string under both sources.
 - `yarn jest source/renderer/app/components/assets/Asset.spec.tsx` — a CIP-25
-  name renders where the asset name alone shows nothing, it is not marked
-  minter-chosen, and the same asset shows its fingerprint before the row exists.
+  name renders where the asset name alone shows nothing, it is not marked as
+  an on-chain name, and the same asset shows its fingerprint before the row
+  exists.
 - `yarn jest source/renderer/app/stores/AssetsStore` — 44 passed, 4 added,
   including the two that matter for locked decision 10: a chain row formats
   nothing, and the user's own setting still applies over one.
@@ -118,8 +119,8 @@ Acceptance criteria, each against the evidence:
 5. *A chain row formats nothing, and a user setting still applies.* Met, driven
    through the merge helper rather than on the store.
 
-6. *A chain name is not minter-chosen, and provenance distinguishes the two
-   sources.* Met.
+6. *A chain name is not marked as an on-chain name, and provenance
+   distinguishes the two sources.* Met.
 
 7. *The `task-019` decimals specs pass unchanged.* Met, and it is the whole suite
    that says so.

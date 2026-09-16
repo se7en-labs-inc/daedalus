@@ -110,7 +110,7 @@ describe('Asset', () => {
 
   it('displays a printable asset name decoded and without a prefix', () => {
     const { container } = renderAsset({ asset: assetWithPrintableName });
-    expect(screen.queryByTestId('assetNameMinterChosen')).toHaveTextContent(
+    expect(screen.queryByTestId('assetNameOnChain')).toHaveTextContent(
       'Cointest'
     );
     expect(container.textContent).not.toContain('ASCII');
@@ -119,20 +119,20 @@ describe('Asset', () => {
   it('displays no name for an asset name of 32 random bytes', () => {
     const { container } = renderAsset({ asset: assetWithNonPrintableName });
     expect(screen.queryByTestId('assetName')).toBeNull();
-    expect(screen.queryByTestId('assetNameMinterChosen')).toBeNull();
+    expect(screen.queryByTestId('assetNameOnChain')).toBeNull();
     expect(container.textContent).not.toContain('�');
   });
 
   it('displays no name for an empty asset name', () => {
     renderAsset({ asset: assetWithoutName });
     expect(screen.queryByTestId('assetName')).toBeNull();
-    expect(screen.queryByTestId('assetNameMinterChosen')).toBeNull();
+    expect(screen.queryByTestId('assetNameOnChain')).toBeNull();
   });
 
   it('displays no name for an asset name that is valid UTF-8 outside ASCII', () => {
     const { container } = renderAsset({ asset: assetWithNonAsciiName });
     expect(screen.queryByTestId('assetName')).toBeNull();
-    expect(screen.queryByTestId('assetNameMinterChosen')).toBeNull();
+    expect(screen.queryByTestId('assetNameOnChain')).toBeNull();
     expect(container.textContent).not.toContain('é');
   });
 
@@ -144,20 +144,20 @@ describe('Asset', () => {
     expect(container.textContent).toContain(baseAsset.fingerprint);
   });
 
-  it('distinguishes a minter-chosen name from the registry ticker it spells', () => {
+  it('distinguishes an on-chain name from the registry ticker it spells', () => {
     const { unmount } = renderAsset({ asset: assetImpersonatingTicker });
-    const minterChosen = screen.getByTestId('assetNameMinterChosen');
-    expect(minterChosen).toHaveTextContent('USDC');
-    expect(minterChosen).toHaveClass(styles.minterChosenName);
-    expect(minterChosen).toHaveAttribute('title');
-    expect(minterChosen.getAttribute('title')).not.toHaveLength(0);
+    const onChain = screen.getByTestId('assetNameOnChain');
+    expect(onChain).toHaveTextContent('USDC');
+    expect(onChain).toHaveClass(styles.onChainName);
+    expect(onChain).toHaveAttribute('aria-label');
+    expect(onChain.getAttribute('aria-label')).not.toHaveLength(0);
     unmount();
 
     renderAsset({ asset: assetWithImpersonatedTicker });
     const published = screen.getByTestId('assetName');
     expect(published).toHaveTextContent('USDC');
-    expect(published).not.toHaveClass(styles.minterChosenName);
-    expect(published).not.toHaveAttribute('title');
+    expect(published).not.toHaveClass(styles.onChainName);
+    expect(published).not.toHaveAttribute('aria-label');
   });
 
   // The token list, the send form and the transaction list pass three
@@ -169,10 +169,10 @@ describe('Asset', () => {
     ],
     ['the send form', { small: true, hidePopOver: true }],
     ['the transaction list', {}],
-  ])('marks a minter-chosen name as rendered by %s', (_surface, props) => {
+  ])('marks an on-chain name as rendered by %s', (_surface, props) => {
     renderAsset({ asset: assetImpersonatingTicker, ...props });
-    expect(screen.getByTestId('assetNameMinterChosen')).toHaveClass(
-      styles.minterChosenName
+    expect(screen.getByTestId('assetNameOnChain')).toHaveClass(
+      styles.onChainName
     );
   });
 
@@ -184,11 +184,11 @@ describe('Asset', () => {
     );
   });
 
-  it('does not mark a CIP-25 name as minter-chosen', () => {
+  it('does not mark a CIP-25 name as an on-chain name', () => {
     renderAsset({ asset: assetWithChainName });
-    expect(screen.queryByTestId('assetNameMinterChosen')).toBeNull();
+    expect(screen.queryByTestId('assetNameOnChain')).toBeNull();
     expect(screen.queryByTestId('assetName')).not.toHaveClass(
-      styles.minterChosenName
+      styles.onChainName
     );
   });
 
@@ -197,20 +197,18 @@ describe('Asset', () => {
   // rendered as a bare fingerprint.
   it('displays the name inside a CIP-68 asset name', () => {
     renderAsset({ asset: assetWithCip68Name });
-    expect(screen.getByTestId('assetNameMinterChosen')).toHaveTextContent(
-      'USDM'
-    );
+    expect(screen.getByTestId('assetNameOnChain')).toHaveTextContent('USDM');
   });
 
-  // The name is still the minter's. The complement is the case that matters: a
-  // fix that recovered the text and promoted it to a published name would pass
-  // an assertion that only looked for 'USDM'.
-  it('still marks a name recovered from behind a label as minter-chosen', () => {
+  // Nothing attests the name either way. The complement is the case that
+  // matters: a fix that recovered the text and promoted it to a published name
+  // would pass an assertion that only looked for 'USDM'.
+  it('still marks a name recovered from behind a label as on-chain', () => {
     renderAsset({ asset: assetWithCip68Name });
     expect(screen.queryByTestId('assetName')).toBeNull();
-    const minterChosen = screen.getByTestId('assetNameMinterChosen');
-    expect(minterChosen).toHaveClass(styles.minterChosenName);
-    expect(minterChosen.getAttribute('title')).not.toHaveLength(0);
+    const onChain = screen.getByTestId('assetNameOnChain');
+    expect(onChain).toHaveClass(styles.onChainName);
+    expect(onChain.getAttribute('aria-label')).not.toHaveLength(0);
   });
 
   // The fingerprint is a hash of the policy id and the whole asset name, label
@@ -226,7 +224,7 @@ describe('Asset', () => {
   it('displays no name for an asset name that is only a label', () => {
     renderAsset({ asset: assetWithCip68LabelOnly });
     expect(screen.queryByTestId('assetName')).toBeNull();
-    expect(screen.queryByTestId('assetNameMinterChosen')).toBeNull();
+    expect(screen.queryByTestId('assetNameOnChain')).toBeNull();
   });
 
   it('shows the fingerprint for that asset before its row arrives', () => {
@@ -234,7 +232,7 @@ describe('Asset', () => {
       asset: { ...baseAsset, assetName: assetWithChainName.assetName },
     });
     expect(screen.queryByTestId('assetName')).toBeNull();
-    expect(screen.queryByTestId('assetNameMinterChosen')).toBeNull();
+    expect(screen.queryByTestId('assetNameOnChain')).toBeNull();
     expect(container.textContent).toContain('asset1t4g');
   });
 });
