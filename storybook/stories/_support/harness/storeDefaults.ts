@@ -10,6 +10,7 @@ import environment from '../environment';
 import { backendDefaults } from './fixtures/backend';
 import { routerAt } from './fixtures/router';
 import { emptyFilterOptions } from './fixtures/transactions';
+import { stakingDefaults } from './fixtures/staking';
 import { CATEGORIES_LIST } from '../../../../source/renderer/app/config/sidebarConfig';
 import {
   WalletSortBy,
@@ -311,24 +312,7 @@ export const createStoreDefaults = () => ({
     onChangeWalletSortType: () => {},
     onSearchValueUpdated: () => {},
   },
-  staking: {
-    stakingInfoWasOpen: false,
-    /*
-     * A method rather than a field, and the real one crosses into two other
-     * stores to build its answer. The summary screen passes the result straight
-     * into a display component, so the fixture returns the same shape from the
-     * wallet it is given.
-     */
-    getRewardForWallet: (wallet) => ({
-      wallet: wallet ? wallet.name : '',
-      total: wallet ? wallet.reward : null,
-      unspent: wallet ? wallet.reward : null,
-      rewardsAddress: '',
-      isRestoring: wallet ? wallet.isRestoring : false,
-      syncingProgress: 0,
-    }),
-    ...requestsFor('staking'),
-  },
+  staking: { ...stakingDefaults, ...requestsFor('staking') },
   /*
    * Observables and the computed getters the wallet screens read. The list
    * starts empty, which is the state a new wallet is in and the state the
