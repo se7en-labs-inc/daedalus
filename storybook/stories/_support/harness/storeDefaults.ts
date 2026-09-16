@@ -11,6 +11,8 @@ import { backendDefaults } from './fixtures/backend';
 import { routerAt } from './fixtures/router';
 import { emptyFilterOptions } from './fixtures/transactions';
 import { stakingDefaults } from './fixtures/staking';
+import { governanceDefaults } from './fixtures/governance';
+import { votingDefaults } from './fixtures/voting';
 import { CATEGORIES_LIST } from '../../../../source/renderer/app/config/sidebarConfig';
 import {
   WalletSortBy,
@@ -282,7 +284,7 @@ export const createStoreDefaults = () => ({
     activeAsset: null,
   },
   hardwareWallets: { ...requestsFor('hardwareWallets') },
-  governance: {},
+  governance: { ...governanceDefaults },
   networkStatus: { ...networkStatusDefaults },
   newsFeed: { ...newsFeedDefaults },
   profile: { ...profileDefaults },
@@ -349,7 +351,7 @@ export const createStoreDefaults = () => ({
     dataForActiveDialog: {},
   },
   uiNotifications: { ...uiNotificationsDefaults },
-  voting: { ...requestsFor('voting') },
+  voting: { ...votingDefaults, ...requestsFor('voting') },
   wallets: { ...walletsDefaults, ...requestsFor('wallets') },
   walletsLocal: {},
   walletBackup: {},
