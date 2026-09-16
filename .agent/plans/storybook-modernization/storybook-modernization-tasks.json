@@ -2003,7 +2003,7 @@
           "id": "task-053",
           "title": "Build the staking domain fixture data",
           "description": "One store key arrives with this tranche, staking, and stake pool fixtures already exist in the staking stories.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 6.0,
           "dependencies": [
@@ -2028,7 +2028,7 @@
           "id": "task-054",
           "title": "Screen tranche 7: staking, 6 screens",
           "description": "The Staking shell, DelegationCenterPage, StakePoolsListPage, StakingRewardsPage, StakePoolsSettingsPage and RedeemItnRewardsContainer.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 20.0,
           "dependencies": [
@@ -2061,37 +2061,37 @@
               "id": "task-054-a",
               "title": "Staking shell",
               "description": "Staking shell -> source/renderer/app/containers/staking/Staking.tsx -> storybook/stories/screens/staking/Staking.stories.tsx (stores: staking, app)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-054-b",
               "title": "DelegationCenterPage",
               "description": "DelegationCenterPage -> source/renderer/app/containers/staking/DelegationCenterPage.tsx -> storybook/stories/screens/staking/DelegationCenterPage.stories.tsx (stores: staking, wallets, networkStatus; reaches UndelegateWalletConfirmationDialog at :118-119)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-054-c",
               "title": "StakePoolsListPage",
               "description": "StakePoolsListPage -> source/renderer/app/containers/staking/StakePoolsListPage.tsx -> storybook/stories/screens/staking/StakePoolsListPage.stories.tsx (stores: staking, wallets; withAnalytics)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-054-d",
               "title": "StakingRewardsPage",
               "description": "StakingRewardsPage -> source/renderer/app/containers/staking/StakingRewardsPage.tsx -> storybook/stories/screens/staking/StakingRewardsPage.stories.tsx (stores: staking)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-054-e",
               "title": "StakePoolsSettingsPage",
               "description": "StakePoolsSettingsPage -> source/renderer/app/containers/settings/categories/StakePoolsSettingsPage.tsx -> storybook/stories/screens/settings/StakePoolsSettingsPage.stories.tsx (stores: staking, profile)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-054-f",
               "title": "RedeemItnRewardsContainer",
               "description": "RedeemItnRewardsContainer -> source/renderer/app/containers/staking/RedeemItnRewardsContainer.tsx -> storybook/stories/screens/staking/RedeemItnRewardsContainer.stories.tsx (stores: staking, wallets)",
-              "status": "pending"
+              "status": "completed"
             }
           ]
         },

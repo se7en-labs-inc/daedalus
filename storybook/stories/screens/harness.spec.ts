@@ -57,9 +57,9 @@ const withoutTypeImports = (source: string) =>
 
 describe('the screen story corpus', () => {
   it('has a story file per covered screen', () => {
-    // 38 of the application's 49 reachable screens: 29 from phase 6 and the nine
-    // wallet screens of tranche 6.
-    expect(storyFiles).toHaveLength(38);
+    // 44 of the application's 49 reachable screens: 29 from phase 6, the nine
+    // wallet screens of tranche 6 and the six staking screens of tranche 7.
+    expect(storyFiles).toHaveLength(44);
   });
 
   it.each(storyFiles.map((file) => [path.relative(SCREENS_DIR, file), file]))(

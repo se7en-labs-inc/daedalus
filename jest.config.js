@@ -219,12 +219,12 @@ module.exports = {
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-  // `@trezor` and its `@noble` dependency publish ESM only, and the hardware
-  // wallet screens reach them through the store. Transforming them is what lets
-  // those screens be mounted at all; excluding them means the module throws at
-  // import and takes the whole spec file with it.
+  // `@trezor` with its `@noble` dependency, and `lodash-es`, publish ESM only,
+  // and the wallet and staking screens reach all three. Transforming them is what
+  // lets those screens be mounted at all; excluding them means the module throws
+  // at import and takes the whole spec file with it.
   transformIgnorePatterns: [
-    'node_modules/(?!(react-polymorph|@trezor|@noble))',
+    'node_modules/(?!(react-polymorph|@trezor|@noble|lodash-es))',
     // "\\.pnp\\.[^\\/]+$"
   ],
 

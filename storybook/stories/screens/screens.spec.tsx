@@ -42,6 +42,12 @@ import * as walletTokens from './wallets/WalletTokensPage.stories';
 import * as walletTransactions from './wallets/WalletTransactionsPage.stories';
 import * as walletSettings from './wallets/WalletSettingsPage.stories';
 import * as walletUtxo from './wallets/WalletUtxoPage.stories';
+import * as stakingShell from './staking/Staking.stories';
+import * as delegationCenter from './staking/DelegationCenterPage.stories';
+import * as stakePoolsList from './staking/StakePoolsListPage.stories';
+import * as stakingRewards from './staking/StakingRewardsPage.stories';
+import * as stakePoolsSettings from './settings/StakePoolsSettingsPage.stories';
+import * as redeemItn from './staking/RedeemItnRewardsContainer.stories';
 
 /*
  * Every screen story, mounted.
@@ -107,6 +113,12 @@ const modules = {
   WalletTransactionsPage: walletTransactions,
   WalletSettingsPage: walletSettings,
   WalletUtxoPage: walletUtxo,
+  Staking: stakingShell,
+  DelegationCenterPage: delegationCenter,
+  StakePoolsListPage: stakePoolsList,
+  StakingRewardsPage: stakingRewards,
+  StakePoolsSettingsPage: stakePoolsSettings,
+  RedeemItnRewardsContainer: redeemItn,
 };
 
 /*
@@ -123,6 +135,7 @@ const RENDERS_NOTHING = new Set([
   'RTSFlagsRecommendationOverlayContainer:Acknowledged',
   'NewsOverlayContainer:Nothing',
   'AppUpdateContainer:NoUpdate',
+  'RedeemItnRewardsContainer:NotStarted',
 ]);
 
 /*
@@ -213,7 +226,7 @@ const showsNoText = allStories.filter((s) => RENDERS_WITHOUT_TEXT.has(s.id));
 
 describe('screen stories', () => {
   it('composes every screen story', () => {
-    expect(allStories).toHaveLength(98);
+    expect(allStories).toHaveLength(116);
     expect(showsNothing).toHaveLength(RENDERS_NOTHING.size);
     expect(throwsAtTheLogo).toHaveLength(THROWS_AT_THE_LOGO.size);
     expect(showsNoText).toHaveLength(RENDERS_WITHOUT_TEXT.size);
