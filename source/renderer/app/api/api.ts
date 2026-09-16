@@ -483,9 +483,8 @@ export default class AdaApi {
         role,
         index,
       });
-      logger.debug('AdaApi::getWalletPublicKey success', {
-        walletPublicKey,
-      });
+      // Key material carries no diagnostic value and is never logged.
+      logger.debug('AdaApi::getWalletPublicKey success');
       return walletPublicKey;
     } catch (error) {
       logger.error('AdaApi::getWalletPublicKey error', {
@@ -509,9 +508,10 @@ export default class AdaApi {
         passphrase,
         extended,
       });
-      logger.debug('AdaApi::getAccountPublicKey success', {
-        accountPublicKey,
-      });
+      // The key is deliberately absent from this line. An account-level
+      // extended public key derives every address the wallet will ever use,
+      // past and future, and a user cannot rotate it.
+      logger.debug('AdaApi::getAccountPublicKey success');
       return accountPublicKey;
     } catch (error) {
       logger.error('AdaApi::getAccountPublicKey error', {
@@ -1388,9 +1388,8 @@ export default class AdaApi {
         role,
         index,
       });
-      logger.debug('AdaApi::getPublicKey success', {
-        response,
-      });
+      // Key material carries no diagnostic value and is never logged.
+      logger.debug('AdaApi::getPublicKey success');
       return response;
     } catch (error) {
       logger.error('AdaApi::getPublicKey error', {
@@ -1406,9 +1405,8 @@ export default class AdaApi {
 
     try {
       const response = await getICOPublicKey(this.config, request);
-      logger.debug('AdaApi::getICOPublicKey success', {
-        icoPublicKey: response,
-      });
+      // Key material carries no diagnostic value and is never logged.
+      logger.debug('AdaApi::getICOPublicKey success');
       // @ts-ignore ts-migrate(2322) FIXME: Type 'Transaction' is not assignable to type 'stri... Remove this comment to see the full error message
       return response;
     } catch (error) {
@@ -2859,9 +2857,9 @@ export default class AdaApi {
         index,
         data,
       });
-      logger.debug('AdaApi::createWalletSignature success', {
-        response,
-      });
+      // The response is the raw signature over the registration metadata and
+      // is never logged.
+      logger.debug('AdaApi::createWalletSignature success');
       return response;
     } catch (error) {
       logger.error('AdaApi::createWalletSignature error', {
