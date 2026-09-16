@@ -41,6 +41,21 @@ It stops being a bound the moment NFT images are added, and a control introduced
 then is a control introduced after the exposure. That is the argument for deciding
 now rather than when it becomes urgent.
 
+**This groundwork is laid for NFT images specifically, not for the registry case it
+governs today.** The registry attack surface is narrow and the settings work is not
+justified by it alone. It is justified by what arrives next, because NFT images
+differ in every dimension that matters. They are URIs rather than inline bytes, so
+fetching one means a gateway — a third party that sees every image a user opens,
+chosen by us or by them. They carry no curation at all: nothing sits between a
+minter and a user's screen. Their size is unbounded and their format is whatever
+was uploaded. An unpinned image is neither a picture nor an error but a timeout.
+
+So the questions NFT images raise start earlier than blur-or-show: which gateway,
+whether the user picks it, what a slow or missing image renders as, and whether the
+application should issue requests to an arbitrary host on a wallet's behalf at all.
+None of those are answered here. What is answered here is that the control surface
+exists and has a default before any of it arrives.
+
 ## The shape settled
 
 Two settings, in the asset metadata settings page that already exists.
@@ -67,11 +82,31 @@ Daedalus neither validates nor edits it. This is also the honest framing for the
 verified marking, which proves the issuer authored the metadata and says nothing
 about whether it is accurate or inoffensive.
 
-## What a fix would have to decide
+## Revealing a blurred image
 
-**Whether a revealed image stays revealed**, and for how long. Per subject is the
-most useful and the most state. Per session is cheaper. Not at all means clicking
-through the same token on every visit.
+Clicking a blurred image opens a small prompt with three choices: **show this
+image**, **show all images**, **cancel**.
+
+The prompt is the click target rather than a confirmation after the fact. That
+costs one extra click per token, once, and it is the right cost: the concern that
+produced this setting is content nobody asked to see, and an accidental click
+should not be the thing that shows it. Revealing first and offering to stop asking
+afterwards would be the better shape if the blur were only about consent, because
+the click is already the consent — but it is not only about consent.
+
+**Show this image is permanent for that subject.** Someone who has decided about a
+specific token should not be asked about it again. Session-scoped reveal means
+re-deciding the same token tomorrow, which teaches people to click through without
+reading.
+
+**Show all images changes the setting**, and the prompt must say so by name rather
+than silently flipping it. A setting changed from a popup has to be findable
+afterwards by someone who chose it in a hurry and wants it back.
+
+This applies only in blur mode. Hide mode has nothing to click, because nothing was
+fetched.
+
+## What a fix would still have to decide
 
 **What an existing profile gets.** A default of blur applied to profiles that have
 been showing images unblurred is a visible change to people who never asked for
