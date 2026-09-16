@@ -100,7 +100,7 @@ import type {
   TrezorWitness,
 } from '../../../common/types/hardware-wallets.types';
 import { logger } from '../utils/logging';
-import { filterLogData } from '../../../common/utils/logging';
+import { describeError, filterLogData } from '../../../common/utils/logging';
 import { EventCategories } from '../analytics';
 import {
   HardwareWalletDevicesType,
@@ -1107,7 +1107,7 @@ export default class HardwareWalletsStore extends Store {
       }
     } catch (error) {
       logger.debug('[HW-DEBUG] HWStore - Cardano app fetching error', {
-        error: toJS(error),
+        error: describeError(error),
       });
       const isDeviceBusy = includes(error.message, 'Ledger Device is busy');
 
@@ -2656,7 +2656,9 @@ export default class HardwareWalletsStore extends Store {
         this.activeDevicePath = null;
       });
     } catch (error) {
-      logger.info('[HW-DEBUG] HWStore:: sign Transaction Ledger', { error });
+      logger.info('[HW-DEBUG] HWStore:: sign Transaction Ledger', {
+        error: describeError(error),
+      });
       runInAction(
         'HardwareWalletsStore:: set Transaction verifying failed',
         () => {
