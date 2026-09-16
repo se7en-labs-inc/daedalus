@@ -100,6 +100,7 @@ import type {
   TrezorWitness,
 } from '../../../common/types/hardware-wallets.types';
 import { logger } from '../utils/logging';
+import { filterLogData } from '../../../common/utils/logging';
 import { EventCategories } from '../analytics';
 import {
   HardwareWalletDevicesType,
@@ -710,12 +711,18 @@ export default class HardwareWalletsStore extends Store {
       this.hwDeviceStatus = HwDeviceStatuses.CONNECTING;
     });
     const { hardwareWalletDevices, hardwareWalletsConnectionData } = this;
-    logger.debug('[HW-DEBUG] HWStore - establishHardwareWalletConnection', {
-      hardwareWalletDevices: toJS(hardwareWalletDevices),
-      hardwareWalletsConnectionData: toJS(hardwareWalletsConnectionData),
-      activeDelegationWalletId: toJS(this.activeDelegationWalletId),
-      isTransactionInitiated: toJS(this.isTransactionInitiated),
-    });
+    logger.debug(
+      '[HW-DEBUG] HWStore - establishHardwareWalletConnection',
+      // The paired-wallet records carry each device's extended public key.
+      // filterLogData drops it by key name and leaves the pairing structure
+      // this line exists to show.
+      filterLogData({
+        hardwareWalletDevices: toJS(hardwareWalletDevices),
+        hardwareWalletsConnectionData: toJS(hardwareWalletsConnectionData),
+        activeDelegationWalletId: toJS(this.activeDelegationWalletId),
+        isTransactionInitiated: toJS(this.isTransactionInitiated),
+      })
+    );
 
     try {
       // Check if active wallet exist - this means that hw exist but we need to check if relevant device connected to it
@@ -1264,7 +1271,7 @@ export default class HardwareWalletsStore extends Store {
   ) => {
     if (this.isAddressVerificationInitiated) return;
     logger.debug('[HW-DEBUG] HWStore - Initiate Address Verification: ', {
-      address: toJS(address),
+      spendingPath: address?.spendingPath,
       path,
     });
     runInAction('HardwareWalletsStore:: Initiate Address Verification', () => {
@@ -1356,7 +1363,7 @@ export default class HardwareWalletsStore extends Store {
 
     if (deviceType === DeviceTypes.TREZOR) {
       logger.debug('[HW-DEBUG] Verify Address with Trezor: ', {
-        address: toJS(address),
+        spendingPath: address?.spendingPath,
       });
 
       if (!transportDevice) {
@@ -1416,7 +1423,7 @@ export default class HardwareWalletsStore extends Store {
       }
     } else {
       logger.debug('[HW-DEBUG] Verify Address with Ledger: ', {
-        address: toJS(address),
+        spendingPath: address?.spendingPath,
         devicePath,
       });
       this.stopCardanoAdaAppFetchPoller();
@@ -1674,7 +1681,7 @@ export default class HardwareWalletsStore extends Store {
     logger.debug('[HW-DEBUG] HWStore - extendedPublicKey', {
       forcedPath,
       walletId,
-      address: toJS(address),
+      spendingPath: address?.spendingPath,
     });
     this.hwDeviceStatus = HwDeviceStatuses.EXPORTING_PUBLIC_KEY;
     const { transportDevice } = this;
@@ -1993,7 +2000,7 @@ export default class HardwareWalletsStore extends Store {
         logger.debug(
           '[HW-DEBUG] HWStore - Re-initiate Address verification from _storeWalletDataInLocalStorageAndHandleTransactionOrAddressVerificationOrRouting: ',
           {
-            address: toJS(address),
+            spendingPath: address?.spendingPath,
             devicePath,
             expectedWalletId,
             recognizedWalletId: associatedWallet.id,
