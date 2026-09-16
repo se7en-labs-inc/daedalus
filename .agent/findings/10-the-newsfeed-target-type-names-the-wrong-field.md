@@ -42,15 +42,39 @@ Counted over `source/`:
 (`NewsFeedStore.ts:272`), so it is this repository's own statement of the shape
 the feed serves.
 
+## The live feed agrees, which fixes the severity
+
+The repository's sample alone would not settle this. If production payloads
+carried the singular, the filter would be discarding real news and every user
+would be looking at an empty feed, which is a different problem with a different
+urgency. Measured directly against each feed the application requests
+(`api/news/requests/getNews.ts:12-15`), 2026-09-15:
+
+| Feed | Items | `platforms` | `platform` |
+|---|---|---|---|
+| `newsfeed_mainnet.json` | 17 | 17 | 0 |
+| `newsfeed_mainnet_flight.json` | 6 | 6 | 0 |
+| `newsfeed_preprod.json` | 5 | 5 | 0 |
+| `newsfeed_preview.json` | 5 | 5 | 0 |
+| `newsfeed_testnet.json` | 7 | 7 | 0 |
+
+Forty items across every network this application ships for, all plural, none
+singular. The publisher and the filter agree, and it is the declared type that
+disagrees with both.
+
+So no user has seen an empty feed because of this. The cost falls entirely on
+whoever writes an item in TypeScript against the declared type.
+
 An item built to satisfy the declared type therefore has `targetPlatforms`
 `undefined`, `includes(undefined, 'darwin')` is `false`, and the filter drops it
 before anything sees it. Silently: the collection is simply shorter.
 
 ## What it does and does not affect today
 
-Nothing in a shipped build. The live feed serves `platforms`, the filter reads
-`platforms`, and the type is never checked against the wire because the response
-arrives as JSON and is cast.
+Nothing in a shipped build, which the table above establishes rather than
+assumes. The live feed serves `platforms`, the filter reads `platforms`, and the
+type is never checked against the wire because the response arrives as JSON and
+is cast.
 
 What it affects is anyone writing a news item in TypeScript. The type is the only
 documentation of the shape, and it is wrong in the one field that decides whether
