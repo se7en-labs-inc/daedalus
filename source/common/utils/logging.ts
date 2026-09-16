@@ -33,6 +33,8 @@ export const filterLogData = (
     'stakeKey',
     'signature',
     'accountPublicKey',
+    'walletPublicKey',
+    'icoPublicKey',
     'extendedPublicKey',
     'publicKeyHex',
     'chainCodeHex',
@@ -92,6 +94,74 @@ export const filterLogData = (
   };
 
   return redact(data);
+};
+
+// Error messages are bounded before they reach the log. A backend failure can
+// carry a message assembled from the response it could not parse, which is
+// otherwise as large as that response.
+const MAX_LOGGED_MESSAGE_LENGTH = 512;
+// Status and error codes worth keeping: each one distinguishes a class of
+// failure that the message alone does not.
+const DIAGNOSTIC_ERROR_FIELDS = ['code', 'statusCode', 'status', 'syscall'];
+
+const boundMessage = (message: string): string =>
+  message.length > MAX_LOGGED_MESSAGE_LENGTH
+    ? `${message.slice(
+        0,
+        MAX_LOGGED_MESSAGE_LENGTH
+      )} [truncated, ${message.length} chars]`
+    : message;
+
+/**
+ * Reduces a thrown value to the fields that tell one failure from another.
+ *
+ * `JSON.stringify(new Error('boom'))` is `{}`, because `name`, `message` and
+ * `stack` are either inherited or non-enumerable. Handing an `Error` straight
+ * to the logger therefore records an empty object and no information. This
+ * returns fields that survive serialisation: the error's name, its message
+ * bounded to `MAX_LOGGED_MESSAGE_LENGTH`, and whichever status or error code
+ * the thrown value carries. Payloads attached to an error are not included.
+ */
+export const describeError = (error: unknown): Record<string, any> => {
+  if (typeof error === 'string') {
+    return {
+      message: boundMessage(error),
+    };
+  }
+
+  if (error == null || typeof error !== 'object') {
+    return {
+      message: String(error),
+    };
+  }
+
+  const source = error as Record<string, any>;
+  const description: Record<string, any> = {};
+  const name = error instanceof Error ? error.name : source.name;
+
+  if (typeof name === 'string' && name !== '') {
+    description.name = name;
+  }
+
+  const message = error instanceof Error ? error.message : source.message;
+
+  if (typeof message === 'string' && message !== '') {
+    description.message = boundMessage(message);
+  }
+
+  DIAGNOSTIC_ERROR_FIELDS.forEach((field) => {
+    const value = source[field];
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      description[field] = value;
+    }
+  });
+
+  return Object.keys(description).length > 0
+    ? description
+    : {
+        message: 'thrown value carried no diagnostic fields',
+      };
 };
 export const stringifyData = (data: any) => JSON.stringify(data, null, 2);
 export const stringifyError = (error: any) =>
