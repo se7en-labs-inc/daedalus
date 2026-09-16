@@ -2099,7 +2099,7 @@
           "id": "task-055",
           "title": "Build the governance and voting fixture data",
           "description": "Two store keys arrive with this tranche, governance and voting, and the governance stories already hold the richest fixtures in the corpus at 62 registrations across four files.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 5.0,
           "dependencies": [
@@ -2126,7 +2126,7 @@
           "id": "task-056",
           "title": "Screen tranche 8: governance and voting, 5 screens",
           "description": "GovernanceWalletsPage, the DRepDirectoryPage directory view, the DRepDirectoryPage favorites view, DRepDetailPage and VotingGovernancePage. One container serves two of these screens.",
-          "status": "pending",
+          "status": "completed",
           "priority": "high",
           "estimatedHours": 16.0,
           "dependencies": [
@@ -2161,31 +2161,31 @@
               "id": "task-056-a",
               "title": "GovernanceWalletsPage",
               "description": "GovernanceWalletsPage -> source/renderer/app/containers/governance/GovernanceWalletsPage.tsx -> storybook/stories/screens/governance/GovernanceWalletsPage.stories.tsx (stores: governance, wallets; withRouter)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-056-b",
               "title": "DRepDirectoryPage directory view",
               "description": "DRepDirectoryPage directory view -> source/renderer/app/containers/governance/DRepDirectoryPage.tsx -> storybook/stories/screens/governance/DRepDirectoryPage.directory.stories.tsx (stores: governance; withRouter)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-056-c",
               "title": "DRepDirectoryPage favorites view",
               "description": "DRepDirectoryPage favorites view -> source/renderer/app/containers/governance/DRepDirectoryPage.tsx -> storybook/stories/screens/governance/DRepDirectoryPage.favorites.stories.tsx (stores: governance; same container, second meaningful state)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-056-d",
               "title": "DRepDetailPage",
               "description": "DRepDetailPage -> source/renderer/app/containers/governance/DRepDetailPage.tsx -> storybook/stories/screens/governance/DRepDetailPage.stories.tsx (stores: governance; withRouter, and reads match.params.drepId at :56, so the story must seed a route carrying a :drepId)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "task-056-e",
               "title": "VotingGovernancePage",
               "description": "VotingGovernancePage -> source/renderer/app/containers/voting/VotingGovernancePage.tsx -> storybook/stories/screens/voting/VotingGovernancePage.stories.tsx (stores: voting; withRouter)",
-              "status": "pending"
+              "status": "completed"
             }
           ]
         }

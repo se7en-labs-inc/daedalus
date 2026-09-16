@@ -48,6 +48,11 @@ import * as stakePoolsList from './staking/StakePoolsListPage.stories';
 import * as stakingRewards from './staking/StakingRewardsPage.stories';
 import * as stakePoolsSettings from './settings/StakePoolsSettingsPage.stories';
 import * as redeemItn from './staking/RedeemItnRewardsContainer.stories';
+import * as drepDirectory from './governance/DRepDirectoryPage.directory.stories';
+import * as drepFavorites from './governance/DRepDirectoryPage.favorites.stories';
+import * as drepDetail from './governance/DRepDetailPage.stories';
+import * as governanceWallets from './governance/GovernanceWalletsPage.stories';
+import * as votingGovernance from './voting/VotingGovernancePage.stories';
 
 /*
  * Every screen story, mounted.
@@ -119,6 +124,11 @@ const modules = {
   StakingRewardsPage: stakingRewards,
   StakePoolsSettingsPage: stakePoolsSettings,
   RedeemItnRewardsContainer: redeemItn,
+  DRepDirectoryPage: drepDirectory,
+  DRepFavoritesPage: drepFavorites,
+  DRepDetailPage: drepDetail,
+  GovernanceWalletsPage: governanceWallets,
+  VotingGovernancePage: votingGovernance,
 };
 
 /*
@@ -226,7 +236,7 @@ const showsNoText = allStories.filter((s) => RENDERS_WITHOUT_TEXT.has(s.id));
 
 describe('screen stories', () => {
   it('composes every screen story', () => {
-    expect(allStories).toHaveLength(116);
+    expect(allStories).toHaveLength(129);
     expect(showsNothing).toHaveLength(RENDERS_NOTHING.size);
     expect(throwsAtTheLogo).toHaveLength(THROWS_AT_THE_LOGO.size);
     expect(showsNoText).toHaveLength(RENDERS_WITHOUT_TEXT.size);
