@@ -25,6 +25,7 @@ import {
 } from './hardwareWallets/ledger/deviceDetection';
 import { IpcSender } from '../../common/ipc/lib/IpcChannel';
 import { logger } from '../utils/logging';
+import { describeError } from '../../common/utils/logging';
 import {
   HardwareWalletTransportDeviceRequest,
   LedgerDevicePayload,
@@ -113,7 +114,7 @@ class EventObserver {
             } catch (error) {
               logger.error('[HW-DEBUG] CONSTRUCTOR error', {
                 walletData,
-                error,
+                error: describeError(error),
               });
             }
           }
@@ -506,7 +507,9 @@ export const handleHardwareWalletRequests = async (
       if (result.success === false) {
         logger.error(
           '[TREZOR-CONNECT] TrezorConnect.cardanoGetAddress() failed',
-          result.payload
+          {
+            error: describeError(result.payload),
+          }
         );
 
         throw new Error('TrezorConnect.cardanoGetAddress() failed');
@@ -812,7 +815,9 @@ export const handleHardwareWalletRequests = async (
         deviceId: deviceSerial.serialHex,
       });
     } catch (error) {
-      logger.info('[HW-DEBUG] EXPORT KEY ERROR', error);
+      logger.info('[HW-DEBUG] EXPORT KEY ERROR', {
+        error: describeError(error),
+      });
       throw error;
     }
   });

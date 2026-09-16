@@ -3,7 +3,7 @@ import { camelCase, get, includes, keys, map, omit, snakeCase } from 'lodash';
 import { GenericApiError } from '../api/common/errors';
 import { messages } from '../api/errors';
 import { logger } from '../utils/logging';
-import { toJS } from '../../../common/utils/helper';
+import { describeError } from '../../../common/utils/logging';
 
 type KnownErrorType =
   | 'invalid_wallet_type'
@@ -215,7 +215,7 @@ export default class ApiError {
     if (logging && logging.msg) {
       const { logError, msg } = logging;
       logger.error(msg, {
-        error: logError ? toJS(this.values) : null,
+        error: logError ? describeError(this.values) : null,
       });
     }
   }
