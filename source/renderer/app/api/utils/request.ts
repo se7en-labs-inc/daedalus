@@ -199,11 +199,18 @@ function typedRequest<Response>(
             if (parsedBody.code && parsedBody.message) {
               reject(parsedBody);
             } else {
+              // The body's shape, not the body. This message is what the
+              // logger records for the failure, so it stays bounded and
+              // free of response contents.
+              const shape = Array.isArray(parsedBody)
+                ? `array of ${parsedBody.length}`
+                : `keys ${Object.keys(parsedBody).slice(0, 10).join(', ')}`;
               const unknownErr: any = new Error(
-                `Unknown API response (${statusCode}): ${body}`
+                `Unknown API response (${statusCode}): ${getContentLength(
+                  body
+                )} bytes, ${shape}`
               );
               unknownErr.statusCode = statusCode;
-              unknownErr.responseBody = parsedBody;
               reject(unknownErr);
             }
           } else {
@@ -217,7 +224,9 @@ function typedRequest<Response>(
         } catch (parseError) {
           // Handle internal server errors (e.g. HTTP 500 - 'Something went wrong')
           const err: any = new Error(
-            `Failed to parse API response (${response.statusCode}): ${parseError.message} — raw body: ${body}`
+            `Failed to parse API response (${
+              response.statusCode
+            }): ${parseError.message} (${getContentLength(body)} bytes)`
           );
           err.statusCode = response.statusCode;
           err.parseError = parseError.message;
