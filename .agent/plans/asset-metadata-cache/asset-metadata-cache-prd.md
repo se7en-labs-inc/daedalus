@@ -1863,6 +1863,14 @@ once, not here.
 
 ---
 
+## Outstanding before this plan leaves draft
+
+One commit on this branch is temporary diagnostic instrumentation and must be
+reverted before the work is proposed for merge. It writes an `Assets.json` log
+beside `Daedalus.json` and adds logging to the asset image path, and it is not a
+feature. What it touched and how to remove it is in
+`.agent/plans/asset-metadata-cache/temporary-instrumentation.md`.
+
 **Status:** In Progress
 **Date:** 2026-09-10, updated 2026-09-11, revised 2026-09-14, phases 1 to 6 built 2026-09-15, phase 7 built 2026-09-16, decimals gate revised 2026-09-16
 **Author:** Se7en Labs

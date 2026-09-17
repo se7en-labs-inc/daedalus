@@ -8,6 +8,8 @@ import Asset from '../../../assets/Asset';
 import AssetAmount from '../../../assets/AssetAmount';
 import type { AssetToken } from '../../../../api/assets/types';
 import { requestAssetImageUrl } from '../../../../ipc/assetMetadataChannel';
+// TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+import { assetLogger } from '../../../../utils/assetLogging';
 // @ts-ignore ts-migrate(2307) FIXME: Cannot find module '../../../../assets/images/coll... Remove this comment to see the full error message
 import arrow from '../../../../assets/images/collapse-arrow-small.inline.svg';
 // @ts-ignore ts-migrate(2307) FIXME: Cannot find module '../../../../assets/images/star... Remove this comment to see the full error message
@@ -74,15 +76,39 @@ function WalletTokenHeader(props: Props) {
   // metadata arrives is in neither channel yet, and the row that replaces it a
   // moment later is the first one with a reason to ask.
   useEffect(() => {
-    if (!isInRegistry) return undefined;
+    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+    // draft. Both branches are recorded, because "ten rows should have asked
+    // and only three pictures appeared" and "only three rows asked" are
+    // different faults and the row is the only place that knows which.
+    if (!isInRegistry) {
+      assetLogger.debug('Asset image row: not asking', {
+        subject,
+        source: source ?? null,
+      });
+      return undefined;
+    }
     let wanted = true;
+    assetLogger.debug('Asset image row: asking', {
+      subject,
+      source: source ?? null,
+    });
     requestAssetImageUrl(subject).then((url) => {
+      assetLogger.debug('Asset image row: answered', {
+        subject,
+        source: source ?? null,
+        hasUrl: url != null,
+        urlLength: url == null ? 0 : url.length,
+        stillMounted: wanted,
+      });
       if (wanted) setLogoUrl(url);
     });
     // A list is scrolled, and an answer can outlive the row that asked for it.
     return () => {
       wanted = false;
     };
+    // The dependency list is deliberately the one that was here before. Adding
+    // `source` would make the effect re-run on a change that does not move
+    // `isInRegistry`, which is a behaviour change, and this commit has none.
   }, [subject, isInRegistry]);
 
   const rootStyles = classNames(

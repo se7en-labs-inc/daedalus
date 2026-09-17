@@ -26,6 +26,8 @@ import { AssetMetadataResolver } from '../assets/assetMetadataResolver';
 import { AssetImageStore } from '../assets/assetImageStore';
 import type { RegistryTransport } from '../assets/assetRegistryClient';
 import { logger } from '../utils/logging';
+// TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+import { assetLogger } from '../utils/assetLogging';
 
 const assetMetadataChannel: MainIpcChannel<
   AssetMetadataRendererRequest,
@@ -212,9 +214,33 @@ export class AssetMetadataChannelHandlers {
     request: AssetImageRendererRequest
   ): Promise<AssetImageMainResponse> => {
     const requestId = request?.requestId;
+    const subject = request?.subject;
+    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+    // draft. Both ends of this handler are recorded with the same `requestId`,
+    // so a request that is answered here and a response that never reaches the
+    // renderer can be told apart from a request that was never answered.
+    assetLogger.debug('Asset image IPC: request received', {
+      requestId,
+      subject,
+    });
     try {
-      const row = await this._images.fetch(request?.subject);
-      if (!row) return { requestId, status: 'absent' };
+      const row = await this._images.fetch(subject);
+      if (!row) {
+        assetLogger.debug('Asset image IPC: response sent', {
+          requestId,
+          subject,
+          status: 'absent',
+          byteLength: 0,
+        });
+        return { requestId, status: 'absent' };
+      }
+      assetLogger.debug('Asset image IPC: response sent', {
+        requestId,
+        subject,
+        status: 'present',
+        byteLength: row.bytes.length,
+        mediaType: row.mediaType,
+      });
       return {
         requestId,
         status: 'present',
@@ -223,6 +249,13 @@ export class AssetMetadataChannelHandlers {
       };
     } catch (error) {
       logger.debug('Asset metadata IPC: image read failed', {
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+      assetLogger.warn('Asset image IPC: response sent', {
+        requestId,
+        subject,
+        status: 'absent',
+        byteLength: 0,
         reason: error instanceof Error ? error.message : 'unknown',
       });
       return { requestId, status: 'absent' };

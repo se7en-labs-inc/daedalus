@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { RendererIpcChannel } from './lib/RendererIpcChannel';
+// TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+import { assetLogger } from '../utils/assetLogging';
 import {
   ASSET_IMAGE_CHANNEL,
   ASSET_METADATA_CHANNEL,
@@ -32,6 +34,14 @@ export const assetImageChannel: RendererIpcChannel<
 type Correlated = { requestId: string };
 
 /**
+ * TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+ *
+ * The subject each outstanding image request named, so a delivery can say which
+ * asset it was about. The response carries only a `requestId`.
+ */
+const requestSubjects = new Map<string, string>();
+
+/**
  * Waiters for one channel, keyed by the id each of them issued.
  *
  * `IpcChannel.request` registers a one-shot listener on the channel's single
@@ -48,12 +58,38 @@ type Correlated = { requestId: string };
  */
 const deliver = <TResponse extends Correlated>(
   waiters: Map<string, (response: TResponse) => void>,
-  response: TResponse
+  response: TResponse,
+  channel: string
 ): void => {
   const requestId = response?.requestId;
   const waiter = typeof requestId === 'string' ? waiters.get(requestId) : null;
-  if (!waiter) return;
+  const subject =
+    typeof requestId === 'string'
+      ? (requestSubjects.get(requestId) ?? null)
+      : null;
+  if (!waiter) {
+    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+    // draft. A payload nobody is waiting for is discarded here without a word,
+    // and so is the fact that some other waiter is still holding. Both halves
+    // are on the record now: how many are still waiting, and which subject this
+    // payload belonged to.
+    assetLogger.warn('Asset IPC renderer: response matched no waiter', {
+      channel,
+      requestId: typeof requestId === 'string' ? requestId : null,
+      subject,
+      waiting: waiters.size,
+    });
+    return;
+  }
   waiters.delete(requestId);
+  requestSubjects.delete(requestId);
+  assetLogger.debug('Asset IPC renderer: response matched its waiter', {
+    channel,
+    requestId,
+    subject,
+    waitingBefore: waiters.size + 1,
+    waitingAfter: waiters.size,
+  });
   waiter(response);
 };
 
@@ -103,12 +139,19 @@ export const requestAssetMetadata = (
         sourceUrl: options.sourceUrl ?? null,
         connectivityRestored: options.connectivityRestored === true,
       })
-      .then((response) => deliver(metadataWaiters, response))
+      .then((response) => deliver(metadataWaiters, response, 'metadata'))
       // A rejected response arrives without an id, so it cannot be handed to the
       // waiter it belongs to. The main handlers answer on every path and never
       // reject, which is what keeps this unreachable; rejecting some other
       // waiter to be rid of it would be worse than leaving this one waiting.
-      .catch(() => {});
+      .catch(() => {
+        assetLogger.warn('Asset IPC renderer: request rejected', {
+          channel: 'metadata',
+          requestId,
+          subject: null,
+          waiting: metadataWaiters.size,
+        });
+      });
   });
 
 /** Asks for one subject's logo. Answers `absent` rather than failing. */
@@ -118,13 +161,32 @@ export const requestAssetImage = (
   new Promise((resolve) => {
     const requestId = uuidv4();
     imageWaiters.set(requestId, resolve);
+    requestSubjects.set(requestId, subject);
+    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+    // draft. `waiting` is the count after this one was parked, so a burst of
+    // rows asking at once is visible as a rising number, and a number that
+    // rises and never comes back down is a set of requests that were answered
+    // by nobody.
+    assetLogger.debug('Asset image renderer: request sent', {
+      channel: 'image',
+      requestId,
+      subject,
+      waiting: imageWaiters.size,
+    });
     assetImageChannel
       .request({
         requestId,
         subject,
       })
-      .then((response) => deliver(imageWaiters, response))
-      .catch(() => {});
+      .then((response) => deliver(imageWaiters, response, 'image'))
+      .catch(() => {
+        assetLogger.warn('Asset IPC renderer: request rejected', {
+          channel: 'image',
+          requestId,
+          subject,
+          waiting: imageWaiters.size,
+        });
+      });
   });
 
 /**
@@ -153,14 +215,28 @@ export const requestAssetImageUrl = (
   subject: string
 ): Promise<string | null> => {
   const existing = imageUrls.get(subject);
-  if (existing) return existing;
-  const pending = requestAssetImage(subject).then((response) =>
+  if (existing) {
+    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+    // draft. A memo hit on a promise that never settles is indistinguishable
+    // from a memo hit on a picture, from the row's point of view.
+    assetLogger.debug('Asset image renderer: memo hit', { subject });
+    return existing;
+  }
+  const pending = requestAssetImage(subject).then((response) => {
     // Narrowed by the literal rather than by truthiness: `strict` is off, so a
     // check on the absence of a property does not narrow this union at all.
-    response.status === 'present'
-      ? dataUrl(response.mediaType, response.bytes)
-      : null
-  );
+    const url =
+      response.status === 'present'
+        ? dataUrl(response.mediaType, response.bytes)
+        : null;
+    assetLogger.debug('Asset image renderer: url resolved', {
+      subject,
+      status: response.status,
+      byteLength: response.status === 'present' ? response.bytes.length : 0,
+      hasUrl: url != null,
+    });
+    return url;
+  });
   imageUrls.set(subject, pending);
   return pending;
 };

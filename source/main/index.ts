@@ -13,6 +13,8 @@ import {
   logStateSnapshot,
   generateWalletMigrationReport,
 } from './utils/setupLogging';
+// TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+import { setupAssetLogging } from './utils/setupAssetLogging';
 import { handleDiskSpace } from './utils/handleDiskSpace';
 import { createMainWindow } from './windows/main';
 import { installChromeExtensions } from './utils/installChromeExtensions';
@@ -221,6 +223,11 @@ function buildWalletArgs(
 
 const onAppReady = async () => {
   setupLogging();
+  // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+  // After `setupLogging`, which removes `Daedalus.*` and would otherwise take
+  // the banner line written here with it if the order were reversed and the
+  // glob ever widened.
+  setupAssetLogging();
   await logUsedVersion(
     environment.version,
     path.join(pubLogsFolderPath, 'Daedalus-versions.json')

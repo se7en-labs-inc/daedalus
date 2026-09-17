@@ -7,6 +7,8 @@ import type {
   AssetResolutionState,
 } from '../../common/types/asset-metadata.types';
 import { logger } from '../utils/logging';
+// TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+import { assetLogger } from '../utils/assetLogging';
 
 const ASSET_METADATA_DIRECTORY_NAME = 'asset-metadata-cache';
 const ASSET_METADATA_DATABASE_FILE_NAME = 'assets.sqlite';
@@ -376,8 +378,28 @@ export class AssetMetadataDatabase {
     maxBytes: number = ASSET_IMAGE_MAX_ENTRY_BYTES
   ): boolean {
     const db = this._db;
-    if (!db) return false;
+    if (!db) {
+      assetLogger.warn('Asset image: write refused', {
+        subject: row.subject,
+        refusedBy: 'pre-check',
+        reason: 'database-not-open',
+      });
+      return false;
+    }
+    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+    // draft. This pre-check refused silently, and the SQL failure below reports
+    // under `Asset metadata cache:` rather than `Asset image:`, so a caller
+    // reading the log for images saw neither. Both now say which of the two
+    // refused, and both carry the subject.
     if (!row.bytes || row.bytes.length === 0 || row.bytes.length > maxBytes) {
+      assetLogger.warn('Asset image: write refused', {
+        subject: row.subject,
+        refusedBy: 'pre-check',
+        reason:
+          !row.bytes || row.bytes.length === 0 ? 'empty-bytes' : 'over-max',
+        byteLength: row.bytes ? row.bytes.length : 0,
+        maxBytes,
+      });
       return false;
     }
     try {
@@ -392,6 +414,13 @@ export class AssetMetadataDatabase {
     } catch (error) {
       logger.warn('Asset metadata cache: image write refused', {
         reason: reasonOf(error),
+      });
+      assetLogger.warn('Asset image: write refused', {
+        subject: row.subject,
+        refusedBy: 'sqlite',
+        reason: reasonOf(error),
+        byteLength: row.bytes.length,
+        mediaType: row.mediaType,
       });
       return false;
     }

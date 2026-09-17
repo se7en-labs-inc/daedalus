@@ -1,4 +1,6 @@
 import { logger } from '../utils/logging';
+// TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+import { assetLogger } from '../utils/assetLogging';
 import type { AssetImageRow, AssetMetadataDatabase } from './assetMetadataDb';
 import {
   ASSET_IMAGE_MAX_ENTRY_BYTES,
@@ -90,15 +92,41 @@ export type AssetImageStoreOptions = {
 const logoRequestBody = (subject: string): string =>
   JSON.stringify({ subjects: [subject], properties: ['logo'] });
 
-const logoValue = (body: string, subject: string): string | null => {
+/**
+ * TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+ *
+ * `logoValue` used to answer `null` to four different questions, and the caller
+ * treated all four the same way: remember the subject and never ask again. Two
+ * of them mean the registry has no picture of this asset, which is ordinary and
+ * correct to remember. The other two mean the answer could not be read at all,
+ * which is a fault and is remembered just as permanently.
+ *
+ * The verdict travels with the value so the caller can say which happened. What
+ * the caller then does is unchanged.
+ */
+type LogoLookupOutcome = 'found' | 'answered-without-logo' | 'unreadable';
+
+type LogoLookup = {
+  value: string | null;
+  outcome: LogoLookupOutcome;
+  reason: string;
+};
+
+const logoValue = (body: string, subject: string): LogoLookup => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(body);
   } catch {
-    return null;
+    return { value: null, outcome: 'unreadable', reason: 'body-is-not-json' };
   }
   const subjects = (parsed as { subjects?: unknown })?.subjects;
-  if (!Array.isArray(subjects)) return null;
+  if (!Array.isArray(subjects)) {
+    return {
+      value: null,
+      outcome: 'unreadable',
+      reason: 'no-subjects-array',
+    };
+  }
   const entry = subjects.find(
     (candidate) =>
       typeof (candidate as { subject?: unknown })?.subject === 'string' &&
@@ -106,9 +134,22 @@ const logoValue = (body: string, subject: string): string | null => {
   ) as { logo?: { value?: unknown } } | undefined;
   // A server answering a question nobody asked must not be able to create a
   // row, and here the consequence would be one asset wearing another's logo.
-  if (!entry) return null;
+  if (!entry) {
+    return {
+      value: null,
+      outcome: 'answered-without-logo',
+      reason: 'subject-not-in-response',
+    };
+  }
   const value = entry.logo?.value;
-  return typeof value === 'string' ? value : null;
+  if (typeof value !== 'string') {
+    return {
+      value: null,
+      outcome: 'answered-without-logo',
+      reason: 'entry-carries-no-logo',
+    };
+  }
+  return { value, outcome: 'found', reason: 'logo-present' };
 };
 
 export class AssetImageStore {
@@ -154,23 +195,47 @@ export class AssetImageStore {
 
   fetch(subject: string): Promise<AssetImageRow | null> {
     if (typeof subject !== 'string' || subject.length === 0) {
+      assetLogger.debug('Asset image store: refused a subject', {
+        reason: 'subject-is-empty',
+      });
       return Promise.resolve(null);
     }
     const stored = this._db.readImage(subject);
     if (stored) {
       this._touch(stored);
+      assetLogger.debug('Asset image store: served from cache', {
+        subject,
+        byteLength: stored.bytes.length,
+        mediaType: stored.mediaType,
+      });
       return Promise.resolve(stored);
     }
-    if (this._withoutImage.has(subject)) return Promise.resolve(null);
+    if (this._withoutImage.has(subject)) {
+      assetLogger.debug('Asset image store: skipped, known to have no image', {
+        subject,
+        withoutImageCount: this._withoutImage.size,
+      });
+      return Promise.resolve(null);
+    }
     const existing = this._inFlight.get(subject);
     // A token list is thirty components each deciding independently whether to
     // show a picture, so sharing the request is the ordinary case.
-    if (existing) return existing;
+    if (existing) {
+      assetLogger.debug('Asset image store: joined a request in flight', {
+        subject,
+        inFlightCount: this._inFlight.size,
+      });
+      return existing;
+    }
 
     const pending = this._fetchOne(subject).finally(() => {
       this._inFlight.delete(subject);
     });
     this._inFlight.set(subject, pending);
+    assetLogger.debug('Asset image store: fetch started', {
+      subject,
+      inFlightCount: this._inFlight.size,
+    });
     return pending;
   }
 
@@ -185,14 +250,48 @@ export class AssetImageStore {
       // Cosmetic and retryable. Nothing is recorded, so the next render may ask
       // again; only a successful answer without a logo is remembered.
       logger.debug('Asset image: request did not answer');
+      // `reason` separates the transport's own refusals from an HTTP status:
+      // `too-large` is the 1MB response cap, `timeout` and `network` are the
+      // connection. None of them is remembered, so the next render may ask
+      // again, which is why this line says so.
+      assetLogger.debug('Asset image: registry request did not answer', {
+        subject,
+        ok: result.ok,
+        reason: result.ok === false ? result.reason : 'http-status',
+        status: result.ok === false ? null : result.status,
+        neverRetried: false,
+      });
       return null;
     }
 
-    const value = logoValue(result.body, subject);
-    if (value === null) {
+    const logo = logoValue(result.body, subject);
+    if (logo.value === null) {
       this._withoutImage.add(subject);
+      // Two outcomes that were one silence. `unreadable` says the response
+      // could not be read; `answered-without-logo` says it was read and the
+      // registry has no picture of this asset. Either way the subject is now in
+      // `_withoutImage` and is never asked for again while this process lives,
+      // which is why the distinction has to be on the record.
+      if (logo.outcome === 'unreadable') {
+        assetLogger.warn('Asset image: registry response could not be read', {
+          subject,
+          reason: logo.reason,
+          bodyLength: result.body.length,
+          neverRetried: true,
+          withoutImageCount: this._withoutImage.size,
+        });
+      } else {
+        assetLogger.debug('Asset image: registry answered without a logo', {
+          subject,
+          reason: logo.reason,
+          bodyLength: result.body.length,
+          neverRetried: true,
+          withoutImageCount: this._withoutImage.size,
+        });
+      }
       return null;
     }
+    const value = logo.value;
 
     // Decoding before the cap check is safe because the transport has already
     // bounded the response. Base64 decoding is lenient and skips what it cannot
@@ -203,22 +302,46 @@ export class AssetImageStore {
       logger.debug('Asset image: entry discarded on size', {
         byteLength: bytes.length,
       });
+      assetLogger.debug('Asset image: entry discarded on size', {
+        subject,
+        byteLength: bytes.length,
+        maxBytes: ASSET_IMAGE_MAX_BYTES,
+        encodedLength: value.length,
+      });
       return null;
     }
 
     const mediaType = detectImageMediaType(bytes);
     if (!mediaType) {
       logger.debug('Asset image: entry discarded on media type');
+      assetLogger.debug('Asset image: entry discarded on media type', {
+        subject,
+        byteLength: bytes.length,
+      });
       return null;
     }
 
     if (!this._db.writeImage({ subject, mediaType, bytes }, this._now())) {
+      // The refusal itself is logged by `writeImage`, which is the only place
+      // that knows whether the pre-check or SQLite refused it.
+      assetLogger.debug('Asset image: write refused, nothing cached', {
+        subject,
+        byteLength: bytes.length,
+        mediaType,
+      });
       return null;
     }
     // A write is the only moment a bound can be crossed; a read can only move a
     // row later in the ordering.
     this._db.enforceImageBounds(this._maxEntries, this._maxTotalBytes);
-    return this._db.readImage(subject);
+    const written = this._db.readImage(subject);
+    assetLogger.debug('Asset image: fetch finished', {
+      subject,
+      byteLength: bytes.length,
+      mediaType,
+      storedAndReadBack: written != null,
+    });
+    return written;
   }
 }
 
