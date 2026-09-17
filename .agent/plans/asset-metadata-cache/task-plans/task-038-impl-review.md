@@ -117,3 +117,60 @@ that is ready to run, and `completed` would be false.
 
 Decision: approved as a procedure. The task itself remains open until a signed
 checklist comes back.
+
+Implementation: Iteration 2
+Timestamp: 2026-09-17T18:45:00Z
+
+**No scenario in this task has been executed either.** This iteration corrects
+one step of the procedure.
+
+What iteration 1 got wrong: scenario 6's evidence query selects a `verified`
+column. `task-046` renamed that column to `attested` when it moved the decimals
+gate off the policy binding, so the schema now reads
+`attested INTEGER NOT NULL DEFAULT 0` (`source/main/assets/assetMetadataDb.ts:46`,
+selected at `:84`) and there is no `verified` column. The query fails with
+`no such column: verified`, which leaves the operator with nothing to record in
+the checklist field of the same name. The expected values are unchanged in
+substance: a chain-sourced row carries `source` `chain`, `decimals` NULL and
+`attested` 0, because a CIP-25 record is not a registry attestation.
+
+Form used: the readme makes `task-NNN.md` stable once planning closes, so
+nothing was reworded. A dated `### Corrections, 2026-09-17` subsection was added
+at the head of `## Implementation Approach` with the corrected query, and
+scenario 6 and the checklist gained a pointer to it. The diff is insertions
+only.
+
+Re-checked at `5bd24fee1` while confirming the rename, and unchanged: the two
+refusal messages (`source/renderer/app/i18n/locales/en-US.json:39` and `:42`),
+the three source options (`:656-658`), the `asset_resolution` columns scenario 9
+queries (`assetMetadataDb.ts:73-80`), and that the chain path does write
+`state: 'pending'` for a pointer beyond the immutable tip
+(`source/main/assets/assetMetadataResolver.ts:681-684`).
+
+What this iteration did not touch, because another agent owns it:
+`asset-metadata-cache-tasks.json`, where `task-038.implementationNotes` names
+the same column, and the PRD.
+
+Checks: none run, because nothing outside `.agent/` changed. `git diff` over
+`source`, `storybook`, `tests`, `package.json` and `yarn.lock` is empty.
+
+Deviations from the approved plan:
+- None.
+
+Outcome: Procedure corrected; execution still pending an operator
+
+Review of Iteration 2
+Timestamp: 2026-09-17T18:48:00Z
+
+The correction is one word in one query. `sqlite3` refuses the statement
+outright, so nothing false gets recorded. It still had to be fixed here, because
+scenario 6's whole purpose is the row it asks the operator to read, and scenario
+7's pass condition is the absence of a row from the same table.
+
+The other quoted strings in this procedure were re-read from `en-US.json`
+rather than assumed, because a rename in one task is a reason to distrust every
+quotation written before it, and the settings-page strings this task tests were
+not touched by that rename.
+
+Decision: approved as a corrected procedure. The task stays `blocked` until a
+signed checklist comes back.

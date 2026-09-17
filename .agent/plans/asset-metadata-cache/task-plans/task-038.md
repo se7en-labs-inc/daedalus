@@ -102,6 +102,33 @@ No source file changes.
 The procedure below is the deliverable. An operator runs it, fills in the
 checklist, and attaches the artifacts each step names.
 
+### Corrections, 2026-09-17
+
+Verified against the tree at `5bd24fee1`.
+
+**The cache column scenario 6 reads is now `attested`, not `verified`.**
+`task-046` renamed it everywhere the verdict travels, and the schema is
+`attested INTEGER NOT NULL DEFAULT 0`
+(`source/main/assets/assetMetadataDb.ts:46`, selected at `:84`). There is no
+`verified` column, so the query as written fails with `no such column:
+verified` and an operator has no row to record. The corrected query:
+
+```
+sqlite3 <cache>/assets.sqlite \
+  "select subject, source, decimals, attested, slot from asset_metadata where source='chain';"
+```
+
+The expected values are unchanged in substance: `source` `chain`, `decimals`
+NULL, and `attested` 0. A CIP-25 record is not a registry attestation, so the
+column is 0 for every chain-sourced row, and the amount stays in raw units
+because the figure that would format it is the attested registry one
+(`source/renderer/app/utils/assetDecimals.ts:52-76`). The checklist field
+labeled `verified` takes the same rename.
+
+The rest of this procedure was re-checked against the current strings and holds:
+the two refusals at `source/renderer/app/i18n/locales/en-US.json:39` and `:42`,
+and the three source options at `:656-658`.
+
 ### Preparation, once per platform
 
 Install the build under test on a profile whose asset metadata cache has been
@@ -177,6 +204,9 @@ be used", which is **not** the message from scenario 4.
 one request to `/tip`.
 
 ### 6. An NFT the registry has never heard of
+
+**Corrected 2026-09-17: the query below names a column that no longer exists.
+Use the corrected query in the corrections section above.**
 
 With the preset selected, open a wallet holding an NFT that carries a CIP-25
 record and is not in the token registry. Watch the token list from a cold cache.
@@ -301,6 +331,9 @@ Defects opened (scenario number and issue reference)
 
 Signed: ____________________
 ```
+
+**Corrected 2026-09-17:** the field labeled `verified` records the `attested`
+column. See the corrections section above.
 
 ## Risks and Open Questions
 
