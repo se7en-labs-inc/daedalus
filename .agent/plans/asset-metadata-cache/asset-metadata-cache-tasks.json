@@ -2,9 +2,9 @@
  "metadata": {
   "title": "Asset Metadata Cache Tasks",
   "created": "2026-09-10",
-  "updated": "2026-09-16",
-  "version": "1.9.0",
-  "totalTasks": 46,
+  "updated": "2026-09-17",
+  "version": "1.10.0",
+  "totalTasks": 47,
   "prdReference": ".agent/plans/asset-metadata-cache/asset-metadata-cache-prd.md",
   "description": "A local SQLite asset metadata cache in the Electron main process that resolves tickers, names and decimal places from the Cardano token registry, applies decimal places only when the issuer signed them, adds CIP-25 and CIP-68 names through a Koios pointer the user's own node confirms, and removes the one-minute poll of the wallet assets endpoint",
   "sourceFiles": [
@@ -50,7 +50,7 @@
   {
    "id": "phase-1",
    "name": "Standalone Correctness Fixes",
-   "description": "Everything that improves what the user sees without a cache, an IPC channel or a new dependency. Four independent commits, each revertible alone, each shippable before the rest of the plan exists.",
+   "description": "Everything that improves what the user sees without a cache, an IPC channel or a new dependency. Each is an independent commit, revertible alone, and shippable before the rest of the plan exists.",
    "riskLevel": "low",
    "tasks": [
     {
@@ -159,6 +159,55 @@
       "A live defect today and independent of the rest of the plan. It lands in the first phase because it is small, self-contained and revertible on its own, not because it is urgent.",
       "Severity is bounded and should not be scheduled as an emergency. Decimal places are presentation only, so the realistic harm is a user who knows their token carries six decimals typing 1.5, meaning one and a half tokens, and sending 15 raw units: a large underpayment, not a tenfold overspend. The overspend direction appears at the migration in task-021, not here."
      ]
+    },
+    {
+     "id": "task-047",
+     "title": "Say that the decimal separator was refused, in the row that refused it",
+     "description": "task-003 set allowOnlyIntegers on the send form's token amount field whenever the row is denominated in raw units, at components/wallet/send-form/AssetInput.tsx:170, and that much is correct. Its spec asserted that a typed separator then has no effect. It has one. react-polymorph validates the whole field value against ^([0-9]+)?$ and on failure returns the previous value with an adjusted caret, at node_modules/react-polymorph/lib/components/NumericInput.js:206-211, so the separator is reverted out of the input before the next keystroke arrives and the digit behind it lands where the separator was. Typing 1, then a separator, then 5 leaves 15 in the field, which is ten times the amount that was meant, and nothing says so. Pasting 1.5 is refused whole and is silent in the other direction: the paste vanishes with no explanation. Suppressing the keystroke in a key handler produces the identical 15, because the field still holds 1 and the 5 still lands as a units digit, so no stricter refusal is a fix. The row has to say that a separator was refused, at the keystroke that refuses it, and keep saying it while the digits behind it are typed.",
+     "status": "completed",
+     "priority": "high",
+     "estimatedHours": 5.0,
+     "dependencies": [
+      "task-003"
+     ],
+     "targetPaths": [
+      "source/renderer/app/components/wallet/send-form/AssetInput.tsx",
+      "source/renderer/app/components/wallet/send-form/AssetInput.spec.tsx",
+      "source/renderer/app/components/wallet/send-form/AssetInput.scss",
+      "source/renderer/app/components/wallet/send-form/messages.ts",
+      "source/renderer/app/i18n/locales/en-US.json",
+      "source/renderer/app/i18n/locales/ja-JP.json",
+      "source/renderer/app/i18n/locales/defaultMessages.json",
+      "translations/messages.json"
+     ],
+     "implementationNotes": [
+      "The detection runs on the raw DOM input event, passed as onInput to the NumericInput. That event carries the text the field was asked to hold before react-polymorph reverts it, which is the same string the library's own regex refuses, so the notice appears exactly when the field refuses and never otherwise. The prop reaches the element: NumericInput spreads everything but onChange and value, Input spreads everything but its own ten, and filter-invalid-dom-props allows onInput, onKeyDown and onPaste through to the input.",
+      "One event rather than two. A key handler cannot see a paste and a paste handler cannot see a drop, and approximating one condition with two events invites a third path nobody covered. The input event covers typing, pasting, dragging text in and autofill alike.",
+      "Both . and , are treated as a separator attempt, whichever of the two the active profile calls the decimal separator. Every number format the profile offers spells its decimal separator as one of them, at common/types/number.types.ts:6-19, and a user carrying the other convention types the other character for the same intent and is wrong by the same factor of ten. The space group separator of number-3 is excluded: a space cannot mean a fraction. In a profile where the character typed is the group separator the notice is still true, because grouping is not accepted in a raw-units field either.",
+      "The notice is monotone while the row stays in raw units, and that is what makes it a fix rather than a flicker. The sibling denomination notice is dismissed by the next keystroke through the field's onChange hook at WalletSendForm.tsx:966-971, which is right for a notice about a field that was cleared. Copying it here would hide the notice exactly as the digit that changes the amount arrives. It is withdrawn only when the row's denomination resolves, because at that point the field no longer counts whole units and the sentence would be untrue.",
+      "The notice carries role=alert so it is announced when it appears rather than only being available to a reader who happens to look below the field.",
+      "The field is not cleared. The established rule for an ambiguous amount is to clear it, at send-form/assetDenominations.ts:23-25, but that rule covers a denomination that moved underneath the user. Here the denomination has not moved; a single stray keystroke has. Clearing would destroy a correctly typed 1000 because the user's finger caught a full stop, and an emptied field is not a louder signal than a sentence naming what happened and what the field counts.",
+      "The spec's keystroke model was the reason the defect shipped and had to be corrected first. The old helper drove precomputed cumulative strings, 1 then 1. then 1.5, which keeps a character the field has already thrown away and reports 1 where a user gets 15. The new helper appends each character to what the input currently holds, which is what a browser produces for a caret at the end of an integers-only field, and the caret is at the end after a refusal because NumericInput.js:206-211 puts it back there. Fields with decimal places keep the whole-value helper, named for what it is, because react-polymorph reformats the value under the caret on each keystroke and appending to a formatted string would model nothing a browser does."
+     ],
+     "testCases": [
+      "With the decimal places unknown, typing a separator leaves the row signalling at every keystroke from the separator onwards, and the failure reports the amount the form held at each unsignalled one",
+      "With the decimal places unknown, pasting 1.5 leaves the amount unchanged and the row signalling",
+      "With a user override of zero decimal places on a token that publishes six, typing a separator behaves identically and the notice names the token's ticker",
+      "Typing 15 with no separator in a raw-units field raises nothing, so the notice reports the separator and not merely the presence of an amount",
+      "Pasting text that carries no separator raises nothing",
+      "With the decimal places known, typing or pasting 1.5 yields 1.500000 and raises nothing",
+      "The notice survives the amount being cleared and retyped under the same denomination, and is withdrawn when the denomination resolves"
+     ],
+     "acceptance": [
+      "The five gating Nix checks pass: compile, lint, stylelint, i18n and jest",
+      "Removing the signal fails the spec, and so does dismissing the notice on the next accepted value, so the spec asserts the absence of silence rather than the presence of a message"
+     ],
+     "securityNotes": [
+      "A release blocker, and the one case in this plan where the harm is a wrong amount reaching a signed transaction rather than a wrong amount being refused. The operator who found it held one NFT, so the balance check caught 15 as exceeding holdings. On a token held in thousands, 15 stays inside the balance and submits.",
+      "The named dangerous case is a token that publishes six decimal places under a user override of zero. The override denominates the row in raw units, so 1.5 of it is 1500000 units and the digits 15 are a hundred-thousandth of the amount intended. That path reaches the integers-only input through a user setting rather than through unresolved metadata, and the label over it states a precision of zero rather than naming whole ledger units, so it is the weaker of the two labels and the notice carries the whole signal.",
+      "Residual risk, named once. A raw-units field cannot express one and a half of anything, so no implementation can produce the amount the user meant; the only question is whether they are told. A user who reads the notice and types 15 anyway submits 15. Submission is not blocked, because that is a second mechanism over one failure and the amount the notice points at is the field's own."
+     ],
+     "notes": "Found in manual QA on 2026-09-17. task-003 was accepted on a spec whose keystroke model could not express the defect: it drove cumulative strings that retained a character the field had already reverted, so the assertion that a typed separator has no effect was true of the model and false of the browser. task-027 scenario 4 names a failure here as the highest severity in this plan and as stopping the release, and its expected result, that the field holds 1 after typing 1.5, restates the same wrong model."
     },
     {
      "id": "task-004",
@@ -1874,8 +1923,8 @@
  ],
  "summary": {
   "totalPhases": 7,
-  "totalTasks": 46,
-  "estimatedTotalHours": 211.0,
+  "totalTasks": 47,
+  "estimatedTotalHours": 216.0,
   "criticalPath": [
    "task-007",
    "task-008",
@@ -1909,7 +1958,7 @@
    "The registry attestation payload construction is not reproduced from first principles. A local sweep of 3,600 plausible constructions against a real mainnet subject did not match the published signature, so it is read from the registry's own implementation and confirmed by the corpus gate in task-009 rather than by inspection.",
    "Ed25519 verification must be strict, because verified decimal places change a displayed and entered amount. Node's built-in crypto.verify is used rather than cardano-crypto.js, which accepts a signature whose scalar S has had the group order added to it. If Node's verifier turns out not to be strict enough on some platform build, @noble/curves is promoted from a transitive dependency to a declared one; the primitive sits behind one module so nothing else changes.",
    "task-002 is a live defect that the current poll masks. Landing the cache without it would empty the send form, the send confirmation and the transaction list on a cold start, because getNonZeroAssetTokens filters on an identity it takes from the cache rather than from the token.",
-   "task-003 is a live input-validation defect today, independent of this plan. An asset whose decimal places the user has never set accepts a decimal separator and then has it stripped by string substitution, so 1.5 becomes 15 natural units. Severity is bounded: ledger quantities are integers and decimals are presentation, so the harm is a large underpayment by the user's own hand, not an unintended overspend. Normal bug, not an emergency.",
+   "task-003 was a live input-validation defect independent of this plan, and the half of it that survived the fix is task-047. Refusing the separator was correct and was not the whole of it: react-polymorph reverts the refused character out of the input, so the digit behind it lands as a units digit and 1.5 still becomes 15, silently. task-047 makes the refusal visible at the keystroke that refuses it and keeps it visible while the digits behind it are typed. Severity is not bounded the way this entry claimed before 2026-09-17. The direction of the harm is still underpayment rather than overspend, because ledger quantities are integers and decimals are presentation, but an amount that stays inside the balance check is signed, and a user override of zero decimal places on a token that publishes six is a factor of a hundred thousand rather than of ten.",
    "Dropping the assets endpoint also drops the only source of the CIP-14 fingerprint the token row renders as its primary identifier. task-005 must land before task-018 or every row loses its identity.",
    "node:sqlite is used without a native module, which is the point, but it is the first use of it in this repository. It is confirmed present in Electron 41.3.0 on Node 24.15.0 with STRICT tables, CHECK constraints and WAL all working, and a future Electron bump should re-run that probe.",
    "Registry logos are large: a 36,191 byte median entry and 316 MiB across the corpus. The volume bound is at the transport, because the bulk query never requests the logo property, and the store bounds are a second line rather than the first.",

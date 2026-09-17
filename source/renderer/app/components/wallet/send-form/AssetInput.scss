@@ -31,6 +31,13 @@
     margin-bottom: 4px;
   }
 
+  .separatorRefusedNotice {
+    @include error-message;
+
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
   .unitLabel {
     color: var(--theme-input-placeholder-color);
     font-family: var(--font-regular);

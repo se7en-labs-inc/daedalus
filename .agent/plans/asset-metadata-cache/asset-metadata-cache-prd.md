@@ -1546,8 +1546,8 @@ are accepted. This is the gate in the Non-Functional Requirements.
 - The same wallet online. Tickers and formatted amounts appear without a reload.
 - A token with attested decimals, a token with unattested decimals, and a token the registry does
   not know, side by side in the list and in the send form.
-- The send form for a token with unresolved decimals: the decimal separator cannot be typed, by
-  keyboard or by paste.
+- The send form for a token with unresolved decimals: the decimal separator cannot be typed or
+  pasted, and the row says so rather than letting the next digit land as a unit unannounced.
 - The migration notice on first run after the update, and its absence on the second.
 - Delete the cache directory while Daedalus is running, then reopen the token list.
 - The three source options in the settings page: the preset selected by default, a custom URL that
@@ -1924,6 +1924,81 @@ and asserts that each receives its own response. The same assertion against
 hand-written double that called one listener per message, which both primitives
 satisfy, so they asserted nothing about the property that failed.
 
+### 2026-09-17: The refused decimal separator was silent, not harmless
+
+Found in manual QA, not in planned work, and it is a release blocker. `task-047`
+records it.
+
+`task-003` set `allowOnlyIntegers` on the send form's token amount field for
+every row denominated in raw units, which is correct, and its spec asserted that
+a typed separator then has no effect. It has one.
+`node_modules/react-polymorph/lib/components/NumericInput.js:206-211` returns the
+previous value on a regex failure, so the refused character is reverted out of
+the input before the next keystroke arrives and the digit behind it lands where
+the separator was.
+
+**Measured.** Driving `1`, then a separator, then `5` as three events, each
+carrying what the input currently holds plus one character, leaves the form
+holding `15` — ten times the amount meant — with nothing on screen saying so.
+The same for decimal places absent and for decimal places set to zero. The DOM
+input reads `1` after the refused separator and `15` after the digit. Pasting
+`1.5` is refused whole, so the amount does not move, but the pasted text
+disappears and nothing is said about that either.
+
+The dangerous case is not the unresolved one. A token that publishes six decimal
+places under a user override of zero is denominated in raw units by that
+override, so `1.5` of it is 1500000 units and the digits `15` are a
+hundred-thousandth of the amount intended. That path also carries the weaker of
+the two labels: unresolved decimal places render a label naming whole ledger
+units, while an override of zero renders "to 0 decimal places" and never says
+"units". The operator who found this held one NFT, so the balance check caught
+`15` as exceeding holdings; on a token held in thousands it stays inside the
+balance and submits.
+
+**Changed.** The row records that a separator was refused in it and says so, at
+the keystroke that refuses it, and keeps saying so while the digits behind it are
+typed. Detection is on the raw DOM `input` event, which carries the string
+`react-polymorph` tested before it reverted it, so the notice and the refusal
+cannot disagree and one event covers typing, pasting, dragging text in and
+autofill alike. Both `.` and `,` count, whichever the active profile calls the
+decimal separator, because those are the only two characters any profile uses
+for it and a user carrying the other convention is wrong by the same factor.
+
+Three things deliberately not done. The digits the field accepts do not change,
+because refusing more thoroughly produces the identical `15`: with the keystroke
+suppressed the field still holds `1` and the `5` still lands as a units digit.
+The field is not cleared, although `assetDenominations.ts:23-25` sets that rule
+for an ambiguous amount, because that rule is about a denomination that moved
+underneath the user and here one keystroke has; clearing would destroy a
+correctly typed `1000` because a finger caught a full stop. Submission is not
+blocked, because a raw-units field cannot express one and a half of anything, so
+the residual risk — a user who reads the notice and sends `15` anyway — is not
+something a second control removes.
+
+**What stops this recurring.** The spec was the defect's other half. It drove
+`1`, `1.`, `1.5` into a field that reverts refused characters, so the third
+string re-supplied a character the input no longer held; it asserted `1`, a user
+got `15`, and both were right about their own world. The helper now appends each
+character to what the input currently holds, and correcting it turned the same
+three characters into a failing case before a line of the component changed.
+Fields with decimal places keep a whole-value helper, named for what it is,
+because `react-polymorph` reformats the value under the caret on each keystroke.
+The property is asserted as the absence of silence over a whole sequence rather
+than as the presence of a message, and pinned by reinstating the defect twice:
+removing the signal fails 17 of 36 cases, and dismissing the notice from the
+accepted-value handler, as the sibling denomination notice does, fails 13. The
+second fails only the typed cases, because a refused paste changes no value and
+so never reaches the handler that would dismiss the notice.
+
+The generalization is narrower than "model keystrokes faithfully". A component
+whose refusal reverts the input cannot be driven by cumulative strings at all,
+because the string the next keystroke appends to is the component's output and
+not the test's input.
+
+`task-027`'s Scenario 4 asks for the field to hold `1` after typing `1.5`. That
+expected result restates the same wrong model and needs amending before an
+operator runs it.
+
 ---
 
 ## Outstanding before this plan leaves draft
@@ -1942,5 +2017,5 @@ no scenario has been executed, because it needs macOS, Windows, a display, a
 mainnet wallet and a funded selfnode.
 
 **Status:** In Progress
-**Date:** 2026-09-10, updated 2026-09-11, revised 2026-09-14, phases 1 to 6 built 2026-09-15, phase 7 built 2026-09-16, decimals gate revised 2026-09-16, IPC correlation corrected 2026-09-17
+**Date:** 2026-09-10, updated 2026-09-11, revised 2026-09-14, phases 1 to 6 built 2026-09-15, phase 7 built 2026-09-16, decimals gate revised 2026-09-16, IPC correlation corrected 2026-09-17, send-form separator refusal made visible 2026-09-17
 **Author:** Se7en Labs

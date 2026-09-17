@@ -40,15 +40,41 @@ type Props = {
    */
   hasDenominationChanged: boolean;
 };
+type State = {
+  /**
+   * Whether a decimal separator has been refused in this row while it was
+   * denominated in raw units.
+   *
+   * Monotone while the row stays in raw units, and that is the property that
+   * makes it a fix. Clearing it on the next keystroke would hide the notice
+   * exactly as the digit that reopens the hole arrives, which is the silent
+   * path returning one render later.
+   */
+  hasRefusedSeparator: boolean;
+};
 const INPUT_FIELD_PADDING_DELTA = 10;
+/**
+ * The two characters a person types to mean "and a fraction". Every number
+ * format the profile offers spells its decimal separator as one of them
+ * (`common/types/number.types.ts:6-19`), and both are tested for whichever of
+ * the two the active profile calls the decimal separator: a user carrying the
+ * other convention types the other character, and the amount they end up
+ * sending is wrong by the same factor of ten either way. A space is a group
+ * separator in one profile and is left out, because a space cannot mean a
+ * fraction.
+ */
+const DECIMAL_SEPARATOR_CHARACTERS = /[.,]/;
 
 @observer
-class AssetInput extends Component<Props> {
+class AssetInput extends Component<Props, State> {
   static contextTypes = {
     intl: intlShape.isRequired,
   };
   rightContentRef: {
     current: null | HTMLDivElement;
+  };
+  state: State = {
+    hasRefusedSeparator: false,
   };
 
   constructor(props: Props) {
@@ -56,6 +82,58 @@ class AssetInput extends Component<Props> {
     this.rightContentRef = React.createRef();
   }
 
+  componentDidUpdate() {
+    // The notice describes a field that takes whole units. Once the row's
+    // denomination has resolved it is no longer that field, so the notice goes
+    // rather than being left on screen asserting something untrue.
+    if (this.state.hasRefusedSeparator && !this.isInRawUnits()) {
+      this.setState({
+        hasRefusedSeparator: false,
+      });
+    }
+  }
+
+  /**
+   * A ledger quantity is an integer and decimal places are presentation only,
+   * so a field whose decimal places are unknown, or known to be zero, is
+   * denominated in raw units. A decimal separator typed into it means nothing,
+   * and the submit path strips it rather than interpreting it, so the field
+   * must not accept one in the first place.
+   */
+  isInRawUnits = () => {
+    const { decimals } = this.props;
+    return decimals == null || decimals === 0;
+  };
+
+  /**
+   * Refusing the separator is not enough, and refusing it harder is not either.
+   * react-polymorph validates the whole field against `^([0-9]+)?$` and, on
+   * failure, hands back the previous value with an adjusted caret
+   * (`node_modules/react-polymorph/lib/components/NumericInput.js:206-211`), so
+   * the refused character is reverted out of the input before the next
+   * keystroke arrives. Typing `1`, `.`, `5` therefore leaves `1` on screen
+   * after the separator and the `5` lands where the separator was: the field
+   * holds `15`, an amount ten times the one that was meant, and nothing has
+   * said so. Suppressing the keystroke in a key handler produces the identical
+   * `15`.
+   *
+   * What the row can do is stop being silent about it. This runs on the raw DOM
+   * `input` event, which carries the text the field was asked to hold before
+   * react-polymorph reverts it. That is the same value the library's own regex
+   * refuses, so the notice appears exactly when the field refuses, and one
+   * event covers typing, pasting, dragging text in and autofill alike, rather
+   * than a key handler that cannot see a paste and a paste handler that cannot
+   * see a drop.
+   */
+  handleRawUnitsInput = (event: React.FormEvent<HTMLInputElement>) => {
+    if (this.state.hasRefusedSeparator || !this.isInRawUnits()) return;
+
+    if (!DECIMAL_SEPARATOR_CHARACTERS.test(event.currentTarget.value)) return;
+
+    this.setState({
+      hasRefusedSeparator: true,
+    });
+  };
   hasAssetValue = (asset: Field) => {
     return get(asset, 'value', false);
   };
@@ -108,13 +186,8 @@ class AssetInput extends Component<Props> {
     // token and an asset whose name spells an existing ticker is free to exist,
     // which is the one confusion this label must not introduce.
     const unit = ticker || ellipsis(get(asset, 'fingerprint', '') || '', 9, 4);
-    // A ledger quantity is an integer and decimal places are presentation
-    // only, so a field whose decimal places are unknown, or known to be zero,
-    // is denominated in raw units. A decimal separator typed into it means
-    // nothing, and the submit path strips it rather than interpreting it, so
-    // the field must not accept one in the first place.
     const areDecimalsKnown = decimals != null;
-    const isInRawUnits = !areDecimalsKnown || decimals === 0;
+    const isInRawUnits = this.isInRawUnits();
     const assetField = assetFields[uniqueId];
     const inputFieldStyle = this.generateInputFieldStyle();
     // Computed from the same local the input's props are, so the label cannot
@@ -167,10 +240,22 @@ class AssetInput extends Component<Props> {
             skin={AmountInputSkin}
             style={inputFieldStyle}
             onKeyPress={handleSubmitOnEnter}
+            onInput={this.handleRawUnitsInput}
             allowOnlyIntegers={isInRawUnits}
             allowSigns={false}
             autoFocus={autoFocus}
           />
+          {this.state.hasRefusedSeparator && (
+            <div
+              className={styles.separatorRefusedNotice}
+              data-testid={`assetSeparatorNotice:${uniqueId}`}
+              role="alert"
+            >
+              {intl.formatMessage(messages.assetInputSeparatorRefusedNotice, {
+                unit,
+              })}
+            </div>
+          )}
           {hasDenominationChanged && (
             <div
               className={styles.denominationNotice}

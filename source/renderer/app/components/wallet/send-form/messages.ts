@@ -50,6 +50,13 @@ export default defineMessages({
     description:
       'Label under the token amount field in the wallet send form, for a token whose decimal places could not be resolved, so the field accepts whole ledger units only.',
   },
+  assetInputSeparatorRefusedNotice: {
+    id: 'wallet.send.form.assetInput.separatorRefusedNotice',
+    defaultMessage:
+      '!!!Decimal amounts cannot be entered for {unit}. The separator was not accepted, so every digit in this field counts as one whole unit. Check the amount before you send.',
+    description:
+      'Notice on a token row in the wallet send form, shown when a decimal separator was typed or pasted into a field that accepts whole ledger units only, so that the refusal is visible at the moment it happens rather than after a wrong amount has been entered.',
+  },
   assetInputDenominationChangedNotice: {
     id: 'wallet.send.form.assetInput.denominationChangedNotice',
     defaultMessage:
