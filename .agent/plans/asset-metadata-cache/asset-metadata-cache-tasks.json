@@ -1467,7 +1467,7 @@
       "The operator checklist in task-027.md is completed and signed with the build identifier and date, and the named evidence is attached",
       "Any failure is opened as a defect with its scenario number before the checklist is signed"
      ],
-     "blockedReason": "manual_execution. This environment has no display, no macOS, no Windows, no funded wallet and no selfnode cluster, so no scenario can be run here and none has been. The procedure, the expected evidence per step and an operator checklist are in task-027.md; the task closes when a signed checklist comes back."
+     "blockedReason": "manual_execution. A partial pass was run against a live mainnet build on 2026-09-17 and its failures are recorded as findings 10, 11 and 12 and as task-047, which satisfies the acceptance criterion that every failure be written down before the checklist is signed. The remaining scenarios still cannot be run here: this environment has no display, no macOS, no Windows and no selfnode cluster. Scenario 4's expected result and the missing recovery scenario are corrected in task-027.md under Corrections, 2026-09-17, items 6 and 7. The task closes when a signed checklist covering all three platforms is filed."
     },
     {
      "id": "task-028",
@@ -1886,6 +1886,7 @@
      "title": "Manual QA across the three source options",
      "description": "The process boundary, the settings surface and the chain channel end to end, on all three platforms, because CI wraps every check in x86_64-linux only and none of the specs exercise a real instance or a real chain.",
      "status": "blocked",
+     "blockedReason": "manual_execution. The source-option surface was exercised against a live mainnet build on 2026-09-17 as far as one platform allows, and finding 12 records what that pass found about the privacy controls. Scenario 6's evidence query was corrected in task-038.md, since task-046 renamed the column it selected. The remaining scenarios need the other two platforms and a funded selfnode, neither available here.",
      "priority": "high",
      "estimatedHours": 4.0,
      "dependencies": [
@@ -1916,7 +1917,7 @@
       "The matrix is recorded with the version and platform each run was taken on",
       "No unresolved failure is carried forward without being written down"
      ],
-     "notes": "The failing-pointer case is the one worth doing by hand, because it is the check that makes the index untrusted by construction. Blocked: this environment has no display, no macOS, no Windows, no mainnet wallet and no funded selfnode, so no scenario has been executed. The procedure, the expected evidence and the operator checklist are the deliverable."
+     "notes": "The failing-pointer case is the one worth doing by hand, because it is the check that makes the index untrusted by construction. Partly executed: the source-option surface was exercised against a live mainnet build on 2026-09-17, and finding 12 records what that pass found about the privacy controls. Scenario 6's evidence query was corrected in task-038.md, since task-046 renamed the column it selected. What remains needs the other two platforms and a funded selfnode, neither available here."
     }
    ]
   }

@@ -350,6 +350,73 @@ scenario 8 was withdrawn. Do not run it and do not tick it.
 2. The checklist grid in the Verification Plan below, and acceptance criterion 1,
    both still count scenario 8 and count scenario 6 on three platforms. Reissuing
    them means editing sections this plan treats as stable once planning closed.
+3. Item 7 adds a scenario 10 with no row in that grid and no mention in
+   acceptance criterion 4, which binds a defect to a scenario number. A
+   correction note beside the grid is the most this section can do under the
+   append-only rule. Whether the grid gains a row is the project owner's call,
+   and until it does, the signed artifact and the procedure disagree about how
+   many scenarios there are.
+
+**6. Scenario 4's expected result described a model that has since been
+corrected.** Added 2026-09-17, after the QA pass. Scenario 4 says the field
+"holds `1` after typing `1.5`". It does not, and did not: `react-polymorph`
+refuses the separator by reverting to the previous value, so the following `5`
+appends and the field holds `15`. The pre-existing spec asserted `1` because its
+helper re-supplied each cumulative string to a component that had already
+reverted the character, and `task-047` corrects both the helper and the
+behavior.
+
+The current expectation, and what an operator records:
+
+- Typing `1`, `.`, `5` leaves `15` in the field and raises a notice under it,
+  `wallet.send.form.assetInput.separatorRefusedNotice`, naming the unit and
+  saying every digit counts as one whole unit.
+- Pasting `1.5` leaves the amount unchanged and raises the same notice. Before
+  `task-047` the paste was silent, so an operator checking only that the amount
+  did not move would have passed it.
+- The notice stays up while the row remains in raw units, and is withdrawn only
+  when the row's denomination resolves.
+- Typing `15` with no separator raises nothing. That is the case that
+  distinguishes a notice about the separator from a notice about the field.
+
+A failure here still stops the release. The amount is wrong by a factor of ten
+where decimals are unresolved. Where the user has overridden a token to zero it
+is worse by a further factor of the published decimal count less one: for a
+six-decimal token, 1.5 means 1,500,000 raw units and the field submits 15, a
+factor of a hundred thousand. That matches the figure already recorded against
+`task-003` in the tasks JSON.
+
+**7. No scenario covers a metadata source that fails and then recovers.** Added
+2026-09-17. **Run this as scenario 10.** The Verification Plan grid below lists
+rows 1 to 9 and carries no row for it, and acceptance criterion 4 ties a defect
+to its scenario number, so without one an operator can complete and sign every
+row without ever running this step. Adding the row means editing a section this
+plan treats as stable once planning closed; that is decision 3 at the end of
+this section. Scenario 1 blocks the hosts and scenario 2 unblocks them, but
+scenario 2's expectation was written as though resolution resumes, and finding
+`10` establishes that it does not. The expected result has to be stated as the
+absence of recovery, or an operator will score the current behavior as a pass
+either way.
+
+Run it as its own step, after scenario 2:
+
+- With the two hosts still blocked and the application still running, confirm no
+  token has resolved.
+- Remove the `hosts` lines. Do not restart, and do not touch any token's
+  settings. Leave the token list open for at least ten minutes.
+- **Expected: nothing resolves.** No ticker, no logo, no decimal places. The
+  renderer names each subject once per store instance and never again
+  (`source/renderer/app/stores/AssetsStore.ts:112`, `:309`, `:312`), and editing
+  `hosts` fires no `online` event because the interface never dropped.
+- Then press "Check the token registry again" on one token. That token, and only
+  that token, resolves.
+- Then relaunch. Everything resolves.
+- **Evidence:** the token list at each of those four points, and a note of the
+  wall-clock gap between removing the `hosts` lines and the first screenshot.
+
+Recording this as a pass on the strength of the relaunch would hide the defect
+finding `10` describes, which is why the intermediate steps are listed
+separately rather than as one before-and-after.
 
 ### Preparation, once per platform
 
@@ -575,7 +642,9 @@ Defects opened (scenario number and issue reference)
 Signed: ____________________
 ```
 
-**Corrected 2026-09-17:** row 6 has no Windows column, and row 8 is withdrawn.
+**Corrected 2026-09-17:** row 6 has no Windows column, row 8 is withdrawn, and
+item 7 of the corrections adds a scenario 10 that has no row here. Tick it
+separately, or the signed grid will not record whether it ran.
 The corrected rows are at the end of the corrections section above.
 
 ## Risks and Open Questions

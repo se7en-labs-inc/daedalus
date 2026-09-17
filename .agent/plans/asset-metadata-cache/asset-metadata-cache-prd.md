@@ -725,6 +725,17 @@ many tokens opens one socket at a time.
 backoff, then the batch is abandoned and each of its subjects gets an `asset_resolution` row in
 state `failed` with a `retry_after` that doubles per consecutive failure up to a ceiling.
 
+**Nothing consumes `retry_after` on its own.** The renderer names each subject once per store
+instance and never again (`source/renderer/app/stores/AssetsStore.ts:112`, `:309`, `:312`, with no
+clear or reassignment), and there is no timer anywhere in that store. So `retry_after` is a floor
+on a re-ask that nothing issues; its live effect is to suppress the re-ask a relaunch would
+otherwise make. In-session recovery has exactly three entry points: the `online` listener at
+`:139`, which hands the main process an empty subject list plus a flag and so correctly bypasses
+the once-per-session set; the per-token "Check the token registry again" control; and a relaunch.
+The first fires only when the network interface drops, so a DNS change, a blocked host, a captive
+portal or a proxy change leaves every failed subject stranded. Finding `10` carries the
+measurement.
+
 **A 4xx is never retried.** 413 is deterministic, not transient: retrying a batch that is too large
 produces the same 413 forever, and an exponentially doubling `retry_after` turns a fixable sizing
 error into subjects that are never resolved and never diagnosed. Any 4xx marks the batch as a
@@ -1860,7 +1871,12 @@ version mismatch throws on open, the file and its WAL siblings are deleted, and
 the cache refills from the registry.
 
 **What is not in this pass.** No settings toggle: the owner deferred it to the
-tokens settings page that will carry the image controls. No positive marker for
+tokens settings page that will carry the image controls. That page is also where
+the two gaps finding `12` records belong: there is no way to switch external
+metadata off, neither the pointer index nor the registry, and the warning the
+source picker carries names only the pointer while the registry is asked about
+at least as many subjects and in general more, the two
+coinciding only for a wallet whose tokens the registry knows none of. No positive marker for
 the policy binding, because that design is unsettled; the binding is still
 computed and still separable in `verifyRegistryProperty`, and it is simply not
 what the column records.
