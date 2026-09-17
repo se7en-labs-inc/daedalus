@@ -1,6 +1,6 @@
 # Finding: `IpcChannel` answers every concurrent request with one payload
 
-**Status:** open for `IpcChannel`, which 68 files still construct. The two asset
+**Status:** open for `IpcChannel`, which 70 files still construct. The two asset
 metadata read channels were moved to `IpcConversation` on 2026-09-17, after the
 predicted case arrived in a build.
 **Raised from:** asset metadata cache plan review
@@ -83,16 +83,16 @@ The bulk read has the same exposure. `AssetsStore` issues a metadata read from a
 MobX reaction over the rendered subjects, a second from a `window` `online`
 event, and a third when a user asks one asset to refresh
 (`source/renderer/app/stores/AssetsStore.ts:306-358`, `:459-464`). Nothing
-serialises them. A read that is dropped there is dropped decimal places, and it
+serializes them. A read that is dropped there is dropped decimal places, and it
 does not self-heal: the subjects were already marked as requested, and the main
 process only pushes rows it has just resolved, so a lost answer to a cache *hit*
 is never sent again.
 
 An application-level id was carried on those channels from the start to address
 mis-routing. It could not address drain, because the message that would have
-settled a request had already been consumed by another listener. That is worth
-stating plainly: correlation cannot be added on top of `IpcChannel` by the
-caller. It has to be in the listener, which is what `IpcConversation` does.
+settled a request had already been consumed by another listener. Correlation
+cannot be added on top of `IpcChannel` by the caller: it has to be in the
+listener, which is what `IpcConversation` does.
 
 ## The repository already contains the fix
 
@@ -132,7 +132,7 @@ metadata read channels (`source/main/ipc/assetMetadataChannel.ts`,
 **Done.** `ASSET_METADATA_CHANNEL` and `ASSET_IMAGE_CHANNEL` moved to
 `IpcConversation` at both ends, and the application-level id was removed from
 their request and response shapes along with the registry in the renderer that
-read it. Two correlation mechanisms stacked on one channel is worse than either
+read it. Two correlation mechanisms stacked on one channel are worse than either
 alone, and the transport is the one that can be correct. A spec at the primitive
 level now pins the property that N concurrent requests each receive their own
 response, with the same assertion run against `IpcChannel` as a control.
@@ -140,12 +140,11 @@ response, with the same assertion run against `IpcChannel` as a control.
 **Not done: `IpcChannel` itself is unchanged.** Correcting it means changing the
 wire shape for every channel built on it, because the responder has to echo an
 id it currently never sees. Both ends must change together and any channel whose
-responder is missed stops resolving entirely. 68 files construct one, in 106
+responder is missed stops resolving entirely. 70 files construct one, in 110
 places. A correct alternative already exists in the same directory, so the
 cheaper and safer route is to move a channel across when it needs to be, rather
 than rewrite a primitive under every caller of it at once. The class comment on
-`IpcChannel` now says which primitive to reach for and why, which is the part of
-this that costs nothing.
+`IpcChannel` now says which primitive to reach for and why.
 
 **Not done: the remaining channels were not audited.** The ones in use are
 almost all single-shot and user-initiated, where the defect is unreachable. That
@@ -157,11 +156,11 @@ as "not known to be reachable" rather than "safe".
 (`ASSET_METADATA_UPDATE_CHANNEL`). It is a broadcast from main to renderer that
 answers no request, and the acknowledgement travelling back carries no payload
 at all, so there is nothing a mis-delivered or dropped acknowledgement can get
-wrong. That is a property of the message, not of the traffic pattern.
+wrong.
 
 ## What is worse under `IpcConversation`
 
-A request whose response never arrives keeps its listener forever, where
+A request whose response never arrives keeps its listener forever, whereas
 `IpcChannel` would have had it swept away by the next unrelated response on the
 channel. Both ends of both asset channels answer on every path, including their
 own failures, so this is bounded there. A channel whose responder can silently
@@ -178,4 +177,6 @@ it would be memory rather than a warning.
 - `source/common/ipc/lib/IpcConversation.spec.ts` (both primitives, one harness)
 - `source/main/ipc/lib/MainIpcChannel.ts`
 - `source/renderer/app/ipc/lib/RendererIpcChannel.ts`
-- `source/common/ipc/api.ts` (63 exported constants, 62 of them channels)
+- `source/common/ipc/api.ts` (66 exported constants; 65 are built into a
+  channel or a conversation, 62 of them still on `IpcChannel`, and
+  `DEVICE_NOT_CONNECTED` is an error code rather than a channel)

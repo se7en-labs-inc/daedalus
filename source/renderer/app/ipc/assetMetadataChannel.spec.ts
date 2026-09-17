@@ -310,10 +310,10 @@ describe('assetMetadataChannel', () => {
     });
 
     /**
-     * Ten rows, ten pictures. The memo holds the promise rather than the result,
-     * so a request that never settles is a subject that never shows a picture
-     * again for the life of the window: this is the case that failed in a real
-     * wallet and the reason the channel was changed.
+     * Ten rows, ten pictures. The memo holds the promise rather than the
+     * result, so a request that never settles is a subject that never shows a
+     * picture again for the life of the window, however many times its row is
+     * drawn.
      */
     it('resolves a url for every one of ten subjects asked for at once', async () => {
       const subjects = Array.from({ length: 10 }, (_, index) =>

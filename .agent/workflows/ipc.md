@@ -24,7 +24,7 @@ Both processes talk over `ipcRenderer.send` and `ipcMain.on`, wrapped by
 
 A channel is one shared name constant and one `IpcChannel` subclass instance per
 side. The constructor derives three wire names from that constant
-(`source/common/ipc/lib/IpcChannel.ts:91-93`):
+(`source/common/ipc/lib/IpcChannel.ts:104-106`):
 
 ```ts
 this._broadcastChannel = `${channelName}-broadcast`;
@@ -32,7 +32,9 @@ this._requestChannel = `${channelName}-request`;
 this._responseChannel = `${channelName}-response`;
 ```
 
-Messages travel on those three names and never on the bare constant.
+Messages travel on those three names and never on the bare constant. A
+conversation is the other shape: one instance per side of an `IpcConversation`
+subclass, and the bare constant used in both directions.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -84,23 +86,38 @@ the caller's promise.
 
 `IpcChannel`'s constructor throws `Channel <name> already exists` if a second
 instance is built with the same name in the same process
-(`source/common/ipc/lib/IpcChannel.ts:87-89`). One instance per side, declared at
-module scope.
+(`source/common/ipc/lib/IpcChannel.ts:99-102`). One instance per side, declared
+at module scope. `IpcConversation` keeps its own separate registry, so the same
+constant can name a channel in one process and a conversation in another without
+either noticing; both sides have to be moved together or the wire names stop
+matching.
 
-### Responses are not correlated
+### Responses are not correlated, and the extra ones are dropped
 
 `send` and `request` both register a one-shot listener on the single
 `<NAME>-response` name and resolve on the next message to arrive, whichever
 request produced it. Two requests in flight on one channel are two listeners on
-one stream, and each can resolve with the other's payload. Neither subclass adds
+one stream, so each can resolve with the other's payload. Neither subclass adds
 correlation.
+
+That has a second consequence, worse than the first. `ipcMain` and `ipcRenderer`
+are `EventEmitter`s, and one `emit` runs *every* one-shot listener registered for
+a name, hands each of them the same payload and unregisters all of them. So ten
+requests in flight on one channel are not answered in some order: they are all
+answered once, with one payload, and the nine responses behind it reach an empty
+listener list and are dropped. Nine callers keep a promise that never settles.
 
 This is safe for a channel that is single-shot and user-initiated, which most of
 them are. It is not safe for a bulk read keyed on a list, or for any caller that
-can be invoked again before the first call returns. A channel of that shape has
-to carry its own request id and match on it; `source/renderer/app/ipc/assetMetadataChannel.ts`
-does that, and `IpcConversation` in the same directory as `IpcChannel` solves it
-generically with a `conversationId`. The full write-up is
+can be invoked again before the first call returns.
+
+**A request id in the payload does not fix it.** It can tell a caller that the
+payload it was handed belongs to somebody else. It cannot deliver the payload
+that was meant for it, because that message was consumed by another listener and
+never reached anyone. Correlation has to be in the listener, which is what
+`IpcConversation` does. Build a channel of that shape on `IpcConversation` from
+the start; `source/main/ipc/assetMetadataChannel.ts` and its renderer counterpart
+are the worked example. The full write-up is
 `.agent/findings/ipc-channel-response-correlation.md`.
 
 ---
@@ -296,7 +313,9 @@ channel.onReceive(async (message) => {
 still answered, so the returned promise settles; ignore it with a `catch` rather
 than leaving it unhandled, because a window that closed mid-flight rejects it.
 
-`source/main/ipc/assetMetadataChannel.ts` is the worked example.
+`source/main/ipc/assetMetadataChannel.ts` is the worked example for the push
+direction, on `ASSET_METADATA_UPDATE_CHANNEL`. Its two read channels are
+conversations, not channels.
 
 ### Conversation Channel
 
@@ -317,7 +336,15 @@ const response = await conversation.request(request);
 ```
 
 `source/main/ipc/electronStoreConversation.ts` and its renderer counterpart are
-the only users in the tree.
+one user; `ASSET_METADATA_CHANNEL` and `ASSET_IMAGE_CHANNEL` in
+`source/main/ipc/assetMetadataChannel.ts` and its renderer counterpart are the
+other. Both of those are asked more than once at a time, which is the reason
+they are conversations.
+
+One wire name in both directions means there are no `-request` and `-response`
+names to listen on when debugging, and a request that is never answered keeps
+its listener rather than having it swept away by the next unrelated response. A
+responder that can silently not answer therefore accumulates listeners.
 
 ### Outside the channel mechanism
 
@@ -362,10 +389,13 @@ received with `onReceive`.
 
 | Channel                         | Purpose                                        |
 |---------------------------------|------------------------------------------------|
-| `ASSET_METADATA_CHANNEL`        | Read the local asset metadata cache            |
+| `ASSET_METADATA_CHANNEL`        | Read the local asset metadata cache (conversation) |
 | `ASSET_METADATA_UPDATE_CHANNEL` | Rows the cache resolved afterwards (push)      |
-| `ASSET_IMAGE_CHANNEL`           | One asset logo, one subject per request        |
+| `ASSET_IMAGE_CHANNEL`           | One asset logo, one subject per request (conversation) |
 | `GOVERNANCE_DREP_ANCHOR_CHANNEL`| Resolve and verify a DRep anchor               |
+
+The two marked as conversations are asked more than once at a time: a token list
+requests one logo per row, and a bulk read overlaps with a per-asset refresh.
 
 ### Hardware Wallet Channels
 
@@ -498,6 +528,10 @@ everything. Listen for the three derived names of the channel under suspicion:
 });
 ```
 
+A conversation has one name and no suffixes, so listen on the constant itself.
+Its first argument after the event is the `conversationId`, which is what pairs a
+request with its answer in the log.
+
 ### Common Issues
 
 #### Channel Not Responding
@@ -523,11 +557,14 @@ everything. Listen for the three derived names of the channel under suspicion:
 
 #### A response arrives on the wrong promise
 
-**Problem:** two calls in flight, each resolving with the other's payload.
-**Cause:** the response name is shared and nothing correlates. See the
-architecture section above and `.agent/findings/ipc-channel-response-correlation.md`.
-**Solutions:** carry a request id in the payload and match on it, or use
-`IpcConversation`, which does it for you.
+**Problem:** two calls in flight, each resolving with the other's payload, or
+one call that never settles at all.
+**Cause:** the response name is shared and nothing correlates, and one `emit`
+empties the listener list. See the architecture section above and
+`.agent/findings/ipc-channel-response-correlation.md`.
+**Solutions:** use `IpcConversation`. A request id in the payload is not an
+alternative: it can detect the mis-delivery and cannot repair it, because the
+message that was meant for this caller was consumed by another listener.
 
 #### Handler Called Multiple Times
 
@@ -545,23 +582,25 @@ another request's one-shot listener.
 ### Renderer clients
 
 The renderer channels default their sender and receiver to `global.ipcRenderer`,
-so a fake assigned to that global is the whole harness. Make it behave as
-Electron does: fire one-shot listeners in registration order and unregister each
-as it fires, whatever message it fires on. A fake that matches responses to
-listeners tests the fake.
+so a fake assigned to that global is the whole harness. **Build it on a real
+`EventEmitter`**, because that is what `ipcRenderer` is, and record what `send`
+was given:
 
 ```typescript
-const sent: Array<{ channel: string; message: any }> = [];
-const onceListeners: Array<{ channel: string; handler: Function }> = [];
+const sent: Array<{ channel: string; args: Array<any> }> = [];
 
-(global as any).ipcRenderer = {
-  send: (channel: string, message: any) => sent.push({ channel, message }),
-  once: (channel: string, handler: Function) =>
-    onceListeners.push({ channel, handler }),
-  on: () => {},
-  removeListener: () => {},
-};
+const fakeIpcRenderer = Object.assign(new EventEmitter(), {
+  send: (channel: string, ...args: Array<any>) => sent.push({ channel, args }),
+});
+fakeIpcRenderer.setMaxListeners(0);
+(global as any).ipcRenderer = fakeIpcRenderer;
 ```
+
+A hand-written list of listeners that calls one of them per message is not worth
+writing. It cannot reproduce the thing most likely to be wrong, which is that one
+`emit` runs every one-shot listener for a name and unregisters all of them, so a
+correlation defect passes against it. `source/common/ipc/lib/IpcConversation.spec.ts`
+drives both primitives over an emitter for exactly that reason.
 
 `source/renderer/app/ipc/assetMetadataChannel.spec.ts` is the worked example.
 
@@ -578,6 +617,9 @@ jest.mock('./lib/MainIpcChannel', () => ({
   })),
 }));
 ```
+
+A module holding both kinds mocks `./lib/MainIpcConversation` the same way and
+collects the two into separate arrays, so a case can say which channel it means.
 
 `source/main/ipc/assetMetadataChannel.realfs.spec.ts` and
 `source/main/ipc/governanceAnchorChannel.spec.ts` are the worked examples.

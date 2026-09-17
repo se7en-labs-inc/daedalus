@@ -566,11 +566,9 @@ Three channels, declared in `source/common/ipc/api.ts` next to the governance bl
 ```ts
 export const ASSET_METADATA_CHANNEL = 'ASSET_METADATA_CHANNEL';
 export type AssetMetadataRendererRequest = {
-  requestId: string;
   subjects: Array<string>;
 };
 export type AssetMetadataMainResponse = {
-  requestId: string;
   entries: Array<AssetMetadataEntry>;
   unresolved: Array<{ subject: string; state: AssetResolutionState }>;
 };
@@ -583,12 +581,11 @@ export type AssetMetadataUpdateRendererResponse = void;
 
 export const ASSET_IMAGE_CHANNEL = 'ASSET_IMAGE_CHANNEL';
 export type AssetImageRendererRequest = {
-  requestId: string;
   subject: string;
 };
 export type AssetImageMainResponse =
-  | { requestId: string; status: 'absent' }
-  | { requestId: string; status: 'present'; mediaType: string; bytes: Uint8Array };
+  | { status: 'absent' }
+  | { status: 'present'; mediaType: string; bytes: Uint8Array };
 ```
 
 `AssetMetadataEntry` lives in a new `source/common/types/asset-metadata.types.ts`:
@@ -634,22 +631,32 @@ channel is the push that carries rows as they resolve, so the renderer's map fil
 again. The image channel is separate and per subject, which is the mechanism that keeps logos off
 the path of every other read.
 
-**`IpcChannel` does not correlate requests with responses, so these channels carry a `requestId`.**
-Both `send` (`source/common/ipc/lib/IpcChannel.ts:101-120`) and `request` (`:126-145`) do
+**The two read channels are conversations, not `IpcChannel` channels.** Both `send`
+(`source/common/ipc/lib/IpcChannel.ts:115-134`) and `request` (`:144-163`) do
 `receiver.once(this._responseChannel, ...)` and resolve on the next message on that channel,
-whatever request it answers. The doc comment states it outright: "waits for the next response on the
-same channel". Neither `MainIpcChannel` nor `RendererIpcChannel` adds correlation.
+whatever request it answers. Neither `MainIpcChannel` nor `RendererIpcChannel` adds correlation.
 
 The governance channel this design copies is a single-shot, user-initiated lookup, so two requests
-are never in flight and the defect never bites there. A bulk subject-keyed read is the opposite
-shape: overlapping reads are expected, not exceptional, and two in-flight requests can each resolve
-with the other's payload. Because the map feeds `decimals`, a mis-correlated response is a
-wrong-decimals path, not merely a wrong label.
+are never in flight and the defect never bites there. Both read channels here are the opposite
+shape: a token list asks for one logo per row at once, and a bulk subject-keyed read overlaps with a
+per-asset refresh and with a connectivity retry. Because the map feeds `decimals`, a mis-correlated
+response is a wrong-decimals path, not merely a wrong label.
 
-Every request carries a `requestId` and the responder echoes it. The renderer client discards a
-response whose `requestId` it did not issue and keeps waiting. This is local to the three new
-channels; correcting `IpcChannel` itself for every existing channel is a larger change and is not
-in scope here. The defect is latent across all of them.
+`ipcRenderer` is an `EventEmitter`, so the failure is not only mis-correlation. One `emit` runs every
+one-shot listener registered for a name, hands each the same payload and unregisters all of them, so
+N concurrent requests are answered once and the N-1 responses behind them reach nobody. An
+application-level id cannot repair that: the message meant for a given caller was consumed by another
+listener and was never delivered at all. Correlation has to be in the listener.
+
+`IpcConversation` (`source/common/ipc/lib/IpcConversation.ts:65-96`) is that listener. It uses one
+wire name in both directions, mints a `conversationId` per request, ignores a message carrying
+another id rather than consuming it, and removes only its own listener. Both read channels are built
+on it at both ends, and neither request nor response carries an id of its own.
+`ASSET_METADATA_UPDATE_CHANNEL` stays an `IpcChannel`: it answers no request, and its acknowledgement
+carries no payload, so there is nothing a dropped acknowledgement can get wrong. Correcting
+`IpcChannel` itself for every existing channel is a larger change and is not in scope here; the
+defect is latent across all of them and is written up in
+`.agent/findings/ipc-channel-response-correlation.md`.
 
 **A metadata read never blocks a render.** This is deliberate, and it is the reason the cache cannot
 serve a signing-confirmation dialog as currently specified. The CIP-30 connector work requires
@@ -1861,16 +1868,79 @@ here says "issuer". The deferred toggle is specified as "use publisher's decimal
 values". Reconciling the two belongs in the task that puts both on screen at
 once, not here.
 
+### 2026-09-17: The application-level request id is superseded by IpcConversation
+
+The 2026-09-14 entry above records the three IPC channels carrying a `requestId`
+as a defect correction. That was half a correction and the wrong half, and this
+entry supersedes it.
+
+`IpcChannel` shares one response name across every caller and resolves on the
+next message to reach it, which is what the id addressed. But `ipcRenderer` is an
+`EventEmitter`, and one `emit` runs every one-shot listener registered for that
+name, hands each of them the same payload and unregisters all of them. Ten
+requests in flight are therefore answered once, with one payload, and the nine
+responses behind it arrive to an empty listener list. An id in the payload lets a
+caller recognize a payload as somebody else's; it cannot deliver the payload that
+was meant for that caller, because that message was consumed by a listener that
+was waiting for something else and was never delivered to anyone.
+
+**Measured.** A wallet holding ten registry-listed tokens with logos rendered
+three of them, with the three varying between runs and uncorrelated with image
+size. Ten rows ask for a logo each on `ASSET_IMAGE_CHANNEL`; rows mount across
+several ticks, and each batch of listeners registered between two arriving
+responses yields exactly one success. The seven failures were permanent for the
+life of the window, because `requestAssetImageUrl` memoises the promise rather
+than its result.
+
+**Changed.** `ASSET_METADATA_CHANNEL` and `ASSET_IMAGE_CHANNEL` are
+`IpcConversation` at both ends. The `requestId` is gone from all four shapes,
+along with the waiter registry in the renderer client that read it, because two
+correlation mechanisms on one channel are harder to reason about than either
+alone and only one of them can be correct.
+
+The metadata channel was migrated as well as the image channel, although its
+batching means it is usually asked once at a time. Usually is not a property:
+`_resolveRenderedSubjects` fires from a MobX reaction, `_onConnectivityRestored`
+from a `window` event and `_onAssetSettingsRefresh` from a click, and nothing
+serializes the three. An answer lost there is lost decimal places, and it does
+not self-heal, because those subjects are already marked as requested and the
+push channel only carries rows the resolver has just resolved, never a cache hit.
+
+`ASSET_METADATA_UPDATE_CHANNEL` stays on `IpcChannel`. It answers no request and
+its acknowledgement carries no payload, so a dropped or mis-delivered
+acknowledgement has nothing to get wrong.
+
+`IpcChannel` itself is unchanged. 70 files construct one, in 110 places, and
+correcting it means changing the wire shape for all of them at once; its class
+comment now names `IpcConversation` as the primitive for a channel that can be
+asked twice before the first answer returns. The finding at
+`.agent/findings/ipc-channel-response-correlation.md` is updated with what was
+measured and what was left alone.
+
+**What stops this recurring.** `source/common/ipc/lib/IpcConversation.spec.ts`
+runs ten concurrent requests through both primitives over a real `EventEmitter`
+and asserts that each receives its own response. The same assertion against
+`IpcChannel` is kept beside it as a control. The specs that existed before used a
+hand-written double that called one listener per message, which both primitives
+satisfy, so they asserted nothing about the property that failed.
+
 ---
 
 ## Outstanding before this plan leaves draft
 
-One commit on this branch is temporary diagnostic instrumentation and must be
-reverted before the work is proposed for merge. It writes an `Assets.json` log
-beside `Daedalus.json` and adds logging to the asset image path, and it is not a
-feature. What it touched and how to remove it is in
+Temporary diagnostic instrumentation is still on this branch and must be removed
+before the work is proposed for merge. It writes an `Assets.json` log beside
+`Daedalus.json` and adds logging to the asset image path, and it is not a
+feature. It is no longer confined to the commit that added it, because it was
+carried across the IPC correlation fix so that a build could be compared against
+the log taken before it. What it touched and how to remove it is in
 `.agent/plans/asset-metadata-cache/temporary-instrumentation.md`.
 
+The two manual QA tasks, `task-027` and `task-038`, are `blocked` in the task
+graph. Their procedures, expected evidence and operator checklists are written;
+no scenario has been executed, because it needs macOS, Windows, a display, a
+mainnet wallet and a funded selfnode.
+
 **Status:** In Progress
-**Date:** 2026-09-10, updated 2026-09-11, revised 2026-09-14, phases 1 to 6 built 2026-09-15, phase 7 built 2026-09-16, decimals gate revised 2026-09-16
+**Date:** 2026-09-10, updated 2026-09-11, revised 2026-09-14, phases 1 to 6 built 2026-09-15, phase 7 built 2026-09-16, decimals gate revised 2026-09-16, IPC correlation corrected 2026-09-17
 **Author:** Se7en Labs

@@ -194,9 +194,9 @@ describe('IpcConversation', () => {
 });
 
 /**
- * The control. Without it the case above passes for any implementation, and
- * the absence of exactly this control is why a defect that had already been
- * written down was shipped and then found by looking at a wallet.
+ * The control. Without it the case above passes for any implementation that
+ * settles ten promises, including one that settles all ten with a single
+ * payload, so it is what makes the case above an assertion rather than a shape.
  */
 describe('IpcChannel, the primitive IpcConversation replaces', () => {
   it('settles all ten concurrent requests on the first answer and drops the other nine', async () => {
