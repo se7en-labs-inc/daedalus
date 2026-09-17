@@ -1549,7 +1549,9 @@ are accepted. This is the gate in the Non-Functional Requirements.
 - The send form for a token with unresolved decimals: the decimal separator cannot be typed or
   pasted, and the row says so rather than letting the next digit land as a unit unannounced.
 - The migration notice on first run after the update, and its absence on the second.
-- Delete the cache directory while Daedalus is running, then reopen the token list.
+- Delete the cache directory while Daedalus is running, then reopen the token list. Every row still
+  renders and the directory stays absent until the next start. Linux and macOS only: on Windows the
+  open database handle blocks the unlink, so the state cannot be produced.
 - The three source options in the settings page: the preset selected by default, a custom URL that
   answers `/tip` and is accepted, a custom URL that does not answer and is refused with the error
   rendered, and the direct option present and unavailable.
