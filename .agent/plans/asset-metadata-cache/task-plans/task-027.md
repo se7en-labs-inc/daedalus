@@ -116,11 +116,249 @@ because it changes.
 The procedure below is the deliverable. An operator runs it, fills in the
 checklist, and attaches the artifacts each step names.
 
+### Corrections, 2026-09-17
+
+A manual QA pass on 2026-09-17 ran this procedure against a live build. Four
+steps were stale or unrunnable as written, and an operator following them would
+have recorded correct behavior as a failure. The original wording is left in
+place below; where it disagrees with this section, this section is what an
+operator follows. Every claim here was re-verified against the tree at
+`5bd24fee1`, and the strings against
+`source/renderer/app/i18n/locales/en-US.json`.
+
+**1. The rule that decides whether a published decimals value is applied.**
+`task-046` moved the gate from the three-step `verified` verdict to attestation
+alone. `attestedDecimals` returns `verifyRegistryProperty(...).attested`
+(`source/main/assets/assetMetadataResolver.ts:162-170`), that single value is
+written as the `attested` column (`:183`,
+`source/main/assets/assetMetadataDb.ts:46`), and the figure is applied if and
+only if it is true (`source/renderer/app/utils/assetDecimals.ts:52-76`, the
+`registryDecimalsAttested === true` branch at `:68`). The registry's OPTIONAL
+`policy` field is read nowhere on that path, so an entry that omits it applies
+its decimals like any other.
+
+There are four states rather than three:
+
+| The registry entry | Token list and send form | Settings dialog |
+|---|---|---|
+| carries `policy`, `decimals` attested | issuer units | recommended value, no advisory |
+| no `policy`, `decimals` attested | issuer units | recommended value, no advisory |
+| `decimals` published, not attested | whole ledger units | the advisory; choosing the figure applies it |
+| nothing published | whole ledger units | no advisory and no recommended value |
+
+The first two rows behave identically. What no longer distinguishes them is anything an operator can see and anything
+the cache stores: there is one verdict column, and it is the attestation
+verdict.
+What still distinguishes them is the registry entry itself.
+`verifyRegistryProperty` continues to compute `bound`, `satisfied` and
+`verified` (`source/main/assets/assetVerification.ts:446-451` and `:469-484`),
+and an entry with no `policy` field is still reported as `bound: false, reason:
+'absent'` (`:282-285`), but the resolver reads only `attested` and no surface
+carries a positive binding marker. So the two are told apart by reading the
+entry, not by using the application.
+
+**2. Scenario 3 and the Preparation fixture list.** Scenario 3 expects a token
+with published decimals and no `policy` field to show whole ledger units and its
+settings dialog to say the figure could not be checked against the token's
+minting policy. Both expectations are now wrong: that token applies its
+decimals, and no such sentence exists. Run scenario 3 against the four states in
+the table above.
+
+The advisory belongs to the third state alone. It is
+`assets.settings.dialog.unattestedDecimals` (`en-US.json:85`), shown when the
+entry published a figure that is not attested
+(`source/renderer/app/components/assets/AssetSettingsDialog.tsx:202-204`,
+rendered at `:300-309`), and for a six-decimal token it reads: "This token’s
+issuer publishes 6 decimal places. The issuer’s signature does not cover
+that figure, so Daedalus does not apply it on its own. Choosing it here applies
+it." The same rule drives the two pop-over strings,
+`assets.warning.availableUnattested` (`:88`) and
+`assets.warning.notUsingUnattested` (`:90`). All three carry typographic
+apostrophes, not ASCII ones.
+
+The fixture list asks for "one whose issuer published decimal places with no
+`policy` field" expecting no application, which is now the wrong fixture for the
+wrong reason. A not-attested token is the rare case worth naming, because an
+operator will not find one by chance: of 120 registry mappings sampled for
+`task-046` on 2026-09-16, 106 publish a decimals value and 104 of those are
+attested, leaving 2. Real mainnet subjects, each re-verified against
+`tokens.cardano.org/metadata/query` on 2026-09-17:
+
+| State | Token | Subject | Published | Why this one |
+|---|---|---|---|---|
+| `policy` present, attested | TOOL | `2335a83c53865b1ab167d19c0fb1542da90c2bfbf67b06f59dd03099544f4f4c` | 6 decimals at sequence 0 | the `policy` field hashes to the subject's own policy id |
+| attested, no `policy` | USDM | `c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad0014df105553444d` | 6 decimals at sequence 0 | pinned as a fixture at `source/main/assets/registryEntry.fixture.ts:23` |
+| published, not attested | MELD | `6ac8ef33b510ec004fe11585f7c5a9f0c07f0c23428ab4f29c1d7d104d454c44` | 6 decimals at sequence 1 | every property declares sequence 1 and every signature verifies at 0, so the attestation does not cover the declared value (`registryEntry.fixture.ts:102` and `:170`) |
+| nothing published | any | a token the registry does not list | none | |
+
+MELD is a stale edit and not an attack: someone bumped the sequence counter
+without re-signing. The other of the two carries no signatures at all, so MELD
+is the only case in that sample where a published value has signatures that do
+not cover it.
+
+A wallet holding these three specific tokens may not be practical to arrange.
+The qualifying property is checkable without the application:
+
+```
+curl -s -X POST https://tokens.cardano.org/metadata/query \
+  -H 'Content-Type: application/json' \
+  -d '{"subjects":["<subject>"],"properties":["decimals"]}'
+```
+
+`policy` comes back as a top-level field of each subject whether or not it is
+asked for, and `decimals` carries the declared `sequenceNumber` and the
+signatures. Attestation is the signatures verifying over the declared value at
+that sequence number, which is what the application computes.
+
+**Scenario 4 inherits this.** It says to add "the token whose decimal places are
+unresolved", which under the old rule was scenario 3's unverified token. That
+token now formats, so scenario 4 must use the not-attested token or the unknown
+one. Its label is unchanged:
+`wallet.send.form.assetInput.rawUnitsLabel` (`en-US.json:1385`).
+
+**3. Scenario 5's migration notice.** The notice no longer says "verified
+decimal places". `wallet.tokens.decimalPlacesNotice` (`en-US.json:1559`) reads:
+"For tokens whose decimal places an issuer has published and signed, amounts are
+now entered in those units rather than in the whole units the ledger holds: one
+and a half of a six-decimal token is now 1.5 and not 1500000. Balances for those
+tokens are shown the same way. A decimal place setting you have chosen yourself
+still overrides both." The rest of the scenario stands: the notice is shown only
+to a profile that had already accepted the terms of use, and a profile being
+created now has the flag written rather than left unset
+(`source/renderer/app/stores/ProfileStore.ts:491-508`).
+
+**4. Scenario 6 is not executable on Windows, and its evidence is wrong on every
+platform.**
+
+On Windows the deletion is refused while Daedalus runs, from Explorer and from
+PowerShell alike, as the 2026-09-17 pass found. SQLite's Windows VFS opens the
+database without `FILE_SHARE_DELETE`, so the handle blocks the unlink, and a
+directory holding an open file cannot be removed either. The scenario was
+written for POSIX semantics, where an open file can be unlinked. Record the
+Windows column as platform-limited rather than as a failure. **There is no
+Windows equivalent of the live case**: the operating system prevents the state
+the scenario is about, so the property cannot be produced there at all. This
+machine has no Windows and the refusal was not reproduced here.
+
+Stopping Daedalus first and then deleting the directory is a different property,
+startup recreation, and it must not be substituted for this one. Whether to
+cover that property as a scenario of its own is a decision for the project
+owner, listed at the end of this section.
+
+The evidence this scenario asks for is also wrong on Linux and macOS, where the
+deletion does succeed. Both named log lines are emitted from the
+`AssetMetadataDatabase` constructor alone
+(`source/main/assets/assetMetadataDb.ts:275-295`), which runs when a handle is
+opened. Three handles are opened, all at process start
+(`source/main/assets/assetMetadataResolver.ts:354`,
+`source/main/assets/assetImageStore.ts:176`,
+`source/main/ipc/assetMetadataChannel.ts:155`), and nothing reopens per request.
+So neither line appears, and the directory is not recreated until the next
+start, when `openHandle` creates it again
+(`source/main/assets/assetMetadataDb.ts:247-248`).
+
+Measured here on 2026-09-17, against Node 24.21.0 and the same `node:sqlite`
+API the module uses: with a database open in WAL mode, deleting the directory
+and all three files leaves reads and writes working through the open
+descriptors, leaves a `wal_checkpoint(TRUNCATE)` succeeding, and leaves the
+directory absent afterward. No statement fails, so no log line of any kind is
+produced.
+
+The corrected expectation on Linux and macOS: every row still renders, with its
+fingerprint, its quantity and its ticker, because the renderer holds resolved
+entries in memory for the session (`_metadata`,
+`source/renderer/app/stores/AssetsStore.ts:97`, read by `details` at
+`:154-158`). No crash, no error dialog, no log line, and the directory stays
+absent. The deletion is invisible to the interface until the next start, which
+recreates the directory with an empty cache.
+
+**So the scenario cannot reach the code it was written to check, on any
+platform.** The two log lines it asks for belong to a database that fails to
+open, which is a startup condition. The only evidence a run of it produces is a
+directory listing showing the cache absent while the application is still
+serving a complete token list from memory.
+
+**5. Scenario 2's recovery does not happen on its own, and the timing was
+unstated.** Removing the two `hosts` lines while Daedalus runs recovers nothing
+for as long as the operator stays on the token list, however long they wait.
+Three facts together:
+
+- The renderer asks for each subject once per session. `_resolveRenderedSubjects`
+  filters against `_requestedSubjects` and adds every subject it asks for
+  (`source/renderer/app/stores/AssetsStore.ts:306-314`), and that set is never
+  cleared (`:112`).
+- Nothing in the main process polls. There is no `setInterval` anywhere in the
+  asset path, and the three `setTimeout` calls in it are a per-request wall-clock
+  budget (`source/main/assets/httpTransport.ts:81`) and two in-call retry sleeps
+  (`source/main/assets/assetRegistryClient.ts:238`,
+  `source/main/assets/koiosClient.ts:290`). A backoff expiring is therefore not
+  an event; it only stops refusing a request that something else makes.
+- The recovery listener does not fire. It is
+  `window.addEventListener('online', this._onConnectivityRestored)`
+  (`AssetsStore.ts:139`), and editing `hosts` leaves the interface up and
+  `navigator.onLine` true throughout, so no transition occurs.
+
+What does recover, with its real timing:
+
+| Action | When it resolves |
+|---|---|
+| "Check the token registry again" in the token's settings dialog (`assets.settings.dialog.refreshMetadata`, `en-US.json:83`) | immediately, for that one token |
+| Restarting Daedalus more than five minutes after the failed attempt | on the next launch, for every held token |
+| A real interface transition, such as disabling and re-enabling the adapter | immediately, for the subjects whose failure was recorded as caused by the network |
+
+The five minutes is the first rung of the registry backoff.
+`ASSET_REGISTRY_BACKOFF_BASE_MS = 5 * 60 * 1000`
+(`source/main/assets/assetRegistryClient.ts:51`) is written into
+`asset_resolution.retry_after` on the first failure (`:416-423`, stored at
+`assetMetadataResolver.ts:563`), and `_due` refuses any subject whose
+`retry_after` is still in the future (`:745-758`). A restart inside that window
+therefore shows nothing either. The settings dialog refresh and the connectivity
+retry both bypass the wait rather than clearing it
+(`AssetsStore.ts:459-464` and `:340-342`, `assetMetadataResolver.ts:398-420`,
+`:434-442`), which is why they are immediate. The connectivity set is held in
+memory only (`:347`), so that path exists only in the session where the failures
+happened.
+
+The expectation for scenario 2 as written, staying on the list and touching
+nothing, is that nothing changes. To observe resolution in place,
+without navigating away, use the settings dialog refresh on one token: the row
+arrives on the update channel and reaches a dialog that is still open.
+
+**Checklist rows this changes.** Scenario 6 has no Windows column to tick:
+
+```
+6  Cache directory deleted             [  ]     [  ]     n/a (platform-limited)
+8  Selfnode reaches the mock           withdrawn 2026-09-15
+```
+
+Row 8 is listed in the original checklist and in acceptance criterion 1 although
+scenario 8 was withdrawn. Do not run it and do not tick it.
+
+**Decisions these corrections raise.** Neither is settled here.
+
+1. Scenario 6 has no Windows coverage and, on the two platforms where it runs,
+   reaches neither of the log lines it was written around. The startup path does
+   reach them and runs on all three platforms: with Daedalus stopped, stamp the
+   file with a version it does not expect,
+   `sqlite3 <cache>/assets.sqlite "PRAGMA user_version = 99"`, then start it.
+   `openHandle` throws on the mismatch
+   (`source/main/assets/assetMetadataDb.ts:256-259`), the constructor logs
+   `Asset metadata cache: recreating the database`, removes the three files and
+   reopens, and the cache is empty and working. That asserts a different
+   property from a live deletion, so it is an addition to the plan rather than a
+   repair of this scenario.
+2. The checklist grid in the Verification Plan below, and acceptance criterion 1,
+   both still count scenario 8 and count scenario 6 on three platforms. Reissuing
+   them means editing sections this plan treats as stable once planning closed.
+
 ### Preparation, once per platform
 
 - A release build, not a development run, except where a step says otherwise.
   `yarn package` produces the installer; the scenarios are about what a user
   gets.
+- A wallet holding tokens covering the four states in items 1 and 2 above,
+  plus one whose issuer published a logo. The list below is the old rule's fixture set
+  and its second item expects a behavior that no longer occurs.
 - A wallet holding at least four tokens: one whose issuer published decimal
   places bound to the minting policy, one whose issuer published decimal places
   with no `policy` field, one the registry has never heard of, and one whose
@@ -174,6 +412,9 @@ being unreachable is a state rather than an error.
 
 ### Scenario 2 — The same wallet, online
 
+**Corrected 2026-09-17, item 5 above: the expectation below is misleading about
+timing. Nothing resolves while the list is left untouched.**
+
 Remove the two `hosts` lines without restarting Daedalus. Stay on the token list.
 
 **Expected:** tickers and formatted amounts appear in place. The list does not
@@ -182,6 +423,9 @@ blank, remount or reorder wholesale, and no row disappears while it resolves.
 **Evidence:** a screenshot before and after, taken without navigating away.
 
 ### Scenario 3 — Three tokens side by side
+
+**Corrected 2026-09-17, items 1 and 2 above: the three categories below are the
+old rule. Run the four states in the table.**
 
 With the cache warm, look at the verified token, the unverified token and the
 unknown token in the token list and then in the send form.
@@ -200,6 +444,9 @@ dialog for the unverified token.
 
 ### Scenario 4 — The send form refuses a decimal it cannot interpret
 
+**Corrected 2026-09-17, item 2 above: use the not-attested token or the unknown
+one. The attested-but-unbound token now formats.**
+
 Open the send form, add the token whose decimal places are unresolved, and try to
 enter `1.5`, first by typing and then by pasting. Repeat with a comma as the
 separator and with a grouped value such as `1,500,000`.
@@ -213,6 +460,9 @@ one of the two send-path safety rules; a failure here is a defect of the highest
 severity in this plan and stops the release.
 
 ### Scenario 5 — The migration notice
+
+**Corrected 2026-09-17, item 3 above: the notice says “published and signed”,
+not “verified decimal places”.**
 
 Install the previous release, create or restore a wallet holding tokens, accept
 the terms of use, and close. Install this build over it. Start Daedalus and open
@@ -230,6 +480,9 @@ the notice never appears, because a profile created now has no habit to correct.
 restart, and a note of which profile each was taken in.
 
 ### Scenario 6 — The cache directory deleted underneath a running application
+
+**Corrected 2026-09-17, item 4 above: not executable on Windows, and the
+expected evidence below is wrong on every platform.**
 
 With Daedalus running and the token list open, delete the whole
 `asset-metadata-cache` directory. Navigate away from the token list and back.
@@ -321,6 +574,9 @@ Defects opened (scenario number and issue reference)
 
 Signed: ____________________
 ```
+
+**Corrected 2026-09-17:** row 6 has no Windows column, and row 8 is withdrawn.
+The corrected rows are at the end of the corrections section above.
 
 ## Risks and Open Questions
 
