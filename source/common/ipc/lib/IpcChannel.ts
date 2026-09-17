@@ -46,6 +46,19 @@ export interface Channel<Incoming, Outgoing> {
  * ipc messages over named channels. Where possible it uses
  * promises to reduce the necessary boilerplate for request
  * and response cycles.
+ *
+ * **One request at a time per channel.** `send` and `request` park a one-shot
+ * listener on a response name every caller of the channel shares, and neither
+ * the request nor the response carries anything that ties them together. An
+ * EventEmitter runs every one-shot listener registered for a name on a single
+ * `emit`, hands each of them the same payload and unregisters all of them, so
+ * two requests in flight are answered once, with one payload, and the response
+ * to the second arrives to no listener at all and is dropped.
+ *
+ * Use `IpcConversation` in the same directory for a channel that can be asked
+ * twice before the first answer returns. It carries a per-request id on the
+ * wire, ignores a message carrying someone else's rather than consuming it, and
+ * removes only its own listener.
  */
 export class IpcChannel<Incoming, Outgoing>
   implements Channel<Incoming, Outgoing>
@@ -94,9 +107,10 @@ export class IpcChannel<Incoming, Outgoing>
   }
 
   /**
-   * Sends a request over ipc to the receiver and waits for the next response on the
-   * same channel. It returns a promise which is resolved or rejected with the response
-   * depending on the `isOk` flag set by the respondent.
+   * Sends a request over ipc to the receiver and settles on the next response to
+   * reach the channel, which is not necessarily the response to this request.
+   * The promise is resolved or rejected depending on the `isOk` flag set by the
+   * respondent. Single caller at a time only; see the class comment.
    */
   async send(
     message: Outgoing,
@@ -122,6 +136,10 @@ export class IpcChannel<Incoming, Outgoing>
   /**
    * Request a message from the other side.
    * Can be used to get the current state of some information.
+   *
+   * Settles on the next response to reach the channel, which is not necessarily
+   * the response to this request. Single caller at a time only; see the class
+   * comment.
    */
   async request(
     message: Outgoing,

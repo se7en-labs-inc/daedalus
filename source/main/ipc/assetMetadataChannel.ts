@@ -1,5 +1,6 @@
 import type { BrowserWindow } from 'electron';
 import { MainIpcChannel } from './lib/MainIpcChannel';
+import { MainIpcConversation } from './lib/MainIpcConversation';
 import {
   ASSET_IMAGE_CHANNEL,
   ASSET_METADATA_CHANNEL,
@@ -29,20 +30,26 @@ import { logger } from '../utils/logging';
 // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
 import { assetLogger } from '../utils/assetLogging';
 
-const assetMetadataChannel: MainIpcChannel<
+/**
+ * Both read channels are conversations, because both of them are asked more
+ * than once at a time. `IpcChannel` answers whichever request is waiting rather
+ * than the one that asked, and an EventEmitter drains every one-shot listener
+ * on the first response, so the requests that follow are never answered at all.
+ */
+const assetMetadataChannel: MainIpcConversation<
   AssetMetadataRendererRequest,
   AssetMetadataMainResponse
-> = new MainIpcChannel(ASSET_METADATA_CHANNEL);
+> = new MainIpcConversation(ASSET_METADATA_CHANNEL);
 
 const assetMetadataUpdateChannel: MainIpcChannel<
   AssetMetadataUpdateRendererResponse,
   AssetMetadataUpdateMainRequest
 > = new MainIpcChannel(ASSET_METADATA_UPDATE_CHANNEL);
 
-const assetImageChannel: MainIpcChannel<
+const assetImageChannel: MainIpcConversation<
   AssetImageRendererRequest,
   AssetImageMainResponse
-> = new MainIpcChannel(ASSET_IMAGE_CHANNEL);
+> = new MainIpcConversation(ASSET_IMAGE_CHANNEL);
 
 export type AssetMetadataChannelOptions = {
   window?: BrowserWindow;
@@ -168,7 +175,6 @@ export class AssetMetadataChannelHandlers {
   readMetadata = async (
     request: AssetMetadataRendererRequest
   ): Promise<AssetMetadataMainResponse> => {
-    const requestId = request?.requestId;
     const subjects = cleanSubjects(request?.subjects);
     try {
       // The pointer source is the renderer's setting and the client that reads
@@ -190,7 +196,6 @@ export class AssetMetadataChannelHandlers {
         this._database.readImageSubjects(rows.map((row) => row.subject))
       );
       return {
-        requestId,
         entries: rows.map((row) => toEntry(row, withImage)),
         unresolved: this._unresolved(subjects, rows),
       };
@@ -201,7 +206,7 @@ export class AssetMetadataChannelHandlers {
         reason: error instanceof Error ? error.message : 'unknown',
         subjectCount: subjects.length,
       });
-      return { requestId, entries: [], unresolved: [] };
+      return { entries: [], unresolved: [] };
     }
   };
 
@@ -213,36 +218,32 @@ export class AssetMetadataChannelHandlers {
   readImage = async (
     request: AssetImageRendererRequest
   ): Promise<AssetImageMainResponse> => {
-    const requestId = request?.requestId;
     const subject = request?.subject;
     // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
-    // draft. Both ends of this handler are recorded with the same `requestId`,
-    // so a request that is answered here and a response that never reaches the
-    // renderer can be told apart from a request that was never answered.
-    assetLogger.debug('Asset image IPC: request received', {
-      requestId,
-      subject,
-    });
+    // draft. Both ends of this handler are recorded against the subject, which
+    // is what the renderer logs its own two ends against, so a request answered
+    // here whose response never reached the renderer can be told apart from a
+    // request that was never answered. The subject identifies the request on its
+    // own: the renderer memoises per subject and so has at most one in flight
+    // for each.
+    assetLogger.debug('Asset image IPC: request received', { subject });
     try {
       const row = await this._images.fetch(subject);
       if (!row) {
         assetLogger.debug('Asset image IPC: response sent', {
-          requestId,
           subject,
           status: 'absent',
           byteLength: 0,
         });
-        return { requestId, status: 'absent' };
+        return { status: 'absent' };
       }
       assetLogger.debug('Asset image IPC: response sent', {
-        requestId,
         subject,
         status: 'present',
         byteLength: row.bytes.length,
         mediaType: row.mediaType,
       });
       return {
-        requestId,
         status: 'present',
         mediaType: row.mediaType,
         bytes: row.bytes,
@@ -252,13 +253,12 @@ export class AssetMetadataChannelHandlers {
         reason: error instanceof Error ? error.message : 'unknown',
       });
       assetLogger.warn('Asset image IPC: response sent', {
-        requestId,
         subject,
         status: 'absent',
         byteLength: 0,
         reason: error instanceof Error ? error.message : 'unknown',
       });
-      return { requestId, status: 'absent' };
+      return { status: 'absent' };
     }
   };
 
@@ -304,9 +304,10 @@ export class AssetMetadataChannelHandlers {
 let registered = false;
 
 /**
- * Registering twice would answer one request with two responses, and the second
- * of them would be taken by another request's one-shot listener, leaving that
- * request with nothing left to resolve it.
+ * Registering twice would answer one request with two responses. The second
+ * carries the same conversation id as the first and arrives after the listener
+ * that wanted it has removed itself, so it reaches nobody; the work behind it
+ * is done twice for nothing.
  */
 export const handleAssetMetadataRequests = (
   window: BrowserWindow,

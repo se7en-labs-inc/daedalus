@@ -38,23 +38,6 @@ export type AssetResolutionState =
 export type AssetMetadataSource = 'registry' | 'chain';
 
 /**
- * Correlation, carried by the type rather than by convention.
- *
- * `IpcChannel` resolves a request on the next message to arrive on the
- * channel's single response name, whichever request that message answers
- * (`source/common/ipc/lib/IpcChannel.ts:101-145`). A bulk subject-keyed read
- * has overlapping requests as its ordinary case, so every request on these
- * channels carries an id and every response echoes it.
- *
- * Wrapping the bodies rather than writing the field into each of them means a
- * response shape added later cannot omit it, including a new member of a
- * response union.
- */
-export type AssetIpcCorrelated<TBody> = TBody & {
-  requestId: string;
-};
-
-/**
  * One resolved asset, as the renderer sees it.
  *
  * `hasImage` says whether asking on the image channel is worth it. The bytes

@@ -68,7 +68,6 @@ import type {
   DRepAnchorResult,
 } from '../types/governance.types';
 import type {
-  AssetIpcCorrelated,
   AssetMetadataEntry,
   AssetUnresolvedSubject,
 } from '../types/asset-metadata.types';
@@ -551,12 +550,19 @@ export type GovernanceDRepAnchorMainResponse = DRepAnchorResult;
  * ==================== ASSET METADATA IPC CHANNELS ====================
  * Channels for the main-process asset metadata cache.
  *
- * Every request carries a `requestId` and every response echoes it, because
- * `IpcChannel` resolves on the next message to reach the channel's response
- * name whatever request produced it (`lib/IpcChannel.ts:101-145`). A bulk read
- * keyed on a subject list has overlapping requests as its ordinary case, and a
- * mis-correlated response here would be wrong decimal places rather than a
- * wrong label.
+ * The two read channels are conversations. `IpcChannel.request` waits on the
+ * channel's single response name with a one-shot listener
+ * (`lib/IpcChannel.ts:144-163`), and one emit on an EventEmitter fires every
+ * one-shot listener registered for that name, hands each the same payload and
+ * unregisters all of them. N concurrent requests are therefore answered once,
+ * with one payload, and the N-1 responses that follow reach nobody.
+ * `IpcConversation` puts an id on the wire, ignores a message that does not
+ * carry its own, and removes only its own listener (`lib/IpcConversation.ts:65-96`).
+ *
+ * Both of these channels are concurrent by construction: a token list asks for
+ * one logo per row at once, and a per-asset refresh overlaps with the bulk read
+ * the rendered subjects trigger. Correlation lives in the transport, so a
+ * request here carries only what it asks about and a response only its answer.
  * =====================================================================
  */
 
@@ -564,7 +570,7 @@ export type GovernanceDRepAnchorMainResponse = DRepAnchorResult;
 // network: a subject with no row comes back under `unresolved` and resolution
 // for it is scheduled.
 export const ASSET_METADATA_CHANNEL = 'ASSET_METADATA_CHANNEL';
-export type AssetMetadataRendererRequest = AssetIpcCorrelated<{
+export type AssetMetadataRendererRequest = {
   subjects: Array<string>;
   // A read the refresh window and the retry backoff do not apply to, for a user
   // who knows an issuer published something today. Still a read: it answers from
@@ -580,11 +586,11 @@ export type AssetMetadataRendererRequest = AssetIpcCorrelated<{
   // backoff or why, so it reports the event and the main process decides what,
   // if anything, it changes. Sent with no subjects.
   connectivityRestored?: boolean;
-}>;
-export type AssetMetadataMainResponse = AssetIpcCorrelated<{
+};
+export type AssetMetadataMainResponse = {
   entries: Array<AssetMetadataEntry>;
   unresolved: Array<AssetUnresolvedSubject>;
-}>;
+};
 
 // Push: main -> renderer as rows resolve. Unsolicited, so it answers no request
 // and carries no id.
@@ -597,13 +603,13 @@ export type AssetMetadataUpdateRendererResponse = void;
 // One subject per request, which is what keeps logos off the path of every
 // other read.
 export const ASSET_IMAGE_CHANNEL = 'ASSET_IMAGE_CHANNEL';
-export type AssetImageRendererRequest = AssetIpcCorrelated<{
+export type AssetImageRendererRequest = {
   subject: string;
-}>;
+};
 export type AssetImageMainResponse =
-  | AssetIpcCorrelated<{ status: 'absent' }>
-  | AssetIpcCorrelated<{
+  | { status: 'absent' }
+  | {
       status: 'present';
       mediaType: string;
       bytes: Uint8Array;
-    }>;
+    };

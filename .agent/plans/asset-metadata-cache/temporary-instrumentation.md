@@ -1,23 +1,30 @@
 # Temporary instrumentation that must be removed
 
-**Status:** active, must be reverted before this plan leaves draft
+**Status:** active, must be removed before this plan leaves draft
 **Added:** 2026-09-16
 **Commit subject:** `chore(assets): add temporary asset-subsystem diagnostic logging`
 
-One commit, added to chase a defect where a wallet holding ten registry-listed
-tokens with logos renders three of them, and the three vary between runs. It
-adds observability and nothing else. **It is not a feature and must not ship.**
+Added to chase a defect where a wallet holding ten registry-listed tokens with
+logos renders three of them, and the three vary between runs. It adds
+observability and nothing else. **It is not a feature and must not ship.**
+
+The defect it was attached to find has since been diagnosed and fixed. The
+instrument stayed on across the fix, so that a build could be compared against
+the log taken before it, which means it is no longer confined to the commit that
+added it.
 
 ## How to remove it
 
-The whole change is one commit, so:
+Not a single revert any more. The lines the fix reshaped live in the commit that
+reshaped them, so removing the instrument means deleting the four files below
+and the marked edits in the six, all of which carry a
+`TEMPORARY DIAGNOSTIC INSTRUMENTATION` comment at every touched point:
 
 ```
-git revert <sha>
+git grep -n 'TEMPORARY DIAGNOSTIC INSTRUMENTATION'
 ```
 
-Nothing else in the plan depends on it. If the revert conflicts, the change is
-four new files and six edits, listed below.
+Nothing else in the plan depends on it.
 
 ## What it added
 
@@ -38,9 +45,24 @@ at every touched point:
 | `source/main/index.ts` | One import and one `setupAssetLogging()` call after `setupLogging()` |
 | `source/main/assets/assetImageStore.ts` | `logoValue` returns a reason beside its value; the store's entry points and every failure branch log |
 | `source/main/assets/assetMetadataDb.ts` | `writeImage` says which of its two refusal paths refused |
-| `source/main/ipc/assetMetadataChannel.ts` | `readImage` logs the request in and the response out |
-| `source/renderer/app/ipc/assetMetadataChannel.ts` | `deliver` takes a channel label and logs whether a response matched a waiter; a side map carries the subject per request id |
+| `source/main/ipc/assetMetadataChannel.ts` | `readImage` logs the request in and the response out, against the subject |
+| `source/renderer/app/ipc/assetMetadataChannel.ts` | An in-flight counter, and a line per image request sent and per response received |
 | `source/renderer/app/components/wallet/tokens/wallet-token/WalletTokenHeader.tsx` | The row logs whether it asked and what it got |
+
+## What changed when the image channel moved to a conversation
+
+The instrument was written against a client that carried its own correlation
+registry, and the registry is gone: the channel correlates now, so there was no
+longer a `deliver` to log from and no such thing as a response that matched no
+waiter. The lines it produced were replaced rather than dropped. Each request
+and each response is now recorded against its subject on both sides, and the
+renderer keeps a count of outstanding image requests purely so that one file
+answers "ten rows asked and ten were answered" without the reader pairing lines
+up by hand. A count that climbs and never returns to zero is what the original
+defect would look like if it came back.
+
+The counter is diagnostic state and nothing reads it but the log. It goes with
+the rest of this.
 
 ## The one thing to check when reverting
 

@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
 import { RendererIpcChannel } from './lib/RendererIpcChannel';
+import { RendererIpcConversation } from './lib/RendererIpcConversation';
 // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
 import { assetLogger } from '../utils/assetLogging';
 import {
@@ -16,92 +16,48 @@ import type {
   AssetMetadataUpdateRendererResponse,
 } from '../../../common/ipc/api';
 
-export const assetMetadataChannel: RendererIpcChannel<
+/**
+ * The two read channels are conversations and the push channel is not.
+ *
+ * A conversation puts an id on the wire, keeps listening when a message carries
+ * someone else's, and takes only its own listener away when its own answer
+ * arrives. `IpcChannel` instead parks a one-shot listener on a response name
+ * shared by every caller, and one `emit` fires all of them with the same
+ * payload and unregisters all of them. Both of these channels are asked more
+ * than once at a time, so under `IpcChannel` the first answer would settle every
+ * outstanding request with one subject's payload and the answers behind it would
+ * arrive to an empty listener list.
+ *
+ * The push channel has no such problem to solve. Nothing requests it, its
+ * payload travels main to renderer, and the acknowledgement going back carries
+ * no information at all, so there is nothing a mis-delivered acknowledgement
+ * could get wrong.
+ */
+export const assetMetadataChannel: RendererIpcConversation<
   AssetMetadataMainResponse,
   AssetMetadataRendererRequest
-> = new RendererIpcChannel(ASSET_METADATA_CHANNEL);
+> = new RendererIpcConversation(ASSET_METADATA_CHANNEL);
 
 export const assetMetadataUpdateChannel: RendererIpcChannel<
   AssetMetadataUpdateMainRequest,
   AssetMetadataUpdateRendererResponse
 > = new RendererIpcChannel(ASSET_METADATA_UPDATE_CHANNEL);
 
-export const assetImageChannel: RendererIpcChannel<
+export const assetImageChannel: RendererIpcConversation<
   AssetImageMainResponse,
   AssetImageRendererRequest
-> = new RendererIpcChannel(ASSET_IMAGE_CHANNEL);
-
-type Correlated = { requestId: string };
+> = new RendererIpcConversation(ASSET_IMAGE_CHANNEL);
 
 /**
  * TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
  *
- * The subject each outstanding image request named, so a delivery can say which
- * asset it was about. The response carries only a `requestId`.
+ * How many image requests are outstanding. It correlates nothing: the channel
+ * does that. It is here so that one file answers "ten rows asked and ten were
+ * answered" without the reader having to pair lines up by hand, and so that the
+ * defect this instrument was attached to find would still be legible if it
+ * recurred, as a count that climbs and never returns to zero.
  */
-const requestSubjects = new Map<string, string>();
-
-/**
- * Waiters for one channel, keyed by the id each of them issued.
- *
- * `IpcChannel.request` registers a one-shot listener on the channel's single
- * response name and resolves on the next message to arrive, whatever request
- * that message answers. Two reads in flight are two listeners on one stream,
- * fired in registration order by arrival order, so a response can land on the
- * wrong promise.
- *
- * Correlation therefore cannot live inside one call. A call that checked the id
- * on its own promise and kept waiting would wait forever, because the message it
- * wanted was already consumed by the other listener. The waiters share a
- * registry instead: whichever promise settles hands the payload to the waiter
- * whose id it carries, and a payload nobody is waiting for is discarded.
- */
-const deliver = <TResponse extends Correlated>(
-  waiters: Map<string, (response: TResponse) => void>,
-  response: TResponse,
-  channel: string
-): void => {
-  const requestId = response?.requestId;
-  const waiter = typeof requestId === 'string' ? waiters.get(requestId) : null;
-  const subject =
-    typeof requestId === 'string'
-      ? (requestSubjects.get(requestId) ?? null)
-      : null;
-  if (!waiter) {
-    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
-    // draft. A payload nobody is waiting for is discarded here without a word,
-    // and so is the fact that some other waiter is still holding. Both halves
-    // are on the record now: how many are still waiting, and which subject this
-    // payload belonged to.
-    assetLogger.warn('Asset IPC renderer: response matched no waiter', {
-      channel,
-      requestId: typeof requestId === 'string' ? requestId : null,
-      subject,
-      waiting: waiters.size,
-    });
-    return;
-  }
-  waiters.delete(requestId);
-  requestSubjects.delete(requestId);
-  assetLogger.debug('Asset IPC renderer: response matched its waiter', {
-    channel,
-    requestId,
-    subject,
-    waitingBefore: waiters.size + 1,
-    waitingAfter: waiters.size,
-  });
-  waiter(response);
-};
-
-const metadataWaiters = new Map<
-  string,
-  (response: AssetMetadataMainResponse) => void
->();
-
-const imageWaiters = new Map<
-  string,
-  (response: AssetImageMainResponse) => void
->();
+let imageRequestsInFlight = 0;
 
 /**
  * Asks for the rows the cache holds for these subjects and returns what it has.
@@ -119,6 +75,11 @@ const imageWaiters = new Map<
  * `connectivityRestored` reports that this window observed the machine come back
  * online. It names no subjects: which of them were waiting on the network is
  * known in the main process and not here.
+ *
+ * Never rejects. The main handler answers on every path, so the only thing that
+ * could reject is the transport itself, and a caller merging rows into a store
+ * is not a place to handle that. An empty answer is the same shape as a cache
+ * that knew nothing, which is what a read that could not be made amounts to.
  */
 export const requestAssetMetadata = (
   subjects: Array<string>,
@@ -128,66 +89,64 @@ export const requestAssetMetadata = (
     connectivityRestored?: boolean;
   } = {}
 ): Promise<AssetMetadataMainResponse> =>
-  new Promise((resolve) => {
-    const requestId = uuidv4();
-    metadataWaiters.set(requestId, resolve);
-    assetMetadataChannel
-      .request({
-        requestId,
-        subjects,
-        refresh: options.refresh === true,
-        sourceUrl: options.sourceUrl ?? null,
-        connectivityRestored: options.connectivityRestored === true,
-      })
-      .then((response) => deliver(metadataWaiters, response, 'metadata'))
-      // A rejected response arrives without an id, so it cannot be handed to the
-      // waiter it belongs to. The main handlers answer on every path and never
-      // reject, which is what keeps this unreachable; rejecting some other
-      // waiter to be rid of it would be worse than leaving this one waiting.
-      .catch(() => {
-        assetLogger.warn('Asset IPC renderer: request rejected', {
-          channel: 'metadata',
-          requestId,
-          subject: null,
-          waiting: metadataWaiters.size,
-        });
+  assetMetadataChannel
+    .request({
+      subjects,
+      refresh: options.refresh === true,
+      sourceUrl: options.sourceUrl ?? null,
+      connectivityRestored: options.connectivityRestored === true,
+    })
+    .catch((error) => {
+      assetLogger.warn('Asset IPC renderer: request rejected', {
+        channel: 'metadata',
+        subjectCount: subjects.length,
+        reason: error instanceof Error ? error.message : 'unknown',
       });
-  });
+      return { entries: [], unresolved: [] };
+    });
 
 /** Asks for one subject's logo. Answers `absent` rather than failing. */
 export const requestAssetImage = (
   subject: string
-): Promise<AssetImageMainResponse> =>
-  new Promise((resolve) => {
-    const requestId = uuidv4();
-    imageWaiters.set(requestId, resolve);
-    requestSubjects.set(requestId, subject);
-    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
-    // draft. `waiting` is the count after this one was parked, so a burst of
-    // rows asking at once is visible as a rising number, and a number that
-    // rises and never comes back down is a set of requests that were answered
-    // by nobody.
-    assetLogger.debug('Asset image renderer: request sent', {
-      channel: 'image',
-      requestId,
-      subject,
-      waiting: imageWaiters.size,
-    });
-    assetImageChannel
-      .request({
-        requestId,
-        subject,
-      })
-      .then((response) => deliver(imageWaiters, response, 'image'))
-      .catch(() => {
-        assetLogger.warn('Asset IPC renderer: request rejected', {
-          channel: 'image',
-          requestId,
-          subject,
-          waiting: imageWaiters.size,
-        });
-      });
+): Promise<AssetImageMainResponse> => {
+  // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+  imageRequestsInFlight += 1;
+  assetLogger.debug('Asset image renderer: request sent', {
+    channel: 'image',
+    subject,
+    inFlight: imageRequestsInFlight,
   });
+  return assetImageChannel
+    .request({ subject })
+    .then((response) => {
+      // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+      // draft. One of these per request, each naming its own subject. Ten rows
+      // asking at once read as `inFlight` climbing to ten and then coming back
+      // down to zero, one subject at a time.
+      imageRequestsInFlight -= 1;
+      assetLogger.debug('Asset image renderer: response received', {
+        channel: 'image',
+        subject,
+        status: response.status,
+        inFlight: imageRequestsInFlight,
+      });
+      return response;
+    })
+    .catch((error) => {
+      imageRequestsInFlight -= 1;
+      assetLogger.warn('Asset IPC renderer: request rejected', {
+        channel: 'image',
+        subject,
+        inFlight: imageRequestsInFlight,
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+      // The main handler catches its own failures and answers `absent`, so this
+      // is the transport itself failing. A row that asked for a picture is told
+      // there is none, which is what every other failure on this path already
+      // resolves to.
+      return { status: 'absent' } as AssetImageMainResponse;
+    });
+};
 
 /**
  * One `data:` URL per subject, for the life of the renderer.

@@ -40,6 +40,6 @@ looking for.
 | Finding | Scope | Status |
 |---------|-------|--------|
 | [retired-drep-visibility.md](./retired-drep-visibility.md) | Governance, with an upstream fix: a retired DRep leaves the wallet loading forever | Open, not scheduled |
-| [ipc-channel-response-correlation.md](./ipc-channel-response-correlation.md) | IPC: `IpcChannel` resolves on the next response rather than the matching one, and `IpcConversation` next to it already does this correctly | Open, not scheduled |
+| [ipc-channel-response-correlation.md](./ipc-channel-response-correlation.md) | IPC: `IpcChannel` answers every concurrent request with one payload and drops the rest, and `IpcConversation` next to it already does this correctly | Open for the 68 files still on `IpcChannel`; the asset metadata channels are moved |
 | [token-provenance-discarded.md](./token-provenance-discarded.md) | Native tokens: per-property verification, policy closure and script type are computed or one call away, and collapsed into one boolean | Open, not scheduled |
 | [09-token-images-are-shown-without-consent.md](./09-token-images-are-shown-without-consent.md) | Native tokens: registry logos are fetched per subject and rendered with no setting, no prompt and no notice that the image came from the minter | Open, not scheduled |

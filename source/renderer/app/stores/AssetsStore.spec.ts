@@ -108,7 +108,6 @@ describe('AssetsStore', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     requestAssetMetadata.mockResolvedValue({
-      requestId: 'r',
       entries: [],
       unresolved: [],
     });
@@ -262,7 +261,6 @@ describe('AssetsStore', () => {
     it('merges the entries the response carries', async () => {
       const { store } = makeStore();
       requestAssetMetadata.mockResolvedValue({
-        requestId: 'r',
         entries: [entry()],
         unresolved: [{ subject: OTHER_SUBJECT, state: 'pending' }],
       });
@@ -443,7 +441,6 @@ describe('AssetsStore', () => {
     it('merges what a refresh answers with', async () => {
       const { store } = makeStore();
       requestAssetMetadata.mockResolvedValue({
-        requestId: 'r',
         entries: [entry({ ticker: 'REFRESHED' })],
         unresolved: [],
       });

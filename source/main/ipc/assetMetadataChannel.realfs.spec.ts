@@ -15,17 +15,33 @@ import type {
   RegistryTransportResult,
 } from '../assets/assetRegistryClient';
 
-const mockChannels: Array<{ onRequest: jest.Mock; send: jest.Mock }> = [];
+type MockChannel = { onRequest: jest.Mock; send: jest.Mock };
 
-jest.mock('./lib/MainIpcChannel', () => ({
-  MainIpcChannel: jest.fn().mockImplementation(() => {
+/**
+ * The push channel is an `IpcChannel` and the two read channels are
+ * conversations, so the doubles are kept apart the same way. A read channel is
+ * asked more than once at a time and `IpcChannel` answers whichever request is
+ * waiting rather than the one that asked.
+ */
+const mockChannels: Array<MockChannel> = [];
+const mockConversations: Array<MockChannel> = [];
+
+const mockChannelFactory = (into: Array<MockChannel>) =>
+  jest.fn().mockImplementation(() => {
     const channel = {
       onRequest: jest.fn(),
       send: jest.fn().mockResolvedValue(undefined),
     };
-    mockChannels.push(channel);
+    into.push(channel);
     return channel;
-  }),
+  });
+
+jest.mock('./lib/MainIpcChannel', () => ({
+  MainIpcChannel: mockChannelFactory(mockChannels),
+}));
+
+jest.mock('./lib/MainIpcConversation', () => ({
+  MainIpcConversation: mockChannelFactory(mockConversations),
 }));
 
 jest.mock('../config', () => ({
@@ -98,6 +114,7 @@ describe('assetMetadataChannel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockChannels.length = 0;
+    mockConversations.length = 0;
     directory = fs.mkdtempSync(path.join(os.tmpdir(), 'asset-ipc-'));
     database = openAssetMetadataDatabase(path.join(directory, 'assets.sqlite'));
   });
@@ -147,7 +164,6 @@ describe('assetMetadataChannel', () => {
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
       const response = await handlers.readMetadata({
-        requestId: 'r-1',
         subjects: [SUBJECT, OTHER],
       });
       expect(response.entries).toEqual([]);
@@ -155,22 +171,6 @@ describe('assetMetadataChannel', () => {
         { subject: SUBJECT, state: 'pending' },
         { subject: OTHER, state: 'pending' },
       ]);
-    });
-
-    it('echoes the request id it was given', async () => {
-      const handlers = handlersWith(
-        stubTransport(async () => ({ ok: false, reason: 'network' }))
-      );
-      const first = await handlers.readMetadata({
-        requestId: 'r-first',
-        subjects: [SUBJECT],
-      });
-      const second = await handlers.readMetadata({
-        requestId: 'r-second',
-        subjects: [SUBJECT],
-      });
-      expect(first.requestId).toBe('r-first');
-      expect(second.requestId).toBe('r-second');
     });
 
     it('answers from the cache without waiting for the transport', async () => {
@@ -185,7 +185,6 @@ describe('assetMetadataChannel', () => {
         })
       );
       const response = await handlers.readMetadata({
-        requestId: 'r-2',
         subjects: [SUBJECT, OTHER],
       });
       expect(response.entries).toHaveLength(1);
@@ -220,7 +219,6 @@ describe('assetMetadataChannel', () => {
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
       const response = await handlers.readMetadata({
-        requestId: 'r-3',
         subjects: [failed, unregistered, OTHER],
       });
       expect(response.unresolved).toEqual([
@@ -246,10 +244,7 @@ describe('assetMetadataChannel', () => {
       const handlers = handlersWith(
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
-      const response = await handlers.readMetadata({
-        requestId: 'r-4',
-        subjects: [SUBJECT],
-      });
+      const response = await handlers.readMetadata({ subjects: [SUBJECT] });
       expect(response.unresolved).toEqual([]);
       expect(response.entries).toHaveLength(1);
     });
@@ -259,10 +254,7 @@ describe('assetMetadataChannel', () => {
       const handlers = handlersWith(
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
-      const response = await handlers.readMetadata({
-        requestId: 'r-5',
-        subjects: [SUBJECT],
-      });
+      const response = await handlers.readMetadata({ subjects: [SUBJECT] });
       expect(response.entries[0]).toEqual({
         subject: SUBJECT,
         policyId: POLICY,
@@ -282,10 +274,7 @@ describe('assetMetadataChannel', () => {
       const handlers = handlersWith(
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
-      const response = await handlers.readMetadata({
-        requestId: 'r-6',
-        subjects: [SUBJECT],
-      });
+      const response = await handlers.readMetadata({ subjects: [SUBJECT] });
       expect(response.entries[0].metadata).toBeNull();
     });
 
@@ -304,7 +293,6 @@ describe('assetMetadataChannel', () => {
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
       const response = await handlers.readMetadata({
-        requestId: 'r-7',
         subjects: [SUBJECT, OTHER],
       });
       const bySubject = new Map(
@@ -320,7 +308,6 @@ describe('assetMetadataChannel', () => {
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
       const response = await handlers.readMetadata({
-        requestId: 'r-8',
         subjects: [SUBJECT, SUBJECT, SUBJECT],
       });
       expect(response.entries).toHaveLength(1);
@@ -332,11 +319,7 @@ describe('assetMetadataChannel', () => {
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
       database.close();
-      const response = await handlers.readMetadata({
-        requestId: 'r-9',
-        subjects: [SUBJECT],
-      });
-      expect(response.requestId).toBe('r-9');
+      const response = await handlers.readMetadata({ subjects: [SUBJECT] });
       expect(response.entries).toEqual([]);
     });
   });
@@ -353,9 +336,8 @@ describe('assetMetadataChannel', () => {
         return [];
       };
 
-      await handlers.readMetadata({ requestId: 'r-1', subjects: [SUBJECT] });
+      await handlers.readMetadata({ subjects: [SUBJECT] });
       await handlers.readMetadata({
-        requestId: 'r-2',
         subjects: [SUBJECT],
         refresh: true,
       });
@@ -377,11 +359,10 @@ describe('assetMetadataChannel', () => {
         return [];
       };
 
-      await handlers.readMetadata({ requestId: 'r-1', subjects: [SUBJECT] });
+      await handlers.readMetadata({ subjects: [SUBJECT] });
       expect(retries).toBe(0);
 
       await handlers.readMetadata({
-        requestId: 'r-2',
         subjects: [],
         connectivityRestored: true,
       });
@@ -393,12 +374,10 @@ describe('assetMetadataChannel', () => {
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
       const response = await handlers.readMetadata({
-        requestId: 'r-4',
         subjects: [],
         connectivityRestored: true,
       });
       expect(response).toEqual({
-        requestId: 'r-4',
         entries: [],
         unresolved: [],
       });
@@ -411,12 +390,10 @@ describe('assetMetadataChannel', () => {
       );
 
       const response = await handlers.readMetadata({
-        requestId: 'r-3',
         subjects: [SUBJECT],
         refresh: true,
       });
 
-      expect(response.requestId).toBe('r-3');
       expect(response.entries.map((entry) => entry.subject)).toEqual([SUBJECT]);
     });
   });
@@ -431,7 +408,7 @@ describe('assetMetadataChannel', () => {
         webContents: {},
       };
       await (handlers as any)._resolver.resolve([SUBJECT]);
-      const updateChannel = mockChannels[1];
+      const updateChannel = mockChannels[0];
       expect(updateChannel.send).toHaveBeenCalledTimes(1);
       const [message] = updateChannel.send.mock.calls[0];
       expect(message.entries).toHaveLength(1);
@@ -448,7 +425,7 @@ describe('assetMetadataChannel', () => {
         webContents: {},
       };
       await (handlers as any)._resolver.resolve([SUBJECT]);
-      expect(mockChannels[1].send).not.toHaveBeenCalled();
+      expect(mockChannels[0].send).not.toHaveBeenCalled();
     });
   });
 
@@ -469,10 +446,8 @@ describe('assetMetadataChannel', () => {
         })
       );
       const response = await handlers.readImage({
-        requestId: 'i-1',
         subject: SUBJECT,
       });
-      expect(response.requestId).toBe('i-1');
       expect(response.status).toBe('present');
       expect(response.mediaType).toBe('image/png');
       expect(Buffer.from(response.bytes).equals(PNG)).toBe(true);
@@ -488,10 +463,9 @@ describe('assetMetadataChannel', () => {
         }))
       );
       const response = await handlers.readImage({
-        requestId: 'i-2',
         subject: SUBJECT,
       });
-      expect(response).toEqual({ requestId: 'i-2', status: 'absent' });
+      expect(response).toEqual({ status: 'absent' });
     });
 
     it('answers absent rather than rejecting when the transport fails', async () => {
@@ -500,10 +474,9 @@ describe('assetMetadataChannel', () => {
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
       const response = await handlers.readImage({
-        requestId: 'i-3',
         subject: SUBJECT,
       });
-      expect(response).toEqual({ requestId: 'i-3', status: 'absent' });
+      expect(response).toEqual({ status: 'absent' });
     });
 
     /**
@@ -529,26 +502,22 @@ describe('assetMetadataChannel', () => {
       );
 
       const beforeTheRow = await handlers.readImage({
-        requestId: 'i-4',
         subject: SUBJECT,
       });
       expect(beforeTheRow.status).toBe('absent');
 
       writeRow(SUBJECT);
       const cold = await handlers.readMetadata({
-        requestId: 'r-9',
         subjects: [SUBJECT],
       });
       expect(cold.entries[0].hasImage).toBe(false);
 
       const fetched = await handlers.readImage({
-        requestId: 'i-5',
         subject: SUBJECT,
       });
       expect(fetched.status).toBe('present');
 
       const warm = await handlers.readMetadata({
-        requestId: 'r-10',
         subjects: [SUBJECT],
       });
       expect(warm.entries[0].hasImage).toBe(true);
@@ -574,16 +543,13 @@ describe('assetMetadataChannel', () => {
       const handlers = handlersWith(
         stubTransport(async () => registryAnswer(SUBJECT))
       );
-      const response = await handlers.readMetadata({
-        requestId: 'r-shape',
-        subjects: [SUBJECT],
-      });
+      const response = await handlers.readMetadata({ subjects: [SUBJECT] });
       expect(response.entries[0].metadata).toBeNull();
     });
   });
 
   describe('answering when a collaborator throws', () => {
-    it('answers the request id with empty lists rather than rejecting', async () => {
+    it('answers with empty lists rather than rejecting', async () => {
       const handlers = handlersWith(
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
@@ -593,18 +559,14 @@ describe('assetMetadataChannel', () => {
         },
       };
 
-      const response = await handlers.readMetadata({
-        requestId: 'r-throw',
-        subjects: [SUBJECT],
-      });
+      const response = await handlers.readMetadata({ subjects: [SUBJECT] });
       expect(response).toEqual({
-        requestId: 'r-throw',
         entries: [],
         unresolved: [],
       });
     });
 
-    it('answers the request id with absent rather than rejecting an image read', async () => {
+    it('answers absent rather than rejecting an image read', async () => {
       const handlers = handlersWith(
         stubTransport(async () => ({ ok: false, reason: 'network' }))
       );
@@ -615,10 +577,9 @@ describe('assetMetadataChannel', () => {
       };
 
       const response = await handlers.readImage({
-        requestId: 'i-throw',
         subject: SUBJECT,
       });
-      expect(response).toEqual({ requestId: 'i-throw', status: 'absent' });
+      expect(response).toEqual({ status: 'absent' });
     });
   });
 
@@ -630,8 +591,8 @@ describe('assetMetadataChannel', () => {
       const second = module.handleAssetMetadataRequests(window, { database });
       expect(first).not.toBeNull();
       expect(second).toBeNull();
-      expect(mockChannels[0].onRequest).toHaveBeenCalledTimes(1);
-      expect(mockChannels[2].onRequest).toHaveBeenCalledTimes(1);
+      expect(mockConversations[0].onRequest).toHaveBeenCalledTimes(1);
+      expect(mockConversations[1].onRequest).toHaveBeenCalledTimes(1);
     });
   });
 });
