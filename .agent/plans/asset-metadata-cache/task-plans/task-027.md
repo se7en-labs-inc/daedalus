@@ -611,36 +611,50 @@ flicker or reload.
 
 ## Verification Plan
 
+**The signed checklist is withdrawn, 2026-09-17, by the project owner.** The grid,
+the signature line and the acceptance criteria that turned on them are struck.
+They asked for a list of behaviours to look at, not a form to fill in, and the
+protocol is now: the owner reviews the behaviours this plan describes and reports
+anything not working. Silence on a behaviour means it worked. What closes this
+task is the owner saying so, on a named build.
+
+The scenarios below are still the list of what to look at, and their expected
+results are still the reference for what correct looks like. Only the artifact
+changed.
+
+
 The checklist is the verification. It is filled in by the operator and is what
 makes the claim checkable afterwards by someone who was not there.
 
-```
-Asset metadata cache — manual QA
-Build:            ____________________   Date: ____________
-Operator:         ____________________
-
-                                    Linux    macOS    Windows
-1  Cold cache, offline               [  ]     [  ]     [  ]
-2  Resolving in place, online        [  ]     [  ]     [  ]
-3  Verified / unverified / unknown   [  ]     [  ]     [  ]
-4  Send form refuses a decimal       [  ]     [  ]     [  ]
-5  Migration notice, once            [  ]     [  ]     [  ]
-6  Cache directory deleted           [  ]     [  ]     [  ]
-7  Database path                     [  ]     [  ]     [  ]
-9  Logo in the row header            [  ]     [  ]     [  ]
-
-8  Selfnode reaches the mock         [  ]  (once, platform: __________ )
-
-Database path observed
-  Linux    ______________________________________________
-  macOS    ______________________________________________
-  Windows  ______________________________________________
-
-Defects opened (scenario number and issue reference)
-  ____________________________________________________________
-
-Signed: ____________________
-```
+> Withdrawn 2026-09-17. Kept for the record; do not fill in.
+>
+> ```
+> Asset metadata cache — manual QA
+> Build:            ____________________   Date: ____________
+> Operator:         ____________________
+>
+>                                     Linux    macOS    Windows
+> 1  Cold cache, offline               [  ]     [  ]     [  ]
+> 2  Resolving in place, online        [  ]     [  ]     [  ]
+> 3  Verified / unverified / unknown   [  ]     [  ]     [  ]
+> 4  Send form refuses a decimal       [  ]     [  ]     [  ]
+> 5  Migration notice, once            [  ]     [  ]     [  ]
+> 6  Cache directory deleted           [  ]     [  ]     [  ]
+> 7  Database path                     [  ]     [  ]     [  ]
+> 9  Logo in the row header            [  ]     [  ]     [  ]
+>
+> 8  Selfnode reaches the mock         [  ]  (once, platform: __________ )
+>
+> Database path observed
+>   Linux    ______________________________________________
+>   macOS    ______________________________________________
+>   Windows  ______________________________________________
+>
+> Defects opened (scenario number and issue reference)
+>   ____________________________________________________________
+>
+> Signed: ____________________
+> ```
 
 **Corrected 2026-09-17:** row 6 has no Windows column, row 8 is withdrawn, and
 item 7 of the corrections adds a scenario 10 that has no row here. Tick it
@@ -651,7 +665,7 @@ The corrected rows are at the end of the corrections section above.
 
 - **This task cannot be completed by an agent and must not be recorded as
   passing.** Its status in the task graph is `blocked`, with the reason stated,
-  until an operator returns a signed checklist.
+  until the project owner has reviewed the behaviours above.
 - **Scenario 5 needs the previous release**, which means an operator who can
   install two builds in sequence on each platform. It is the longest step and the
   one most likely to be skipped; it is also the only check of a notice that can
@@ -680,7 +694,7 @@ approved
 ## Build Status
 
 blocked — the procedure is complete and no step has been executed. An operator
-with Linux, macOS and Windows returns the signed checklist.
+with Linux, macOS and Windows has reviewed the behaviours above.
 
 ## Current Outcome
 

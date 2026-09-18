@@ -300,37 +300,51 @@ If selfnode removal stalls, this scenario comes back.
 
 ## Verification Plan
 
+**The signed checklist is withdrawn, 2026-09-17, by the project owner.** The grid,
+the signature line and the acceptance criteria that turned on them are struck.
+They asked for a list of behaviours to look at, not a form to fill in, and the
+protocol is now: the owner reviews the behaviours this plan describes and reports
+anything not working. Silence on a behaviour means it worked. What closes this
+task is the owner saying so, on a named build.
+
+The scenarios below are still the list of what to look at, and their expected
+results are still the reference for what correct looks like. Only the artifact
+changed.
+
+
 The checklist is the verification. It is filled in by the operator and is what
 makes the claim checkable afterward by someone who was not there.
 
-```
-Asset metadata source and chain channel — manual QA
-Build:            ____________________   Date: ____________
-Operator:         ____________________
-Network:          ____________________
-
-                                        Linux    macOS    Windows
-1  Preset selected on a fresh profile    [  ]     [  ]     [  ]
-2  Unavailable option visible, inert     [  ]     [  ]     [  ]
-3  Custom address accepted, no restart   [  ]     [  ]     [  ]
-4  Unreachable address refused           [  ]     [  ]     [  ]
-5  Behind address refused, differently   [  ]     [  ]     [  ]
-6  NFT: fingerprint, then CIP-25 name    [  ]     [  ]     [  ]
-7  Lying index writes no row             [  ]     [  ]     [  ]
-8  Offline with a populated cache        [  ]     [  ]     [  ]
-
-9  Fresh mint resolves late              [  ]  (once, platform: __________ )
-10 Selfnode has no instance              [  ]  (once, platform: __________ )
-
-Chain row observed in scenario 6
-  subject   ______________________________________________
-  source    ____________  decimals ________  verified ________
-
-Defects opened (scenario number and issue reference)
-  ____________________________________________________________
-
-Signed: ____________________
-```
+> Withdrawn 2026-09-17. Kept for the record; do not fill in.
+>
+> ```
+> Asset metadata source and chain channel — manual QA
+> Build:            ____________________   Date: ____________
+> Operator:         ____________________
+> Network:          ____________________
+>
+>                                         Linux    macOS    Windows
+> 1  Preset selected on a fresh profile    [  ]     [  ]     [  ]
+> 2  Unavailable option visible, inert     [  ]     [  ]     [  ]
+> 3  Custom address accepted, no restart   [  ]     [  ]     [  ]
+> 4  Unreachable address refused           [  ]     [  ]     [  ]
+> 5  Behind address refused, differently   [  ]     [  ]     [  ]
+> 6  NFT: fingerprint, then CIP-25 name    [  ]     [  ]     [  ]
+> 7  Lying index writes no row             [  ]     [  ]     [  ]
+> 8  Offline with a populated cache        [  ]     [  ]     [  ]
+>
+> 9  Fresh mint resolves late              [  ]  (once, platform: __________ )
+> 10 Selfnode has no instance              [  ]  (once, platform: __________ )
+>
+> Chain row observed in scenario 6
+>   subject   ______________________________________________
+>   source    ____________  decimals ________  verified ________
+>
+> Defects opened (scenario number and issue reference)
+>   ____________________________________________________________
+>
+> Signed: ____________________
+> ```
 
 **Corrected 2026-09-17:** the field labeled `verified` records the `attested`
 column. See the corrections section above.
@@ -339,7 +353,7 @@ column. See the corrections section above.
 
 - **This task cannot be completed by an agent and must not be recorded as
   passing.** Its status in the task graph is `blocked`, with the reason stated,
-  until an operator returns a signed checklist.
+  until the project owner has reviewed the behaviours above.
 - **Scenario 9 needs a mint and a wait.** It is the longest step and the one most
   likely to be skipped, and it is the only check of the behavior the PRD's open
   question 1 accepts as the common case for NFTs.
@@ -374,7 +388,7 @@ approved
 ## Build Status
 
 blocked — the procedure is complete and no step has been executed. An operator
-with Linux, macOS and Windows returns the signed checklist.
+with Linux, macOS and Windows has reviewed the behaviours above.
 
 ## Current Outcome
 
