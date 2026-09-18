@@ -4,6 +4,63 @@
   .searchContainer {
     margin: 0 20px 20px;
   }
+
+  /**
+   * The tint belongs to the colour and not to the element. `opacity` applies to
+   * the whole subtree, so eight percent here draws the notice text and the
+   * dismiss button at eight percent as well, which is a box with nothing in it
+   * rather than a faintly tinted panel.
+   */
+  .decimalPlacesNotice {
+    background-color: color-mix(
+      in srgb,
+      var(--theme-choice-tabs-text-color-active) 8%,
+      transparent
+    );
+    border-radius: 4px;
+    margin: 0 20px 20px;
+    padding: 16px 20px;
+  }
+
+  .decimalPlacesNoticeText {
+    color: var(--theme-transactions-list-group-date-color);
+    font-family: var(--font-regular);
+    font-size: 14px;
+    line-height: 1.43;
+    margin-bottom: 10px;
+  }
+
+  /**
+   * A filled, bordered control rather than an underlined run of text. The
+   * notice is itself a tinted panel, so underlined text inside one reads as
+   * emphasis in the prose above it; the affordance has to come from a shape the
+   * panel does not already have.
+   */
+  .decimalPlacesNoticeDismiss {
+    background-color: var(--theme-button-flat-background-color);
+    border: 1px solid var(--theme-button-flat-outline-color);
+    border-radius: 4px;
+    color: var(--theme-button-flat-text-color);
+    cursor: pointer;
+    font-family: var(--font-medium);
+    font-size: 14px;
+    line-height: 1.43;
+    padding: 7px 16px;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background-color: var(--theme-button-flat-background-color-hover);
+    }
+
+    &:active {
+      background-color: var(--theme-button-flat-background-color-active);
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--theme-button-flat-text-color);
+      outline-offset: 1px;
+    }
+  }
 }
 
 .syncing {

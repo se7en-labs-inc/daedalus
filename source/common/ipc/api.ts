@@ -67,6 +67,10 @@ import type {
   DRepAnchorPresence,
   DRepAnchorResult,
 } from '../types/governance.types';
+import type {
+  AssetMetadataEntry,
+  AssetUnresolvedSubject,
+} from '../types/asset-metadata.types';
 
 /**
  * ======================= IPC CHANNELS API =========================
@@ -541,3 +545,71 @@ export type ConfirmChainStorageMainResponse = void;
 export const GOVERNANCE_DREP_ANCHOR_CHANNEL = 'GOVERNANCE_DREP_ANCHOR_CHANNEL';
 export type GovernanceDRepAnchorRendererRequest = DRepAnchorPresence;
 export type GovernanceDRepAnchorMainResponse = DRepAnchorResult;
+
+/**
+ * ==================== ASSET METADATA IPC CHANNELS ====================
+ * Channels for the main-process asset metadata cache.
+ *
+ * The two read channels are conversations. `IpcChannel.request` waits on the
+ * channel's single response name with a one-shot listener
+ * (`lib/IpcChannel.ts:144-163`), and one emit on an EventEmitter fires every
+ * one-shot listener registered for that name, hands each the same payload and
+ * unregisters all of them. N concurrent requests are therefore answered once,
+ * with one payload, and the N-1 responses that follow reach nobody.
+ * `IpcConversation` puts an id on the wire, ignores a message that does not
+ * carry its own, and removes only its own listener (`lib/IpcConversation.ts:65-96`).
+ *
+ * Both of these channels are concurrent by construction: a token list asks for
+ * one logo per row at once, and a per-asset refresh overlaps with the bulk read
+ * the rendered subjects trigger. Correlation lives in the transport, so a
+ * request here carries only what it asks about and a response only its answer.
+ * =====================================================================
+ */
+
+// Renderer asks for the rows the cache holds right now. It never waits on the
+// network: a subject with no row comes back under `unresolved` and resolution
+// for it is scheduled.
+export const ASSET_METADATA_CHANNEL = 'ASSET_METADATA_CHANNEL';
+export type AssetMetadataRendererRequest = {
+  subjects: Array<string>;
+  // A read the refresh window and the retry backoff do not apply to, for a user
+  // who knows an issuer published something today. Still a read: it answers from
+  // the cache and schedules the fetch behind the answer.
+  refresh?: boolean;
+  // Where on-chain metadata pointers are read from, as the user selected it.
+  // The setting lives in the renderer, per profile, and the client that uses it
+  // lives in the main process, so it travels with every read rather than being
+  // pushed on its own channel and kept in step.
+  sourceUrl?: string | null;
+  // The renderer observed the machine come back online. An observation and not
+  // an instruction: the renderer cannot know which subjects are waiting out a
+  // backoff or why, so it reports the event and the main process decides what,
+  // if anything, it changes. Sent with no subjects.
+  connectivityRestored?: boolean;
+};
+export type AssetMetadataMainResponse = {
+  entries: Array<AssetMetadataEntry>;
+  unresolved: Array<AssetUnresolvedSubject>;
+};
+
+// Push: main -> renderer as rows resolve. Unsolicited, so it answers no request
+// and carries no id.
+export const ASSET_METADATA_UPDATE_CHANNEL = 'ASSET_METADATA_UPDATE_CHANNEL';
+export type AssetMetadataUpdateMainRequest = {
+  entries: Array<AssetMetadataEntry>;
+};
+export type AssetMetadataUpdateRendererResponse = void;
+
+// One subject per request, which is what keeps logos off the path of every
+// other read.
+export const ASSET_IMAGE_CHANNEL = 'ASSET_IMAGE_CHANNEL';
+export type AssetImageRendererRequest = {
+  subject: string;
+};
+export type AssetImageMainResponse =
+  | { status: 'absent' }
+  | {
+      status: 'present';
+      mediaType: string;
+      bytes: Uint8Array;
+    };

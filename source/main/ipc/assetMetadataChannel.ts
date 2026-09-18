@@ -1,0 +1,322 @@
+import type { BrowserWindow } from 'electron';
+import { MainIpcChannel } from './lib/MainIpcChannel';
+import { MainIpcConversation } from './lib/MainIpcConversation';
+import {
+  ASSET_IMAGE_CHANNEL,
+  ASSET_METADATA_CHANNEL,
+  ASSET_METADATA_UPDATE_CHANNEL,
+} from '../../common/ipc/api';
+import type {
+  AssetImageMainResponse,
+  AssetImageRendererRequest,
+  AssetMetadataMainResponse,
+  AssetMetadataRendererRequest,
+  AssetMetadataUpdateMainRequest,
+  AssetMetadataUpdateRendererResponse,
+} from '../../common/ipc/api';
+import type {
+  AssetMetadataEntry,
+  AssetUnresolvedSubject,
+} from '../../common/types/asset-metadata.types';
+import {
+  AssetMetadataDatabase,
+  openAssetMetadataDatabase,
+} from '../assets/assetMetadataDb';
+import type { AssetMetadataRow } from '../assets/assetMetadataDb';
+import { AssetMetadataResolver } from '../assets/assetMetadataResolver';
+import { AssetImageStore } from '../assets/assetImageStore';
+import type { RegistryTransport } from '../assets/assetRegistryClient';
+import { logger } from '../utils/logging';
+// TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves draft.
+import { assetLogger } from '../utils/assetLogging';
+
+/**
+ * Both read channels are conversations, because both of them are asked more
+ * than once at a time. `IpcChannel` answers whichever request is waiting rather
+ * than the one that asked, and an EventEmitter drains every one-shot listener
+ * on the first response, so the requests that follow are never answered at all.
+ */
+const assetMetadataChannel: MainIpcConversation<
+  AssetMetadataRendererRequest,
+  AssetMetadataMainResponse
+> = new MainIpcConversation(ASSET_METADATA_CHANNEL);
+
+const assetMetadataUpdateChannel: MainIpcChannel<
+  AssetMetadataUpdateRendererResponse,
+  AssetMetadataUpdateMainRequest
+> = new MainIpcChannel(ASSET_METADATA_UPDATE_CHANNEL);
+
+const assetImageChannel: MainIpcConversation<
+  AssetImageRendererRequest,
+  AssetImageMainResponse
+> = new MainIpcConversation(ASSET_IMAGE_CHANNEL);
+
+export type AssetMetadataChannelOptions = {
+  window?: BrowserWindow;
+  database?: AssetMetadataDatabase;
+  transport?: RegistryTransport;
+  endpoint?: string | null;
+  /**
+   * The immutable database the chain channel confirms pointers against.
+   *
+   * Supplied by the caller rather than resolved here. Reading it means reading
+   * an electron-store key, and `electron-store` requires the Electron binary at
+   * import time, which is not present in the check sandbox. Keeping that import
+   * out of this module is what lets the handlers be built in a spec.
+   *
+   * Absent disables the chain channel, which is the right behaviour for a
+   * profile with no chain on disk.
+   */
+  immutableDirectory?: string | null;
+};
+
+/**
+ * The stored column is TEXT holding JSON and the entry carries an object.
+ * Anything that does not parse to one becomes null: a handler is not the place
+ * to discover that a column holds something unexpected.
+ */
+const parsedMetadata = (
+  value: string | null
+): Record<string, unknown> | null => {
+  if (typeof value !== 'string' || value.length === 0) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * A chain row's metadata column holds the record the minter published beside
+ * one field of the resolver's own bookkeeping, the policy-closure verdict that
+ * decides whether the row is ever re-read. The renderer gets the record and not
+ * the bookkeeping, which keeps the wire shape the same for both channels and
+ * keeps a minter-chosen key from ever colliding with one of ours.
+ */
+const entryMetadata = (
+  row: AssetMetadataRow
+): Record<string, unknown> | null => {
+  const parsed = parsedMetadata(row.metadata);
+  if (row.source !== 'chain') return parsed;
+  const record = parsed?.record;
+  return record && typeof record === 'object' && !Array.isArray(record)
+    ? (record as Record<string, unknown>)
+    : null;
+};
+
+const toEntry = (
+  row: AssetMetadataRow,
+  withImage: Set<string>
+): AssetMetadataEntry => ({
+  subject: row.subject,
+  policyId: row.policyId,
+  assetName: row.assetName,
+  ticker: row.ticker,
+  name: row.name,
+  decimals: row.decimals,
+  attested: row.attested,
+  source: row.source,
+  hasImage: withImage.has(row.subject),
+  metadata: entryMetadata(row),
+});
+
+/**
+ * One bound parameter per subject and one map entry per subject, and the caller
+ * is thirty components each naming the assets it is about to draw. Duplicates
+ * collapse and anything that is not a subject is dropped here rather than in
+ * the database.
+ */
+const cleanSubjects = (subjects: unknown): Array<string> => {
+  if (!Array.isArray(subjects)) return [];
+  const seen = new Set<string>();
+  subjects.forEach((subject) => {
+    if (typeof subject === 'string' && subject.length > 0) seen.add(subject);
+  });
+  return Array.from(seen);
+};
+
+export class AssetMetadataChannelHandlers {
+  private _window?: BrowserWindow;
+
+  private _database: AssetMetadataDatabase;
+
+  private _resolver: AssetMetadataResolver;
+
+  private _images: AssetImageStore;
+
+  constructor(options: AssetMetadataChannelOptions = {}) {
+    this._window = options.window;
+    // One handle, two consumers. Letting the resolver and the image store each
+    // default to their own would open the same file twice from one process.
+    this._database = options.database ?? openAssetMetadataDatabase();
+    this._resolver = new AssetMetadataResolver({
+      database: this._database,
+      transport: options.transport,
+      endpoint: options.endpoint,
+      immutableDirectory: options.immutableDirectory ?? null,
+      onResolved: (rows) => this.push(rows),
+    });
+    this._images = new AssetImageStore({
+      database: this._database,
+      transport: options.transport,
+      endpoint: options.endpoint,
+    });
+  }
+
+  /**
+   * Answers from what the cache holds now and schedules resolution for what it
+   * lacks. Nothing here awaits the registry: `request` reads the database and
+   * queues the fetch behind the answer.
+   */
+  readMetadata = async (
+    request: AssetMetadataRendererRequest
+  ): Promise<AssetMetadataMainResponse> => {
+    const subjects = cleanSubjects(request?.subjects);
+    try {
+      // The pointer source is the renderer's setting and the client that reads
+      // it is here, so it travels with the request rather than on a channel of
+      // its own that would have to be kept in step.
+      this._resolver.setPointerSourceUrl(
+        typeof request?.sourceUrl === 'string' ? request.sourceUrl : null
+      );
+      // After the pointer source is set, so a retry uses the current setting,
+      // and before the read, so a subject this request also names is claimed
+      // once rather than twice.
+      if (request?.connectivityRestored === true) {
+        this._resolver.retryTransientFailures();
+      }
+      const rows = this._resolver.request(subjects, {
+        force: request?.refresh === true,
+      });
+      const withImage = new Set(
+        this._database.readImageSubjects(rows.map((row) => row.subject))
+      );
+      return {
+        entries: rows.map((row) => toEntry(row, withImage)),
+        unresolved: this._unresolved(subjects, rows),
+      };
+    } catch (error) {
+      // A handler that rejects gives the renderer a response it cannot attribute
+      // to a request, which is worse than an empty answer.
+      logger.warn('Asset metadata IPC: read failed', {
+        reason: error instanceof Error ? error.message : 'unknown',
+        subjectCount: subjects.length,
+      });
+      return { entries: [], unresolved: [] };
+    }
+  };
+
+  /**
+   * One subject, and the only call in this module that may wait. A logo that
+   * takes the full timeout delays a picture and never a row, a name or an
+   * amount, which is the reason the channel is separate.
+   */
+  readImage = async (
+    request: AssetImageRendererRequest
+  ): Promise<AssetImageMainResponse> => {
+    const subject = request?.subject;
+    // TEMPORARY DIAGNOSTIC INSTRUMENTATION. Revert before this work leaves
+    // draft. Both ends of this handler are recorded against the subject, which
+    // is what the renderer logs its own two ends against, so a request answered
+    // here whose response never reached the renderer can be told apart from a
+    // request that was never answered. The subject identifies the request on its
+    // own: the renderer memoises per subject and so has at most one in flight
+    // for each.
+    assetLogger.debug('Asset image IPC: request received', { subject });
+    try {
+      const row = await this._images.fetch(subject);
+      if (!row) {
+        assetLogger.debug('Asset image IPC: response sent', {
+          subject,
+          status: 'absent',
+          byteLength: 0,
+        });
+        return { status: 'absent' };
+      }
+      assetLogger.debug('Asset image IPC: response sent', {
+        subject,
+        status: 'present',
+        byteLength: row.bytes.length,
+        mediaType: row.mediaType,
+      });
+      return {
+        status: 'present',
+        mediaType: row.mediaType,
+        bytes: row.bytes,
+      };
+    } catch (error) {
+      logger.debug('Asset metadata IPC: image read failed', {
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+      assetLogger.warn('Asset image IPC: response sent', {
+        subject,
+        status: 'absent',
+        byteLength: 0,
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+      return { status: 'absent' };
+    }
+  };
+
+  /** Rows the resolver has just written, pushed without anyone asking again. */
+  push = (rows: Array<AssetMetadataRow>): void => {
+    const window = this._window;
+    if (!window || window.isDestroyed()) return;
+    const withImage = new Set(
+      this._database.readImageSubjects(rows.map((row) => row.subject))
+    );
+    assetMetadataUpdateChannel
+      .send(
+        { entries: rows.map((row) => toEntry(row, withImage)) },
+        window.webContents
+      )
+      .catch(() => {
+        // The renderer answers every push; a window that went away mid-flight
+        // is not a failure worth reporting.
+      });
+  };
+
+  private _unresolved(
+    subjects: Array<string>,
+    rows: Array<AssetMetadataRow>
+  ): Array<AssetUnresolvedSubject> {
+    const resolved = new Set(rows.map((row) => row.subject));
+    const missing = subjects.filter((subject) => !resolved.has(subject));
+    if (missing.length === 0) return [];
+    const states = new Map(
+      this._database
+        .readResolutions(missing)
+        .map((row) => [row.subject, row.state])
+    );
+    // No resolution row means nothing has looked yet, and this request has just
+    // scheduled it, so `pending` is true by the time the response is sent.
+    return missing.map((subject) => ({
+      subject,
+      state: states.get(subject) ?? 'pending',
+    }));
+  }
+}
+
+let registered = false;
+
+/**
+ * Registering twice would answer one request with two responses. The second
+ * carries the same conversation id as the first and arrives after the listener
+ * that wanted it has removed itself, so it reaches nobody; the work behind it
+ * is done twice for nothing.
+ */
+export const handleAssetMetadataRequests = (
+  window: BrowserWindow,
+  options: AssetMetadataChannelOptions = {}
+): AssetMetadataChannelHandlers | null => {
+  if (registered) return null;
+  registered = true;
+  const handlers = new AssetMetadataChannelHandlers({ window, ...options });
+  assetMetadataChannel.onRequest(handlers.readMetadata);
+  assetImageChannel.onRequest(handlers.readImage);
+  return handlers;
+};

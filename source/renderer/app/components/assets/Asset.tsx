@@ -5,7 +5,8 @@ import { PopOver } from 'react-polymorph/lib/components/PopOver';
 import { defineMessages, intlShape } from 'react-intl';
 import { observer } from 'mobx-react';
 import styles from './Asset.scss';
-import { ellipsis, hexToString } from '../../utils/strings';
+import { ellipsis } from '../../utils/strings';
+import { isOnChainAssetName, resolveAssetName } from '../../utils/assetName';
 import AssetContent from './AssetContent';
 import settingsIcon from '../../assets/images/asset-token-settings-ic.inline.svg';
 import warningIcon from '../../assets/images/asset-token-warning-ic.inline.svg';
@@ -65,6 +66,13 @@ const messages = defineMessages({
     defaultMessage:
       '!!!You are not using the recommended decimal place configuration for this native token.',
     description: 'Asset settings recommended pop over content',
+  },
+  onChainName: {
+    id: 'assets.assetToken.onChainName',
+    defaultMessage:
+      '!!!This name is decoded from the asset name chosen by whoever minted this token. No issuer published it, and it does not identify the token. The fingerprint does.',
+    description:
+      'Accessible label on an asset name decoded from the asset name bytes rather than published by an issuer.',
   },
 });
 type Props = {
@@ -171,11 +179,21 @@ class Asset extends Component<Props, State> {
       hasWarning,
       hasError,
     } = this.props;
-    const { fingerprint, metadata, decimals, recommendedDecimals, assetName } =
-      asset;
-    const hasMetadataName = !!metadata?.name;
-    const name =
-      metadata?.name || (assetName && `ASCII: ${hexToString(assetName)}`) || '';
+    const {
+      fingerprint,
+      metadata,
+      decimals,
+      recommendedDecimals,
+      assetName,
+      source,
+    } = asset;
+    const resolvedName = resolveAssetName({
+      assetName,
+      metadata,
+      source,
+    });
+    const isOnChainName = isOnChainAssetName(resolvedName);
+    const name = resolvedName?.name || '';
 
     const displayName = metadataNameChars
       ? ellipsis(name, metadataNameChars)
@@ -203,11 +221,16 @@ class Asset extends Component<Props, State> {
         </div>
         {displayName && (
           <div
-            data-testid="assetName"
+            data-testid={isOnChainName ? 'assetNameOnChain' : 'assetName'}
             className={classnames(
               styles.metadataName,
-              !hasMetadataName && styles.ascii
+              isOnChainName && styles.onChainName
             )}
+            aria-label={
+              isOnChainName
+                ? intl.formatMessage(messages.onChainName)
+                : undefined
+            }
           >
             {displayName}
           </div>
